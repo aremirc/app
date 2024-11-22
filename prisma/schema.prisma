@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Cambiar a otro proveedor si es necesario
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  dni          String         @id // DNI como identificador único
+  username     String         @unique
+  email        String         @unique
+  password     String
+  roleId       Int // Suponiendo que tienes un campo `roleId` que hace referencia al rol del usuario
+  role         Role           @relation("UserRole", fields: [roleId], references: [id]) // Nombre explícito de la relación
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  orders       Order[] // Relación con órdenes
+  visits       Visit[] // Relación con visitas
+  availability Availability[] // Relación con la disponibilidad del usuario
+
+  // Funcionalidad de permisos por rol
+  @@index([roleId]) // El índice hace referencia al campo escalar `roleId` en lugar del campo de relación `role`
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  permissions String[] // Lista de permisos para el rol (por ejemplo, "create_order", "assign_worker")
+  users       User[]   @relation("UserRole") // Nombre explícito de la relación para evitar ambigüedad
+}
+
+model Client {
+  dni       String   @id // DNI como identificador único
+  name      String
+  email     String   @unique
+  phone     String?
+  address   String?
+  orders    Order[] // Relación con órdenes de servicio
+  visits    Visit[] // Relación con visitas realizadas
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  description String
+  status      OrderStatus
+  statusDetails String?  // Detalles adicionales sobre el estado de la orden
+  clientId    String
+  client      Client      @relation(fields: [clientId], references: [dni])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  workers     OrderWorker[] // Relación muchos a muchos con trabajadores
+
+  visits      Visit[]     // Relación con visitas realizadas para esta orden
+  services    Service[]   // Relación con servicios utilizados en esta orden
+
+  userId      String?     // Asegúrate de que este campo haga referencia a un Usuario
+  user        User?       @relation(fields: [userId], references: [dni]) // Relación con el usuario que gestionó la orden
+  Conformity  Conformity[]
+}
+
+model Visit {
+  id          Int      @id @default(autoincrement())
+  date        DateTime // Fecha y hora de la visita
+  description String // Descripción de la visita (trabajo realizado, incidentes, etc.)
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  workerId    String
+  worker      Worker   @relation(fields: [workerId], references: [dni])
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [dni]) // Relación con el cliente
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  User      User?    @relation(fields: [userDni], references: [dni])
+  userDni   String?
+}
+
+model Worker {
+  dni       String  @id // DNI como identificador único
+  firstName String
+  lastName  String
+  email     String  @unique
+  phone     String?
+  orders     OrderWorker[] // Relación muchos a muchos con órdenes a través de la tabla intermedia
+  visits    Visit[] // Relación con visitas realizadas
+}
+
+model Service {
+  id          Int     @id @default(autoincrement())
+  name        String // Nombre del servicio (ej. "Instalación eléctrica", "Mantenimiento HVAC")
+  description String? // Descripción detallada del servicio
+  price       Float // Precio del servicio
+  orders      Order[] // Relación con órdenes en las que se ha utilizado este servicio
+}
+
+model Availability {
+  id        Int      @id @default(autoincrement())
+  dni       String // DNI del usuario al que pertenece la disponibilidad
+  user      User     @relation(fields: [dni], references: [dni])
+  startDate DateTime // Fecha de inicio de la disponibilidad
+  endDate   DateTime // Fecha de fin de la disponibilidad
+}
+
+model Conformity {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  description String // Descripción de la conformidad
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrderWorker {
+  orderId  Int
+  order    Order  @relation(fields: [orderId], references: [id])
+
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [dni])
+
+  @@id([orderId, workerId]) // Llave primaria compuesta para evitar duplicados
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
