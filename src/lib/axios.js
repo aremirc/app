@@ -16,7 +16,7 @@ if (!baseURL) {
 // Crear una instancia de Axios con la configuración base
 const api = axios.create({
   baseURL: axios.defaults.baseURL, // La URL base de tu API
-  timeout: 5000, // Definir un tiempo de espera para la solicitud (en milisegundos)
+  timeout: 7000, // Definir un tiempo de espera para la solicitud (en milisegundos)
 });
 
 // Función para manejar la expiración de la sesión

@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
       setError(null); // Limpiar errores previos
       router.push('/');
     } catch (error) {
-      setError('Error en el inicio de sesión: ' + error.response?.data?.error || error.request || error.message);
+      setError('Error en el inicio de sesión: ' + error.response?.data?.error || error.message || error.request);
 
       if (error.response) {
         // La solicitud fue realizada y el servidor respondió con un código de estado fuera del rango 2xx

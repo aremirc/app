@@ -132,8 +132,10 @@ const Sidebar = () => {
             </Link>
           </div>
 
-          <h2 className="text-xl font-bold text-text-light dark:text-primary-dark mb-4">Navegación</h2>
-          <NavBar itemNav={itemNav} />
+          <div className="px-3">
+            <h2 className="text-xl font-bold text-text-light dark:text-primary-dark mb-4">Navegación</h2>
+            <NavBar itemNav={itemNav} />
+          </div>
 
           {user.role === 'Admin' && (
             <div className="flex flex-col gap-3 bg-primary dark:bg-primary-dark rounded-lg p-4 mt-5">

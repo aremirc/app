@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { io } from "socket.io-client";
+import { useSocket } from "@/context/SocketContext";
 import api from "@/lib/axios";
 import Input from "../atoms/Input";
 import Button from "../atoms/Button";
@@ -10,10 +9,8 @@ import VisitCard from "../molecules/VisitCard";
 import Table from "../molecules/Table";
 import Card from "../molecules/Card";
 
-const socket = io('http://localhost:3000') // Conectar al servidor WebSocket
-
 const VisitPanel = () => {
-  const { logout } = useAuth()
+  const socket = useSocket();  // Acceder al socket desde el contexto
   const [visits, setVisits] = useState([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState(null);
@@ -30,9 +27,6 @@ const VisitPanel = () => {
       } catch (error) {
         console.error('Error al obtener las visitas:', error);
         setError('Hubo un error al cargar las visitas.');
-        if (error.response && error.response.status === 401) {
-          logout()
-        }
       } finally {
         setLoading(false);
       }
@@ -40,23 +34,25 @@ const VisitPanel = () => {
 
     fetchVisits();
 
-    socket.on('connect', () => {
-      console.log('Conectado al WebSocket');  // Intentar conectar al socket
-    });
+    if (socket) {
+      socket.on('connect', () => {
+        console.log('Conectado al WebSocket');  // Intentar conectar al socket
+      });
 
-    socket.on('new-visit', (newVisit) => {
-      setVisits((prevVisits) => [newVisit, ...prevVisits]);  // Escuchar eventos de WebSocket para nuevas visitas
-    });
+      socket.on('new-visit', (newVisit) => {
+        setVisits((prevVisits) => [newVisit, ...prevVisits]);  // Escuchar eventos de WebSocket para nuevas visitas
+      });
 
-    socket.on('connect_error', (error) => {
-      console.error('Error en la conexión WebSocket:', error);
-    });
+      socket.on('connect_error', (error) => {
+        console.error('Error en la conexión WebSocket:', error);
+      });
 
-    return () => {
-      socket.off('new-visit');  // Limpiar el socket al desmontar el componente
-      socket.disconnect();  // Desconectar al desmontar
-    };
-  }, []);
+      return () => {
+        socket.off('new-visit');  // Limpiar el socket al desmontar el componente
+        socket.disconnect();  // Desconectar al desmontar
+      };
+    }
+  }, [socket]);
 
   const handleDelete = async (id) => {
     try {
