@@ -34,12 +34,12 @@ import { verifyJWT } from '../login/route';
 import { rateLimit } from '@/lib/rateLimiter';
 import prisma from '@/lib/prisma';
 
-// Función para verificar JWT y aplicar Rate Limiting
-async function verifyAndLimit(req) {
+// Función para verificar JWT, el rol y aplicar Rate Limiting
+async function verifyAndLimit(req, requiredRole = null) {
   // Verificar el token JWT
   const user = await verifyJWT(req);
   if (user instanceof Response) {
-    return user; // Si hay un error con el token, devolvemos la respuesta de error
+    return user; // Si hay un error con el token, devolver respuesta de error // Si el token es inválido, retornar error 401
   }
 
   // Aplicar Rate Limiting
@@ -48,12 +48,24 @@ async function verifyAndLimit(req) {
     return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
   }
 
+  // Verificar rol si se requiere un rol específico
+  if (requiredRole) {
+    const userRole = await prisma.role.findUnique({
+      where: { id: user.roleId },
+    });
+    if (!userRole || userRole.name !== requiredRole) {
+      return new Response(JSON.stringify({ error: `No tienes permisos para realizar esta acción` }), {
+        status: 403, // Forbidden
+      });
+    }
+  }
+
   return null; // Si todo es correcto, no se retorna nada
 }
 
 // Obtener todos los usuarios
 export async function GET(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, 'Admin');
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -75,30 +87,14 @@ export async function GET(req) {
   }
 }
 
-// Crear un nuevo usuario
+// Crear un nuevo usuario (requiere rol "Admin")
 export async function POST(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, 'Admin');
   if (authResponse) {
-    return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
+    return authResponse; // Si hay un error de autenticación o limitación, devolver respuesta correspondiente
   }
 
-  try {
-    // Verificar el token JWT antes de proceder
-    const user = await verifyJWT(req);
-    if (user instanceof Response) {
-      return user; // Si el token es inválido, retornar error 401
-    }
-
-    // Verificar si el usuario tiene el rol adecuado (por ejemplo, "Admin")
-    const userRole = await prisma.role.findUnique({
-      where: { id: user.roleId },
-    });
-    if (!userRole || userRole.name !== "Admin") {
-      return new Response(JSON.stringify({ error: 'No tienes permisos para crear un usuario' }), {
-        status: 403, // Forbidden
-      });
-    }
-
+  try {    
     // Leer el cuerpo de la solicitud
     const { dni, username, email, password, roleId } = await req.json();
 
@@ -191,11 +187,11 @@ export async function POST(req) {
   }
 }
 
-// Actualizar un usuario existente
+// Actualizar un usuario (requiere rol "Admin")
 export async function PUT(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, 'Admin');
   if (authResponse) {
-    return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
+    return authResponse; // Si no tiene permisos, devolver error 403
   }
 
   try {
@@ -285,11 +281,11 @@ export async function PUT(req) {
   }
 }
 
-// Eliminar un usuario
+// Eliminar un usuario (requiere rol "Admin")
 export async function DELETE(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, 'Admin');
   if (authResponse) {
-    return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
+    return authResponse; // Si no tiene permisos, devolver error 403
   }
 
   try {
