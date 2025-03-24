@@ -124,8 +124,8 @@ export async function POST(req) {
     });
 
     // Responder con los datos del nuevo cliente (sin el DNI, por razones de privacidad)
-    // const { dni: _, ...clientData } = newClient;
-    return new Response(JSON.stringify(clientData), {
+    // const { dni: _, ...newClient } = newClient;
+    return new Response(JSON.stringify(newClient), {
       status: 201, // Creado con éxito
       headers: { 'Content-Type': 'application/json' },
     });

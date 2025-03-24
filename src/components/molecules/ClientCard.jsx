@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Input from "../atoms/Input";
 import Button from "../atoms/Button";
-import { toast } from "sonner";
-import api from "@/lib/axios";  // Asegúrate de importar correctamente tu cliente API
+import { useClients } from "@/hooks/useClients";
+
+// Esquema de validación con Zod
+const clientSchema = z.object({
+  dni: z.string().min(1, "El DNI es obligatorio").length(8, "El DNI debe tener 8 dígitos numéricos"),
+  name: z.string().min(1, "El nombre es obligatorio"),
+  email: z.string().email("Correo electrónico inválido"),
+  phone: z.string().min(1, "El teléfono es obligatorio"),
+  address: z.string().min(1, "La dirección es obligatoria"),
+});
 
 const defaultValues = {
   dni: "",
@@ -12,130 +22,113 @@ const defaultValues = {
   address: "",
 };
 
-const ClientCard = ({ client, handleAddClient, setIsModalOpen, handleCancel }) => {
-  const [newClient, setNewClient] = useState(client ? client : defaultValues);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const ClientCard = ({ client, handleCancel }) => {
+  const { addClientMutation, updateClientMutation } = useClients();
 
-  // Función para validar el correo electrónico
-  const isValidEmail = (email) => {
-    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return regex.test(email);
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, reset, setValue } = useForm({
+    resolver: zodResolver(clientSchema),
+    defaultValues: client || defaultValues,
+    mode: "onBlur",
+  });
+  
+  const onSubmit = (data) => {
+    if (client) {
+      updateClientMutation.mutateAsync(data);
+    } else {
+      addClientMutation.mutateAsync(data);
+    }
+    handleCancel()
   };
-
-  const isValidDNI = (dni) => /^\d{8}$/.test(dni);  // Validación simple para DNI (8 dígitos numéricos)
-
-  const addClient = async () => {
-    const response = await api.post("/api/clients", newClient);
-    handleAddClient(response.data);  // Actualiza el estado global
-    setNewClient(defaultValues);  // Limpiar el formulario
-    toast.success("Cliente agregado con éxito", {
-      className: "dark:border-none dark:bg-primary-dark",
-    });
-  }
-
-  const editClient = async () => {
-    const response = await api.put("/api/clients", newClient);
-    handleAddClient(response.data);  // Actualiza el estado global
-
-    toast.success('Cambios guardados correctamente.', { className: 'dark:border-none dark:bg-primary-dark' })
-    handleCancel() // Cerramos modal y vaciomos la variable 'order'
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Validar que todos los campos estén completos y que el email y DNI sean válidos
-    if (!newClient.dni || !newClient.name || !newClient.email || !newClient.phone || !newClient.address) {
-      toast.error("Por favor, completa todos los campos.");
-      return;
-    }
-
-    if (!isValidEmail(newClient.email)) {
-      toast.error("Por favor, ingresa un correo electrónico válido.");
-      return;
-    }
-
-    if (!isValidDNI(newClient.dni)) {
-      toast.error("Por favor, ingresa un DNI válido.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      { client ? editClient() : addClient() }
-    } catch (error) {
-      toast.error("Hubo un problema al agregar el cliente", {
-        description: error.response?.data?.error || error.message || "Ocurrió un error inesperado.",
-      });
-    } finally {
-      setIsSubmitting(false);  // Asegurarse de que el botón vuelva a su estado original
-    }
-  };
-
-  const isFormValid =
-    newClient.dni.trim() !== "" &&
-    newClient.name.trim() !== "" &&
-    newClient.email.trim() !== "" &&
-    newClient.phone.trim() !== "" &&
-    newClient.address.trim() !== "" &&
-    isValidEmail(newClient.email) &&
-    isValidDNI(newClient.dni);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
-        <h3 className="text-lg font-semibold mb-4">{client ? 'Modificar Cliente' : 'Agregar Nuevo Cliente'}</h3>
+      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        <h3 className="text-lg font-semibold mb-4">{client ? "Modificar Cliente" : "Agregar Nuevo Cliente"}</h3>
 
-        <Input
-          type="text"
-          value={newClient.dni}
-          onChange={(e) => setNewClient({ ...newClient, dni: e.target.value })}
-          placeholder="DNI"
-          className="mb-4"
-          disabled={client}
+        {/* DNI */}
+        <Controller
+          name="dni"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="text"
+              placeholder="DNI"
+              className={`mb-4 ${errors.dni ? 'border-red-500' : ''}`}
+              disabled={client} // Deshabilitar si es una edición
+            />
+          )}
         />
+        {errors.dni && <p className="text-red-500 text-sm">{errors.dni.message}</p>}
 
-        <Input
-          type="text"
-          value={newClient.name}
-          onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-          placeholder="Nombre"
-          className="mb-4"
+        {/* Nombre */}
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="text"
+              placeholder="Nombre"
+              className={`mb-4 ${errors.name ? 'border-red-500' : ''}`}
+            />
+          )}
         />
+        {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
 
-        <Input
-          type="email"
-          value={newClient.email}
-          onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-          placeholder="Correo electrónico"
-          className="mb-4"
+        {/* Correo electrónico */}
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="email"
+              placeholder="Correo electrónico"
+              className={`mb-4 ${errors.email ? 'border-red-500' : ''}`}
+            />
+          )}
         />
+        {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
 
-        <Input
-          type="text"
-          value={newClient.phone}
-          onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-          placeholder="Teléfono"
-          className="mb-4"
+        {/* Teléfono */}
+        <Controller
+          name="phone"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="text"
+              placeholder="Teléfono"
+              className={`mb-4 ${errors.phone ? 'border-red-500' : ''}`}
+            />
+          )}
         />
+        {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
 
-        <Input
-          type="text"
-          value={newClient.address}
-          onChange={(e) => setNewClient({ ...newClient, address: e.target.value })}
-          placeholder="Dirección"
-          className="mb-4"
+        {/* Dirección */}
+        <Controller
+          name="address"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="text"
+              placeholder="Dirección"
+              className={`mb-4 ${errors.address ? 'border-red-500' : ''}`}
+            />
+          )}
         />
+        {errors.address && <p className="text-red-500 text-sm">{errors.address.message}</p>}
 
         <div className="flex justify-end space-x-2">
           <Button onClick={handleCancel}>Cancelar</Button>
           <Button
             type="submit"
             className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-            disabled={!isFormValid || isSubmitting} // Deshabilitar el botón si el formulario no es válido
+            disabled={!isValid || isSubmitting} // Deshabilitar el botón si el formulario no es válido
           >
-            {client ? (isSubmitting ? "Guardando..." : "Guardar") : (isSubmitting ? "Agregando..." : "Agregar")}
+            {isSubmitting ? (client ? "Guardando..." : "Agregando...") : (client ? "Guardar" : "Agregar")}
           </Button>
         </div>
       </form>

@@ -1,89 +1,58 @@
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { useSocket } from "@/context/SocketContext";
-import api from "@/lib/axios";
+import { useState } from "react";
+import { useVisits } from "@/hooks/useVisits";  // Importamos el hook
 import Input from "../atoms/Input";
 import Button from "../atoms/Button";
-import DashboardGrid from "../templates/DashboardGrid";
-import VisitCard from "../molecules/VisitCard";
 import Table from "../molecules/Table";
 import Card from "../molecules/Card";
+import DashboardGrid from "../templates/DashboardGrid";
+import VisitCard from "../molecules/VisitCard";
+import { useDebounce } from "@/hooks/useDebounce";
+import useRealTimeUpdates from "@/hooks/useRealTimeUpdates";  // Hook para WebSocket
 
 const VisitPanel = () => {
-  const socket = useSocket();  // Acceder al socket desde el contexto
-  const [visits, setVisits] = useState([]);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
+  const { visits, error, isLoading, deleteVisitMutation } = useVisits();
 
-  useEffect(() => {
-    const fetchVisits = async () => {
-      try {
-        const response = await api.get("/api/visits")
-        setVisits(response.data)
-        setError(null)
-      } catch (error) {
-        console.error('Error al obtener las visitas:', error);
-        setError('Hubo un error al cargar las visitas.');
-      } finally {
-        setLoading(false);
-      }
-    }
+  // Llamar al hook de WebSocket para recibir actualizaciones en tiempo real
+  useRealTimeUpdates();  // Aquí es donde se maneja la lógica WebSocket
 
-    fetchVisits();
+  const handleDelete = (id) => {
+    const visitToDelete = visits.find((visit) => visit.id === id);
+    setSelectedVisit(visitToDelete);
+    setIsDeleteConfirmationOpen(true);
+  };
 
-    if (socket) {
-      socket.on('connect', () => {
-        console.log('Conectado al WebSocket');  // Intentar conectar al socket
-      });
+  const confirmDelete = () => {
+    deleteVisitMutation.mutate(selectedVisit.id);
+    setSelectedVisit(null);
+    setIsDeleteConfirmationOpen(false);
+  };
 
-      socket.on('new-visit', (newVisit) => {
-        setVisits((prevVisits) => [newVisit, ...prevVisits]);  // Escuchar eventos de WebSocket para nuevas visitas
-      });
-
-      socket.on('connect_error', (error) => {
-        console.error('Error en la conexión WebSocket:', error);
-      });
-
-      return () => {
-        socket.off('new-visit');  // Limpiar el socket al desmontar el componente
-        socket.disconnect();  // Desconectar al desmontar
-      };
-    }
-  }, [socket]);
-
-  const handleDelete = async (id) => {
-    try {
-      const response = await api.delete('/api/visits', { data: { id } });
-      setVisits((prevVisits) => prevVisits.filter((visit) => visit.id !== id));
-      toast.error('¡Eliminado correctamente!', { className: 'dark:border-none dark:bg-background-dark dark:text-danger-dark' });
-    } catch (error) {
-      toast.error('Error al eliminar la visita.', { className: 'dark:border-none dark:bg-background-dark dark:text-danger-dark' });
-    }
+  const cancelDelete = () => {
+    setIsDeleteConfirmationOpen(false);
+    setSelectedVisit(null);
   };
 
   const handleEdit = (id) => {
     const visitToEdit = visits.find((visit) => visit.id === id);
     setSelectedVisit(visitToEdit);
-    console.log(visitToEdit);
-    setIsModalOpen(true)
-  };
-
-  const handleAddVisit = (newVisit) => {
-    if (newVisit.date && newVisit.description) {
-      setVisits([...visits, newVisit]);
-      setIsModalOpen(false);
-    }
+    setIsModalOpen(true);
   };
 
   const handleCancel = () => {
-    setIsModalOpen(false)
-    setSelectedVisit(null)
-  }
+    setSelectedVisit(null);
+    setIsModalOpen(false);
+  };
 
-  const filteredVisits = visits.filter((visit) => visit.date.toString().toLowerCase().includes(search.toLowerCase()));
+  const debouncedSearch = useDebounce(search, 500);
+
+  // Filtrar las visitas por la fecha con el debounce
+  const filteredVisits = visits.filter((visit) =>
+    visit.date.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
 
   return (
     <DashboardGrid>
@@ -91,7 +60,12 @@ const VisitPanel = () => {
         <div className="flex flex-col gap-2 mb-3">
           <div className="flex justify-between items-center gap-2">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Visitas</h2>
-            <Button onClick={() => setIsModalOpen(true)} className="hover:bg-primary dark:hover:bg-primary-dark">Agregar Visita</Button>
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="hover:bg-primary dark:hover:bg-primary-dark"
+            >
+              Agregar Visita
+            </Button>
           </div>
           <Input
             type="text"
@@ -102,18 +76,49 @@ const VisitPanel = () => {
           />
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <p>Cargando...</p>
         ) : error ? (
-          <p>{error}</p>
+          <p>{error.message}</p>
         ) : (
-          <Table headers={["Id", "Date", "Description", "OrderId", "WorkerId"]} data={filteredVisits} onEdit={handleEdit} onDelete={handleDelete} />
+          <Table
+            headers={["Id", "Date", "Description", "OrderId", "WorkerId"]}
+            data={filteredVisits}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         )}
       </Card>
 
-      {/* Modal para agregar una nueva visita */}
       {isModalOpen && (
-        <VisitCard visit={selectedVisit} handleAddVisit={handleAddVisit} setIsModalOpen={setIsModalOpen} handleCancel={handleCancel} />
+        <VisitCard
+          visit={selectedVisit}
+          handleCancel={handleCancel}
+        />
+      )}
+
+      {isDeleteConfirmationOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              ¿Estás seguro de que deseas eliminar esta visita: <strong>{selectedVisit.description}</strong>?
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={cancelDelete}
+                className="w-full sm:max-w-28 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 hover:bg-gray-400 dark:hover:bg-gray-500"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                className="w-full sm:max-w-28 bg-red-500 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800"
+              >
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardGrid>
   );

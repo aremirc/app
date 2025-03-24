@@ -36,8 +36,8 @@ const Table = ({ data, headers, onEdit = () => { }, onDelete = () => { } }) => {
             ))}
             <td className="px-3 py-2 block xl:table-cell">
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => onEdit(item.id || item.dni)} className="w-full sm:max-w-28 bg-secondary-light/95 dark:bg-secondary-dark/75 hover:bg-secondary-dark dark:hover:bg-secondary-dark">Editar</Button>
-                <Button onClick={() => onDelete(item.id || item.dni)} className="w-full sm:max-w-28 bg-danger-light/95 dark:bg-danger-dark/75 hover:bg-danger-dark dark:hover:bg-danger-dark">Eliminar</Button>
+                <Button onClick={() => onEdit(item.id || item.dni)} className="w-full sm:max-w-28 bg-secondary-light dark:bg-secondary-dark/75 hover:bg-secondary-dark dark:hover:bg-secondary-dark">Editar</Button>
+                <Button onClick={() => onDelete(item.id || item.dni)} className="w-full sm:max-w-28 bg-danger-light dark:bg-danger-dark/75 hover:bg-danger-dark dark:hover:bg-danger-dark">Eliminar</Button>
               </div>
             </td>
           </tr>

@@ -1,77 +1,57 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useUsers } from "@/hooks/useUsers";  // Importamos el hook
 import Input from "../atoms/Input";
 import Button from "../atoms/Button";
-import UserCard from "../molecules/UserCard";
 import Table from "../molecules/Table";
 import Card from "../molecules/Card";
 import DashboardGrid from "../templates/DashboardGrid";
-import api from "@/lib/axios";
-import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
-// import { useDebounce } from "@/hooks/useDebounce";  // Asumimos que tienes un hook de debounce
+import UserCard from "../molecules/UserCard";
+import { useDebounce } from "@/hooks/useDebounce";
+import useRealTimeUpdates from "@/hooks/useRealTimeUpdates";  // Hook para WebSocket
 
 const UserPanel = () => {
-  const { logout } = useAuth()
-  const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const { users, error, isLoading, deleteUserMutation } = useUsers();
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await api.get("/api/users")
-        setUsers(response.data)
-        setError(null)
-      } catch (error) {
-        console.error('Error al obtener los usuarios:', error);
-        setError('Hubo un error al cargar los usuarios.');
-        if (error.response && error.response.status === 401) {
-          logout()
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
+  // Llamar al hook de WebSocket para recibir actualizaciones en tiempo real
+  useRealTimeUpdates();  // Aquí es donde se maneja la lógica WebSocket
 
-    fetchUsers();
-  }, []);
+  const handleDelete = (dni) => {
+    const userToDelete = users.find((user) => user.dni === dni);
+    setSelectedUser(userToDelete);
+    setIsDeleteConfirmationOpen(true);
+  };
 
-  const handleDelete = async (dni) => {
-    try {
-      const [userResponse, workerResponse] = await Promise.all([
-        api.delete('/api/users', { data: { dni } }), // Eliminando usuario
-        api.delete('/api/workers', { data: { dni } }), // Eliminando trabajador
-      ]);
-      setUsers(users.filter((user) => user.dni !== dni));
-      toast.error("¡Eliminado correctamente!", { className: 'dark:border-none dark:bg-background-dark dark:text-danger-dark' });
-    } catch (error) {
-      toast.error("Error al eliminar el usuario.", { className: 'dark:border-none dark:bg-background-dark dark:text-danger-dark' });
-    }
+  const confirmDelete = () => {
+    deleteUserMutation.mutate(selectedUser.dni);
+    setSelectedUser(null);
+    setIsDeleteConfirmationOpen(false);
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteConfirmationOpen(false);
+    setSelectedUser(null);
   };
 
   const handleEdit = (dni) => {
     const userToEdit = users.find((user) => user.dni === dni);
     setSelectedUser(userToEdit);
-    console.log(userToEdit);
-    setIsModalOpen(true)
-  };
-
-  const handleAddUser = (newUser) => {
-    if (newUser.username && newUser.email) {
-      setUsers([...users, newUser]);
-      setIsModalOpen(false);
-    }
+    setIsModalOpen(true);
   };
 
   const handleCancel = () => {
-    setIsModalOpen(false)
-    setSelectedUser(null)
-  }
+    setSelectedUser(null);
+    setIsModalOpen(false);
+  };
 
-  const filteredUsers = users.filter((user) => user.username.toLowerCase().includes(search.toLowerCase()));
+  const debouncedSearch = useDebounce(search, 500);
+
+  const filteredUsers = users.filter((user) =>
+    user.username.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
 
   return (
     <DashboardGrid>
@@ -79,7 +59,12 @@ const UserPanel = () => {
         <div className="flex flex-col gap-2 mb-3">
           <div className="flex justify-between items-center gap-2">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Usuarios</h2>
-            <Button onClick={() => setIsModalOpen(true)} className="hover:bg-primary dark:hover:bg-primary-dark">Agregar Usuario</Button>
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="hover:bg-primary dark:hover:bg-primary-dark"
+            >
+              Agregar Usuario
+            </Button>
           </div>
           <Input
             type="text"
@@ -90,18 +75,43 @@ const UserPanel = () => {
           />
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <p>Cargando...</p>
         ) : error ? (
-          <p>{error}</p>
+          <p>{error.message}</p>
         ) : (
-          <Table headers={["DNI", "Username", "Email", "RoleId", "CreatedAt"]} data={filteredUsers} onEdit={handleEdit} onDelete={handleDelete} />
+          <Table
+            headers={["DNI", "Username", "Email", "RoleId", "CreatedAt"]}
+            data={filteredUsers}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         )}
       </Card>
 
-      {/* Modal para agregar un nuevo usuario */}
       {isModalOpen && (
-        <UserCard user={selectedUser} handleAddUser={handleAddUser} setIsModalOpen={setIsModalOpen} handleCancel={handleCancel} />
+        <UserCard
+          user={selectedUser}
+          handleCancel={handleCancel}
+        />
+      )}
+
+      {isDeleteConfirmationOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              ¿Estás seguro de que deseas eliminar este usuario: <strong>{selectedUser.username}</strong>?
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button onClick={cancelDelete} className="w-full sm:max-w-28 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 hover:bg-gray-400 dark:hover:bg-gray-500">
+                Cancelar
+              </Button>
+              <Button onClick={confirmDelete} className="w-full sm:max-w-28 bg-red-500 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800">
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardGrid>
   );

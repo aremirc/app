@@ -19,14 +19,18 @@ model User {
   email        String         @unique
   password     String
   roleId       Int // Suponiendo que tienes un campo `roleId` que hace referencia al rol del usuario
-  role         Role           @relation("UserRole", fields: [roleId], references: [id]) // Nombre explícito de la relación
+  role         Role           @relation("UserRole", fields: [roleId], references: [id])
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   orders       Order[] // Relación con órdenes
   visits       Visit[] // Relación con visitas
   availability Availability[] // Relación con la disponibilidad del usuario
 
-  // Funcionalidad de permisos por rol
+  // Métricas de desempeño del técnico
+  completedOrders     Int    @default(0) // Número de órdenes completadas
+  totalWorkingTime    Int    @default(0) // Tiempo total trabajado en minutos
+  averageSatisfaction Float? // Promedio de satisfacción del cliente
+
   @@index([roleId]) // El índice hace referencia al campo escalar `roleId` en lugar del campo de relación `role`
 }
 
@@ -50,23 +54,23 @@ model Client {
 }
 
 model Order {
-  id          Int         @id @default(autoincrement())
-  description String
-  status      OrderStatus
-  statusDetails String?  // Detalles adicionales sobre el estado de la orden
-  clientId    String
-  client      Client      @relation(fields: [clientId], references: [dni])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            Int         @id @default(autoincrement())
+  description   String
+  status        OrderStatus
+  statusDetails String? // Detalles adicionales sobre el estado de la orden
+  clientId      String
+  client        Client      @relation(fields: [clientId], references: [dni])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  workers     OrderWorker[] // Relación muchos a muchos con trabajadores
+  workers OrderWorker[] // Relación muchos a muchos con trabajadores
 
-  visits      Visit[]     // Relación con visitas realizadas para esta orden
-  services    Service[]   // Relación con servicios utilizados en esta orden
+  visits   Visit[] // Relación con visitas realizadas para esta orden
+  services Service[] // Relación con servicios utilizados en esta orden
 
-  userId      String?     // Asegúrate de que este campo haga referencia a un Usuario
-  user        User?       @relation(fields: [userId], references: [dni]) // Relación con el usuario que gestionó la orden
-  Conformity  Conformity[]
+  userId     String? // Asegúrate de que este campo haga referencia a un Usuario
+  user       User?        @relation(fields: [userId], references: [dni]) // Relación con el usuario que gestionó la orden
+  Conformity Conformity[]
 }
 
 model Visit {
@@ -81,20 +85,31 @@ model Visit {
   clientId String
   client   Client @relation(fields: [clientId], references: [dni]) // Relación con el cliente
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userDni], references: [dni])
-  userDni   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  duration   Int // Duración de la visita en minutos
+  evaluation Float? // Evaluación de la visita (por ejemplo, puntuación de satisfacción del cliente)
+
+  User    User?   @relation(fields: [userDni], references: [dni])
+  userDni String?
 }
 
 model Worker {
-  dni       String  @id // DNI como identificador único
+  dni       String        @id // DNI como identificador único
   firstName String
   lastName  String
-  email     String  @unique
+  email     String        @unique
   phone     String?
-  orders     OrderWorker[] // Relación muchos a muchos con órdenes a través de la tabla intermedia
+  orders    OrderWorker[] // Relación muchos a muchos con órdenes a través de la tabla intermedia
   visits    Visit[] // Relación con visitas realizadas
+
+  // Métricas clave para el análisis de productividad
+  totalVisits  Int    @default(0) // Número de visitas realizadas
+  totalTime    Int    @default(0) // Tiempo total invertido en visitas en minutos
+  satisfaction Float? // Promedio de satisfacción de las visitas del trabajador
+
+  // Relación inversa a Conformity
+  conformities Conformity[] // Relación de un trabajador con las conformidades que ha gestionado
 }
 
 model Service {
@@ -111,6 +126,7 @@ model Availability {
   user      User     @relation(fields: [dni], references: [dni])
   startDate DateTime // Fecha de inicio de la disponibilidad
   endDate   DateTime // Fecha de fin de la disponibilidad
+  type      String // Tipo de disponibilidad (por ejemplo: "full-time", "part-time")
 }
 
 model Conformity {
@@ -120,14 +136,20 @@ model Conformity {
   description String // Descripción de la conformidad
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  workerId String // DNI del técnico responsable de la conformidad
+  worker   Worker @relation(fields: [workerId], references: [dni]) // Relación con el Worker
 }
 
 model OrderWorker {
-  orderId  Int
-  order    Order  @relation(fields: [orderId], references: [id])
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id])
 
   workerId String
   worker   Worker @relation(fields: [workerId], references: [dni])
+
+  duration Int // Duración del trabajo realizado en minutos
+  status   String // Estado del trabajo (ej. "completed", "in-progress", "failed")
 
   @@id([orderId, workerId]) // Llave primaria compuesta para evitar duplicados
 }
@@ -137,4 +159,5 @@ enum OrderStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  FAILED // Estado adicional si deseas rastrear fallos en la ejecución de las órdenes
 }

@@ -8,13 +8,14 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
     const loadUser = async () => {
       try {
+        setLoading(true);
         const storedUser = JSON.parse(sessionStorage.getItem('user'));
         if (storedUser) {
           setUser(storedUser);
@@ -32,18 +33,30 @@ export const AuthProvider = ({ children }) => {
         console.log(response.data.status);
       } catch (error) {
         console.log('Error al obtener status:', error);
-        if (error.response && error.response.status === 401) {
-          logout()
-        }
       }
     }
+
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          logout();
+        }
+        return Promise.reject(error);
+      }
+    );
 
     loadUser();
     getStatus();
 
     const intervalId = setInterval(getStatus, 30000);
 
-    return () => clearInterval(intervalId);
+    return () => {
+      // Limpiar interceptor cuando el componente que usa este hook se desmonte
+      api.interceptors.response.eject(interceptor);
+      
+      clearInterval(intervalId);
+    };
   }, []);
 
   const login = async (credentials) => {
@@ -59,11 +72,10 @@ export const AuthProvider = ({ children }) => {
       const token = response.data.token;
       sessionStorage.setItem('authToken', token); // Almacenar el token en localStorage
 
-      console.log('Login exitoso, token:', token);
-      // Ahora puedes redirigir al usuario a la página principal
-
       setUser(response.data.userData);
       sessionStorage.setItem('user', JSON.stringify(response.data.userData));
+
+      console.log('Login exitoso, token:', token);
       setError(null); // Limpiar errores previos
       router.push('/');
     } catch (error) {

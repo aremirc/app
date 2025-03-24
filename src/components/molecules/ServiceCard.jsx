@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Input from "../atoms/Input";
 import Button from "../atoms/Button";
-import { toast } from "sonner";
-import api from "@/lib/axios";
+import { useServices } from "@/hooks/useServices";
+
+// Zod schema para validación
+const serviceSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio"),
+  description: z.string().min(1, "La descripción es obligatoria"),
+  price: z.number().min(0.01, "El precio debe ser mayor a 0"),
+});
 
 const defaultValues = {
   name: "",
@@ -10,85 +18,80 @@ const defaultValues = {
   price: "",
 };
 
-const ServiceCard = ({ service, handleAddService, setIsModalOpen, handleCancel }) => {
-  const [newService, setNewService] = useState(service ? service : defaultValues);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const ServiceCard = ({ service, handleCancel }) => {
+  const { addServiceMutation, updateServiceMutation } = useServices();
 
-  const addService = async () => {
-    const response = await api.post("/api/services", newService);
-    handleAddService(response.data); // Actualiza la lista global de servicios
-    setNewService(defaultValues); // Resetea el formulario
-    toast.success("Servicio agregado con éxito", {
-      className: "dark:border-none dark:bg-primary-dark",
-    });
-  }
-  
-  const editService = async () => {
-    const response = await api.put("/api/services", newService);
-    handleAddService(response.data); // Actualiza la lista global de servicios
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset } = useForm({
+    resolver: zodResolver(serviceSchema),
+    defaultValues: service || defaultValues,
+    mode: "onBlur", // Para validar al perder el foco
+  });
 
-    toast.success('Cambios guardados correctamente.', { className: 'dark:border-none dark:bg-primary-dark' })
-    handleCancel() // Cerramos modal y vaciomos la variable 'order'
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!newService.name || !newService.description || !newService.price) {
-      toast.error("Por favor, completa todos los campos.");
-      return;
+  const onSubmit = (data) => {
+    if (service) {
+      updateServiceMutation.mutateAsync(data);
+    } else {
+      addServiceMutation.mutateAsync(data);
     }
-
-    setIsSubmitting(true);
-
-    try {
-      { service ? editService() : addService() }
-    } catch (error) {
-      toast.error("Hubo un problema al agregar el servicio", {
-        description: error.response?.data?.error || error.message,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    handleCancel()
   };
-
-  const isFormValid = newService.name && newService.description && newService.price;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
-        <h3 className="text-lg font-semibold mb-4">{service ? 'Modificar Servicio' : 'Agregar Nuevo Servicio'}</h3>
+      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        <h3 className="text-lg font-semibold mb-4">{service ? "Modificar Servicio" : "Agregar Nuevo Servicio"}</h3>
 
-        <Input
-          type="text"
-          value={newService.name}
-          onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-          placeholder="Nombre"
-          className="mb-4"
+        {/* Nombre */}
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="text"
+              placeholder="Nombre"
+              className={`mb-4 ${errors.name ? 'border-red-500' : ''}`}
+            />
+          )}
         />
+        {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
 
-        <Input
-          type="text"
-          value={newService.description}
-          onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-          placeholder="Descripción"
-          className="mb-4"
+        {/* Descripción */}
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="text"
+              placeholder="Descripción"
+              className={`mb-4 ${errors.description ? 'border-red-500' : ''}`}
+            />
+          )}
         />
+        {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
 
-        <Input
-          type="number"
-          value={newService.price}
-          onChange={(e) => setNewService({ ...newService, price: Number(e.target.value) })}
-          placeholder="Precio"
-          className="mb-4"
+        {/* Precio */}
+        <Controller
+          name="price"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              type="number"
+              placeholder="Precio"
+              className={`mb-4 ${errors.price ? 'border-red-500' : ''}`}
+            />
+          )}
         />
+        {errors.price && <p className="text-red-500 text-sm">{errors.price.message}</p>}
 
         <div className="flex justify-end space-x-2">
           <Button onClick={handleCancel}>Cancelar</Button>
           <Button
             type="submit"
             className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-            disabled={!isFormValid || isSubmitting}
+            disabled={!isValid || isSubmitting}
           >
             {service ? (isSubmitting ? "Guardando..." : "Guardar") : (isSubmitting ? "Agregando..." : "Agregar")}
           </Button>

@@ -19,12 +19,6 @@ const api = axios.create({
   timeout: 30000, // Definir un tiempo de espera para la solicitud (en milisegundos)
 });
 
-// Función para manejar la expiración de la sesión
-const handleSessionExpiration = (logout) => {
-  logout() // Limpiar el estado global
-  console.error('Sesión expirada o no autorizada. Redirigiendo a login...');
-}
-
 // Interceptor para agregar el token JWT a cada solicitud
 api.interceptors.request.use(
   (config) => {
@@ -45,18 +39,15 @@ api.interceptors.response.use(
   (error) => {
     // Solo manejar el error si es un 401
     if (error.response && error.response.status === 401) {
-      // if (typeof window !== 'undefined') {
-      //   // Este código solo debe ejecutarse en el cliente
-      //   import('@/context/AuthContext').then((module) => {
-      //     const { useAuth } = module; // Importa dinámicamente el hook de AuthContext
-      //     const { logout } = useAuth(); // Obtén la función logout
-      //     handleSessionExpiration(logout); // Maneja la expiración de la sesión
-      //   }).catch((err) => {
-      //     console.error('Error al intentar importar AuthContext', err);
-      //   });
-      // }
+      console.log(error.response.data.error); // Verifica la estructura completa del error
+      if (typeof window !== 'undefined') {
+        // Este código solo debe ejecutarse en el cliente
+        console.error('Sesión expirada o no autorizada. Redirigiendo a login...');
+      }
     }
-    return Promise.reject(error); // Rechaza el error para que se maneje en otro lugar si es necesario
+    
+    // Si quieres manejar otros errores globalmente, puedes hacerlo aquí también
+    return Promise.reject(error);  // Propaga el error para que pueda ser manejado por el bloque onError
   }
 );
 

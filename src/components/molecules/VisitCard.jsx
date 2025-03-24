@@ -1,209 +1,200 @@
-import { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Input from "../atoms/Input";
 import Button from "../atoms/Button";
-import { toast } from "sonner";
 import api from "@/lib/axios";
+import { useQuery } from "@tanstack/react-query";
+import { useVisits } from "@/hooks/useVisits";
 
-// Recuperamos el usuario almacenado en la sesión
-// const storedUser = JSON.parse(sessionStorage.getItem('user')) || {};
+// Esquema de validación con Zod
+const visitSchema = z.object({
+  date: z.string().min(1, "La fecha es obligatoria"),
+  description: z.string().min(1, "La descripción es obligatoria"),
+  orderId: z.string().min(1, "La orden es obligatoria"),
+  workerId: z.string().min(1, "El trabajador es obligatorio"),
+  clientId: z.string().min(1, "El cliente es obligatorio"),
+});
 
 const defaultValues = {
-  date: "",
-  description: "",
-  orderId: "",
-  workerId: "",
-  clientId: "",
+  date: "", 
+  description: "", 
+  orderId: "", 
+  workerId: "", 
+  clientId: "" 
 };
 
-const VisitCard = ({ visit, handleAddVisit, setIsModalOpen, handleCancel }) => {
-  const [newVisit, setNewVisit] = useState(visit ? visit : defaultValues);
-  const [orders, setOrders] = useState([]); // Lista de órdenes
-  const [clients, setClients] = useState([]); // Lista de clientes
-  const [workers, setWorkers] = useState([]); // Lista de trabajadores
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+// Funciones de consulta para react-query
+const fetchOrders = async () => {
+  const { data } = await api.get("/api/orders");
+  return data;
+};
 
-  useEffect(() => {
-    const fetchOrdersAndClients = async () => {
-      setLoading(true);
-      try {
-        const [ordersRes, clientsRes, workersRes] = await Promise.all([
-          api.get("/api/orders"),
-          api.get("/api/clients"),
-          api.get("/api/workers"),
-        ]);
-        setOrders(ordersRes.data);
-        setClients(clientsRes.data);
-        setWorkers(workersRes.data);
-      } catch (error) {
-        console.error("Error al obtener datos:", error);
-        toast.error("Hubo un problema al cargar los datos.", { description: error.response?.data?.error || error.message });
-      } finally {
-        setLoading(false);
-      }
-    };
+const fetchClients = async () => {
+  const { data } = await api.get("/api/clients");
+  return data;
+};
 
-    fetchOrdersAndClients();
-  }, []);
+const fetchWorkers = async () => {
+  const { data } = await api.get("/api/workers");
+  return data;
+};
 
-  const addVisit = async () => {
-    const response = await api.post("/api/visits", newVisit);
-    handleAddVisit(response.data);
-    setNewVisit(defaultValues);
-    toast.success("Visita agregada correctamente", {
-      className: "dark:bg-primary-dark",
-    });
-  }
-  
-  const editVisit = async () => {
-    const response = await api.put("/api/visits", newVisit);
-    handleAddVisit(response.data);
+const VisitCard = ({ visit, handleCancel }) => {
+  const { addVisitMutation, updateVisitMutation } = useVisits();
 
-    toast.success('Cambios guardados correctamente.', { className: 'dark:border-none dark:bg-primary-dark' })
-    handleCancel() // Cerramos modal y vaciomos la variable 'order'
-  }
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, reset } = useForm({
+    resolver: zodResolver(visitSchema),
+    defaultValues: visit || defaultValues,
+    mode: "onBlur",
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Usamos useQuery para obtener órdenes, clientes y trabajadores
+  const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
+    queryKey: ["orders"],
+    queryFn: fetchOrders
+  });
 
-    if (!newVisit.date || !newVisit.description || !newVisit.orderId || !newVisit.workerId || !newVisit.clientId) {
-      toast.error("Por favor, completa todos los campos.");
-      return;
+  const { data: clients = [], isLoading: isLoadingClients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: fetchClients
+  });
+
+  const { data: workers = [], isLoading: isLoadingWorkers } = useQuery({
+    queryKey: ["workers"],
+    queryFn: fetchWorkers
+  });
+
+  const loading = isLoadingOrders || isLoadingClients || isLoadingWorkers;
+
+  const onSubmit = (data) => {
+    if (visit) {
+      updateVisitMutation.mutateAsync(data);
+    } else {
+      addVisitMutation.mutateAsync(data);
     }
-
-    setIsSubmitting(true);
-
-    try {
-      { visit ? editVisit() : addVisit() }
-    } catch (error) {
-      toast.error("Hubo un problema al agregar la visita", { description: error.response?.data?.error || error.message });
-    } finally {
-      setIsSubmitting(false);
-    }
+    handleCancel()
   };
-
-  const isFormValid = newVisit.date && newVisit.description && newVisit.orderId && newVisit.workerId && newVisit.clientId;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
-        <h3 className="text-lg font-semibold mb-4">{visit ? 'Modificar Visita' : 'Agregar Nueva Visita'}</h3>
+      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        <h3 className="text-lg font-semibold mb-4">{visit ? "Modificar Visita" : "Agregar Nueva Visita"}</h3>
 
-        <Input
-          type="date"
-          value={newVisit.date}
-          onChange={(e) => setNewVisit({ ...newVisit, date: e.target.value })}
-          placeholder="Fecha"
-          className="mb-4"
-        />
-
-        <Input
-          type="text"
-          value={newVisit.description}
-          onChange={(e) => setNewVisit({ ...newVisit, description: e.target.value })}
-          placeholder="Descripción"
-          className="mb-4"
-        />
-
+        {/* Fecha */}
         <div className="mb-4">
-          <label htmlFor="orderId" className="block text-sm font-medium text-gray-700">
-            Selecciona una Orden
-          </label>
-          <select
-            id="orderId"
-            value={newVisit.orderId}
-            onChange={(e) => setNewVisit({ ...newVisit, orderId: Number(e.target.value) })}
-            className="shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark"
-            disabled={loading}
-          >
-            <option value="" disabled>
-              Selecciona una orden
-            </option>
-            {loading ? (
-              <option value="" disabled>
-                Cargando órdenes...
-              </option>
-            ) : (
-              orders.map((order) => (
-                <option key={order.id} value={order.id}>
-                  {order.description} - {order.status}
-                </option>
-              ))
+          <label htmlFor="date" className="block text-sm font-medium text-gray-700">Fecha</label>
+          <Controller
+            name="date"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="date"
+                placeholder="Fecha"
+                className={`mb-4 ${errors.date ? 'border-red-500' : ''}`}
+              />
             )}
-          </select>
+          />
+          {errors.date && <p className="text-red-500 text-sm">{errors.date.message}</p>}
         </div>
 
+        {/* Descripción */}
         <div className="mb-4">
-          <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">
-            Selecciona un Cliente
-          </label>
-          <select
-            id="clientId"
-            value={newVisit.clientId}
-            onChange={(e) => setNewVisit({ ...newVisit, clientId: e.target.value })}
-            className="shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark"
-            disabled={loading}
-          >
-            <option value="" disabled>
-              Selecciona un cliente
-            </option>
-            {loading ? (
-              <option value="" disabled>
-                Cargando clientes...
-              </option>
-            ) : (
-              clients.map((client) => (
-                <option key={client.dni} value={client.dni}>
-                  {client.name} - {client.email}
-                </option>
-              ))
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700">Descripción</label>
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="text"
+                placeholder="Descripción"
+                className={`mb-4 ${errors.description ? 'border-red-500' : ''}`}
+              />
             )}
-          </select>
+          />
+          {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
         </div>
 
-        {/* (opcional) */}
+        {/* Orden */}
         <div className="mb-4">
-          <label htmlFor="workerId" className="block text-sm font-medium text-gray-700">
-            Selecciona un Trabajador
-          </label>
-          <select
-            id="workerId"
-            value={newVisit.workerId}
-            onChange={(e) => setNewVisit({ ...newVisit, workerId: e.target.value })}
-            className="shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark"
-            disabled={loading}
-          >
-            <option value="" disabled>
-              Selecciona un trabajador
-            </option>
-            {loading ? (
-              <option value="" disabled>
-                Cargando trabajadores...
-              </option>
-            ) : (
-              workers.map((worker) => (
-                <option key={worker.dni} value={worker.dni}>
-                  {worker.firstName} {worker.lastName}
-                </option>
-              ))
+          <label htmlFor="orderId" className="block text-sm font-medium text-gray-700">Selecciona una Orden</label>
+          <Controller
+            name="orderId"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.orderId ? 'border-red-500' : ''}`}
+                disabled={loading}
+              >
+                <option value="" disabled>Selecciona una orden</option>
+                {loading ? <option value="" disabled>Cargando órdenes...</option> : orders?.map(order => (
+                  <option key={order.id} value={order.id}>{order.description} - {order.status}</option>
+                ))}
+              </select>
             )}
-          </select>
+          />
+          {errors.orderId && <p className="text-red-500 text-sm">{errors.orderId.message}</p>}
+        </div>
+
+        {/* Cliente */}
+        <div className="mb-4">
+          <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">Selecciona un Cliente</label>
+          <Controller
+            name="clientId"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.clientId ? 'border-red-500' : ''}`}
+                disabled={loading}
+              >
+                <option value="" disabled>Selecciona un cliente</option>
+                {loading ? <option value="" disabled>Cargando clientes...</option> : clients?.map(client => (
+                  <option key={client.dni} value={client.dni}>{client.name} - {client.email}</option>
+                ))}
+              </select>
+            )}
+          />
+          {errors.clientId && <p className="text-red-500 text-sm">{errors.clientId.message}</p>}
+        </div>
+
+        {/* Trabajador */}
+        <div className="mb-4">
+          <label htmlFor="workerId" className="block text-sm font-medium text-gray-700">Selecciona un Trabajador</label>
+          <Controller
+            name="workerId"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.workerId ? 'border-red-500' : ''}`}
+                disabled={loading}
+              >
+                <option value="" disabled>Selecciona un trabajador</option>
+                {loading ? <option value="" disabled>Cargando trabajadores...</option> : workers?.map(worker => (
+                  <option key={worker.dni} value={worker.dni}>{worker.firstName} {worker.lastName}</option>
+                ))}
+              </select>
+            )}
+          />
+          {errors.workerId && <p className="text-red-500 text-sm">{errors.workerId.message}</p>}
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button onClick={handleCancel}>
-            Cancelar
-          </Button>
+          <Button onClick={handleCancel}>Cancelar</Button>
           <Button
             type="submit"
             className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-            disabled={!isFormValid || loading || isSubmitting}
+            disabled={!isValid || loading || isSubmitting}
           >
             {visit ? (isSubmitting ? "Guardando..." : "Guardar") : (isSubmitting ? "Agregando..." : "Agregar")}
           </Button>
         </div>
-      </form >
-    </div >
+      </form>
+    </div>
   );
 };
 

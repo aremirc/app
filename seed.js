@@ -3,19 +3,33 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  // Eliminar todos los registros de las tablas en el orden correcto (de las tablas con relaciones a las tablas dependientes)
-  await prisma.conformity.deleteMany({});
-  await prisma.visit.deleteMany({});
-  await prisma.order.deleteMany({});
-  await prisma.availability.deleteMany({});
-  await prisma.worker.deleteMany({});
-  await prisma.service.deleteMany({});
-  await prisma.client.deleteMany({});
-  await prisma.user.deleteMany({});
-  await prisma.role.deleteMany({});
+  // // Eliminar registros dependientes primero, respetando las relaciones
+  // await prisma.conformity.deleteMany({}); // Conformidades de órdenes
+  // await prisma.visit.deleteMany({});      // Visitas realizadas
+  // await prisma.orderWorker.deleteMany({}); // Relación muchos a muchos entre Ordenes y Trabajadores
 
-  // Eliminar registros de la tabla intermedia (OrderWorker) para evitar relaciones duplicadas
-  await prisma.orderWorker.deleteMany({});
+  // // Eliminar las tablas principales
+  // await prisma.order.deleteMany({});      // Ordenes de servicio
+  // await prisma.availability.deleteMany({}); // Disponibilidad de los usuarios
+  // await prisma.worker.deleteMany({});     // Trabajadores
+  // await prisma.service.deleteMany({});    // Servicios
+  // await prisma.client.deleteMany({});     // Clientes
+  // await prisma.user.deleteMany({});       // Usuarios (finalmente, para evitar relaciones rotas)
+  // await prisma.role.deleteMany({});       // Roles de usuario
+
+  // Usando transacciones para garantizar que todo se elimine correctamente
+  await prisma.$transaction([
+    prisma.conformity.deleteMany({}),
+    prisma.visit.deleteMany({}),
+    prisma.orderWorker.deleteMany({}),
+    prisma.order.deleteMany({}),
+    prisma.availability.deleteMany({}),
+    prisma.worker.deleteMany({}),
+    prisma.service.deleteMany({}),
+    prisma.client.deleteMany({}),
+    prisma.user.deleteMany({}),
+    prisma.role.deleteMany({})
+  ]);
 
   console.log('Base de datos vaciada con éxito!');
 
@@ -58,10 +72,8 @@ async function main() {
       dni: '12345678',
       username: 'adminuser',
       email: 'admin@empresa.com',
-      password: 'adminpassword', // ¡No olvides encriptar la contraseña en producción!
-      role: {
-        connect: { id: adminRole.id },
-      },
+      password: 'adminpassword', // ¡Recuerda encriptar la contraseña en producción!
+      roleId: adminRole.id,
     },
   });
 
@@ -71,9 +83,7 @@ async function main() {
       username: 'moderatoruser',
       email: 'moderator@empresa.com',
       password: 'moderatorpassword',
-      role: {
-        connect: { id: moderatorRole.id },
-      },
+      roleId: moderatorRole.id,
     },
   });
 
@@ -83,9 +93,7 @@ async function main() {
       username: 'workeruser',
       email: 'worker@empresa.com',
       password: 'workerpassword',
-      role: {
-        connect: { id: workerRole.id },
-      },
+      roleId: workerRole.id,
     },
   });
 
@@ -153,25 +161,23 @@ async function main() {
     data: {
       description: 'Instalación de sistema eléctrico en una casa.',
       status: 'PENDING',
-      client: {
-        connect: { dni: client1.dni },
-      },
+      clientId: client1.dni,
       workers: {
         create: [
           {
-            worker: {
-              connect: { dni: worker1.dni } // Usando dni o id del trabajador
-            }
+            workerId: worker1.dni,
+            status: 'in-progress',
+            duration: 120, // Duración de la tarea en minutos
           },
           {
-            worker: {
-              connect: { dni: worker2.dni } // Usando dni o id del trabajador
-            }
-          }
-        ]
+            workerId: worker2.dni,
+            status: 'in-progress',
+            duration: 120, // Duración de la tarea en minutos
+          },
+        ],
       },
       services: {
-        connect: [{ id: service1.id }], // Conectar servicios si es necesario
+        connect: [{ id: service1.id }],
       },
     },
   });
@@ -180,25 +186,23 @@ async function main() {
     data: {
       description: 'Mantenimiento preventivo de aire acondicionado.',
       status: 'PENDING',
-      client: {
-        connect: { dni: client2.dni },
-      },
+      clientId: client2.dni,
       workers: {
         create: [
           {
-            worker: {
-              connect: { dni: worker1.dni } // Usando dni o id del trabajador
-            }
+            workerId: worker1.dni,
+            status: 'in-progress',
+            duration: 60, // Duración de la tarea en minutos
           },
           {
-            worker: {
-              connect: { dni: worker2.dni } // Usando dni o id del trabajador
-            }
-          }
-        ]
+            workerId: worker2.dni,
+            status: 'in-progress',
+            duration: 60, // Duración de la tarea en minutos
+          },
+        ],
       },
       services: {
-        connect: [{ id: service1.id }, { id: service2.id }], // Conectar servicios si es necesario
+        connect: [{ id: service1.id }, { id: service2.id }],
       },
     },
   });
@@ -208,15 +212,11 @@ async function main() {
     data: {
       date: new Date(),
       description: 'Se realizó la instalación de todo el sistema eléctrico.',
-      order: {
-        connect: { id: order1.id },
-      },
-      worker: {
-        connect: { dni: worker1.dni },
-      },
-      client: {
-        connect: { dni: client1.dni },
-      },
+      orderId: order1.id,
+      workerId: worker1.dni,
+      clientId: client1.dni,
+      duration: 120, // Duración de la visita en minutos
+      evaluation: 5, // Evaluación de la visita
     },
   });
 
@@ -224,15 +224,11 @@ async function main() {
     data: {
       date: new Date(),
       description: 'Se realizó el mantenimiento preventivo del sistema HVAC.',
-      order: {
-        connect: { id: order2.id },
-      },
-      worker: {
-        connect: { dni: worker1.dni }, // Asignar al trabajador correcto
-      },
-      client: {
-        connect: { dni: client2.dni },
-      },
+      orderId: order2.id,
+      workerId: worker1.dni,
+      clientId: client2.dni,
+      duration: 60, // Duración de la visita en minutos
+      evaluation: 4, // Evaluación de la visita
     },
   });
 
@@ -241,7 +237,8 @@ async function main() {
     data: {
       dni: worker1.dni,
       startDate: new Date(),
-      endDate: new Date(new Date().setDate(new Date().getDate() + 7)), // Disponible durante los próximos 7 días
+      endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+      type: 'full-time', // Tipo de disponibilidad
     },
   });
 
@@ -249,7 +246,8 @@ async function main() {
     data: {
       dni: worker2.dni,
       startDate: new Date(),
-      endDate: new Date(new Date().setDate(new Date().getDate() + 7)), // Disponible durante los próximos 7 días
+      endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+      type: 'part-time', // Tipo de disponibilidad
     },
   });
 

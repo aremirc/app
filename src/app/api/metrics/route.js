@@ -1,65 +1,56 @@
-import fs from 'fs';
-import path from 'path';
-
-const filePath = path.join(process.cwd(), 'data.json'); // Ruta donde se guardará el JSON
+import prisma from '@/lib/prisma';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
+  try {
+    // Consulta para obtener todos los técnicos y sus métricas
+    const workers = await prisma.worker.findMany({
+      include: {
+        visits: true, // Incluye todas las visitas
+        orders: {
+          include: {
+            order: true, // Incluir la orden para extraer información de ella
+          }
+        },
+      },
+    });
 
-  const Metrics = [
-    {
-      id: 1,
-      name: 'Clientes',
-      quantity: 105,
-      icon: 'client'
-    },
-    {
-      id: 2,
-      name: 'Órdenes',
-      quantity: 300,
-      icon: 'order'
-    },
-    {
-      id: 3,
-      name: 'Conformidad',
-      quantity: 245,
-      icon: 'visit'
-    },
-    {
-      id: 4,
-      name: 'Empleados',
-      quantity: 10,
-      icon: 'user'
-    },
-  ]
+    const metrics = workers.map((worker) => {
+      const totalVisits = worker.visits.length;
+      const totalTime = worker.visits.reduce((acc, visit) => acc + visit.duration, 0);
+      const averageSatisfaction = worker.visits.filter(v => v.evaluation !== null).reduce((acc, visit) => acc + visit.evaluation, 0) / (worker.visits.filter(v => v.evaluation !== null).length || 1);
+      
+      // Calcular número de órdenes completadas
+      const completedOrders = worker.orders.filter(orderWorker => orderWorker.status === 'completed').length;
 
-  // import { NextResponse } from "next/server"
-  // return NextResponse.json(data)
+      // Cálculo de tiempos de intervención y de respuesta
+      const totalInterventionTime = worker.orders.reduce((acc, orderWorker) => acc + orderWorker.duration, 0);
+      const totalResponseTime = worker.orders.filter(orderWorker => orderWorker.order.status === 'completed').reduce((acc, orderWorker) => {
+        // Este cálculo depende de la lógica de "tiempo de respuesta", que debe definirse
+        return acc + (new Date(orderWorker.order.updatedAt).getTime() - new Date(orderWorker.order.createdAt).getTime());
+      }, 0);
 
-  return new Response(JSON.stringify({ data: Metrics }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+      return {
+        dni: worker.dni,
+        firstName: worker.firstName,
+        lastName: worker.lastName,
+        totalVisits,
+        totalTime,
+        averageSatisfaction,
+        completedOrders,
+        totalInterventionTime,
+        totalResponseTime,
+      };
+    });
+
+    return new NextResponse(JSON.stringify({ data: metrics }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error(error);
+    return new NextResponse(JSON.stringify({ error: 'Error al calcular las métricas' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
-
-// export async function POST(req) {
-//   const newData = await req.json(); // Leer datos del cuerpo de la solicitud
-
-//   // Leer el archivo existente
-//   try {
-//     const data = fs.readFileSync(filePath, 'utf8');
-//     let jsonData = [];
-//     if (data) {
-//       jsonData = JSON.parse(data); // Convertir el JSON existente en un objeto
-//     }
-
-//     // Agregar los nuevos datos
-//     jsonData.push(newData);
-
-//     // Guardar los datos en el archivo
-//     fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2));
-
-//     return new Response(JSON.stringify({ message: 'Datos guardados exitosamente.' }), { status: 201 });
-//   } catch (err) {
-//     console.error(err);
-//     return new Response(JSON.stringify({ error: 'Error al procesar la solicitud.' }), { status: 500 });
-//   }
-// }
