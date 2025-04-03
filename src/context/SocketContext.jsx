@@ -14,7 +14,11 @@ export const SocketProvider = ({ children }) => {
     // Solo crear la conexión si no existe
     if (socketRef.current) return;
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000"; // URL del WebSocket
+    // Determina si estamos en desarrollo o en producción
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    // Usa '/' para desarrollo y window.location.origin para producción
+    const socketUrl = isDevelopment ? '/' : window.location.origin;
 
     // Crear la conexión WebSocket con reconexión automática
     socketRef.current = io(socketUrl, {

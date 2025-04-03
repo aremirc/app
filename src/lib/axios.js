@@ -1,27 +1,19 @@
 import axios from 'axios';
 
-// Definir valores predeterminados
-const DEFAULT_API_URL = 'http://localhost:3000';
+// Definir un tiempo de espera predeterminado
 const TIMEOUT = 30000;
 
-// Verificar si NEXT_PUBLIC_API_URL está definida
-const baseURL = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL;
+// Verificar si estás en un entorno de desarrollo
+const isDevelopment = process.env.NODE_ENV === 'development';
 
-// Configurar la URL base para Axios
-axios.defaults.baseURL = baseURL;
-
-if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_API_URL) {
-  console.debug('¡Atención! NEXT_PUBLIC_API_URL no está definida. Usando la URL predeterminada.');
-}
-
-// Crear una instancia de Axios con la configuración base
+// Configuración base de Axios
 const api = axios.create({
-  baseURL: axios.defaults.baseURL,  // Usar la URL base configurada
+  baseURL: isDevelopment ? '/' : window.location.origin,  // En desarrollo, usa la raíz, en producción usa el dominio actual
   timeout: TIMEOUT,  // Definir un tiempo de espera para las solicitudes (en milisegundos)
   withCredentials: true, // Asegúrate de que las cookies HttpOnly se envíen con las solicitudes
 });
 
-// Interceptor para agregar el token JWT a cada solicitud (si es necesario, depende de tu servidor)
+// Interceptor para agregar el token JWT a cada solicitud (si es necesario)
 api.interceptors.request.use(
   (config) => {
     // Si es necesario agregar encabezados o manejar autenticación, lo harías aquí
