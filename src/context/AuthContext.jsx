@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '@/lib/axios';
+import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
 
@@ -9,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const router = useRouter();
 
   // Verificar si hay un usuario almacenado en localStorage al cargar la aplicación
   useEffect(() => {
