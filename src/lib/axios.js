@@ -6,9 +6,12 @@ const TIMEOUT = 30000;
 // Verificar si estás en un entorno de desarrollo
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// Verificar si estamos en el cliente antes de acceder a `window`
+const isBrowser = typeof window !== "undefined";
+
 // Configuración base de Axios
 const api = axios.create({
-  baseURL: isDevelopment ? '/' : window.location.origin,  // En desarrollo, usa la raíz, en producción usa el dominio actual
+  baseURL: isDevelopment ? '/' : (isBrowser ? window.location.origin : ''),  // En desarrollo, usa la raíz, en producción usa el dominio actual
   timeout: TIMEOUT,  // Definir un tiempo de espera para las solicitudes (en milisegundos)
   withCredentials: true, // Asegúrate de que las cookies HttpOnly se envíen con las solicitudes
 });

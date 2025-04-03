@@ -18,8 +18,14 @@ export const SocketProvider = ({ children }) => {
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     // Usa '/' para desarrollo y window.location.origin para producción
-    const socketUrl = isDevelopment ? '/' : window.location.origin;
+    const socketUrl = isDevelopment ? '/' : (typeof window !== 'undefined' ? window.location.origin : '');
 
+    // Solo continuar si tenemos una URL válida
+    if (!socketUrl) {
+      console.error('No se pudo determinar la URL del WebSocket.');
+      return;
+    }
+    
     // Crear la conexión WebSocket con reconexión automática
     socketRef.current = io(socketUrl, {
       reconnection: true, // Habilitar reconexión automática
