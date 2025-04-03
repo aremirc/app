@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 
@@ -12,96 +12,67 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const router = useRouter();
 
+  // Verificar si hay un usuario almacenado en localStorage al cargar la aplicación
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        setLoading(true);
-        const storedUser = JSON.parse(sessionStorage.getItem('user'));
-        if (storedUser) {
-          setUser(storedUser);
-        }
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false); // Asegúrate de que esto se ejecute siempre
-      }
-    };
-
-    const getStatus = async () => {
-      try {
-        const response = await api.get("/api/status")
-        console.log(response.data.status);
-      } catch (error) {
-        console.log('Error al obtener status:', error);
-      }
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser)); // Establecer el usuario desde el almacenamiento
+    } else {
+      checkSession(); // Verificar sesión si no hay usuario almacenado
     }
-
-    const interceptor = api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response && error.response.status === 401) {
-          logout();
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    loadUser();
-    getStatus();
-
-    const intervalId = setInterval(getStatus, 30000);
-
-    return () => {
-      // Limpiar interceptor cuando el componente que usa este hook se desmonte
-      api.interceptors.response.eject(interceptor);
-      
-      clearInterval(intervalId);
-    };
   }, []);
 
-  const login = async (credentials) => {
-    setLoading(true);
-
+  const checkSession = useCallback(async () => {
     try {
-      const response = await api.post('/api/login', credentials); // Solicitud de login
+      setLoading(true);
+      const response = await api.get('/api/status'); // Verifica si el usuario está autenticado
 
-      // Obtener el token de los encabezados de la respuesta
-      // const token = response.headers['authorization'].split(' ')[1]; // El token suele estar en el formato "Bearer <token>"
-
-      // Obtener el token de la respuesta
-      const token = response.data.token;
-      sessionStorage.setItem('authToken', token); // Almacenar el token en localStorage
-
-      setUser(response.data.userData);
-      sessionStorage.setItem('user', JSON.stringify(response.data.userData));
-
-      console.log('Login exitoso, token:', token);
-      setError(null); // Limpiar errores previos
-      router.push('/');
-    } catch (error) {
-      setError('Error en el inicio de sesión: ' + error.response?.data?.error || error.message || error.request);
-
-      if (error.response) {
-        // La solicitud fue realizada y el servidor respondió con un código de estado fuera del rango 2xx
-        console.error('Error de autenticación:', error.response.data.error);
-      } else if (error.request) {
-        // La solicitud fue realizada, pero no se recibió respuesta
-        console.error('No se recibió respuesta del servidor');
+      if (response.data.status === 'autenticado') {
+        setUser(response.data.user);
+        localStorage.setItem('user', JSON.stringify(response.data.user)); // Guardar el usuario en localStorage
       } else {
-        // Algo ocurrió al configurar la solicitud
-        console.error('Error desconocido:', error.message);
+        setUser(null);
       }
+    } catch (err) {
+      console.error('Error al verificar la sesión:', err);
+      setUser(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const login = useCallback(async (credentials) => {
+    setLoading(true);
+    setError(null);
+  
+    try {
+      const response = await api.post('/api/auth', credentials);
+      setUser(response.data.userData);
+      localStorage.setItem('user', JSON.stringify(response.data.userData)); // Guardar el usuario en localStorage
+  
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectTo = urlParams.get('next') || '/'; // Si no existe 'next', redirigir a la página principal
+      router.push(redirectTo); // Redirigir a la página de destino
+    } catch (error) {
+      console.error('Error en el inicio de sesión:', error);
+      const errorMessage = error.response?.data?.error || 'Error desconocido';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);  
+
+  const logout = useCallback(async () => {
+    try {
+      await api.delete('/api/auth');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+
     setUser(null);
-    sessionStorage.removeItem('user');
-    sessionStorage.removeItem('authToken'); // Eliminar el token
-    router.push('/'); // Redirige al login después de cerrar sesión
-  };
+    localStorage.removeItem('user'); // Eliminar el usuario de localStorage
+    router.push('/login'); // Redirigir al login después de cerrar sesión
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ user, loading, error, login, logout }}>

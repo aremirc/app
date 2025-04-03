@@ -1,27 +1,10 @@
-import prisma from '@/lib/prisma';
-import { verifyJWT } from '../login/route';
-import { rateLimit } from '@/lib/rateLimiter';
-
-// Función para verificar JWT y aplicar Rate Limiting
-async function verifyAndLimit(req) {
-  // Verificar el token JWT
-  const user = await verifyJWT(req);
-  if (user instanceof Response) {
-    return user; // Si hay un error con el token, devolvemos la respuesta de error
-  }
-
-  // Aplicar Rate Limiting
-  const rateLimitResponse = await rateLimit(req);
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
-  }
-
-  return null; // Si todo es correcto, no se retorna nada
-}
+import { prisma } from '@/lib/prisma';
+import { verifyAndLimit } from '@/lib/permissions'; // Importamos la función centralizada
+import { NextResponse } from 'next/server'; // Importa NextResponse
 
 // Obtener todas las visitas
 export async function GET(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req); // Verificación centralizada
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -31,56 +14,43 @@ export async function GET(req) {
     const visits = await prisma.visit.findMany();
     console.log(visits);
 
-    return new Response(JSON.stringify(visits), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(visits, { status: 200 }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al obtener visitas:', error);
-    return new Response(JSON.stringify({ error: 'Error en la base de datos' }), {
-      status: 500,
-    });
+    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 }); // Usamos NextResponse
   }
 }
 
 // Crear una nueva visita
 export async function POST(req) {
-  const rateLimitResponse = await rateLimit(req);
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
+  const authResponse = await verifyAndLimit(req); // Verificación centralizada de JWT y Rate Limiting
+  if (authResponse) {
+    return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
 
   try {
-    // Verificar el token JWT antes de proceder
-    const user = await verifyJWT(req);
-    if (user instanceof Response) {
-      return user; // Si el token es inválido, retornar error 401
-    }
-
     // Leer el cuerpo de la solicitud
     const { orderId, workerId, date, description } = await req.json();
 
     // Validaciones básicas
     if (!orderId || !workerId || !date || !description) {
-      return new Response(JSON.stringify({ error: 'Todos los campos son requeridos' }), {
+      return NextResponse.json({ error: 'Todos los campos son requeridos' }, {
         status: 400, // Bad request
-      });
+      }); // Usamos NextResponse
     }
 
     // Validar el formato de la fecha
     const visitDate = new Date(date);
     if (isNaN(visitDate.getTime())) {
-      return new Response(JSON.stringify({ error: 'Fecha inválida' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'Fecha inválida' }, { status: 400 }); // Usamos NextResponse
     }
 
     // Verificar que la fecha no sea en el futuro
     const currentDate = new Date();
     if (visitDate > currentDate) {
-      return new Response(JSON.stringify({ error: 'La fecha de la visita no puede ser en el futuro' }), {
+      return NextResponse.json({ error: 'La fecha de la visita no puede ser en el futuro' }, {
         status: 400,
-      });
+      }); // Usamos NextResponse
     }
 
     // Verificar si la orden existe
@@ -88,24 +58,22 @@ export async function POST(req) {
       where: { id: orderId },
     });
     if (!order) {
-      return new Response(JSON.stringify({ error: 'Orden no encontrada' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 400 }); // Usamos NextResponse
     }
 
     // Verificar el estado de la orden (la visita solo se puede registrar si la orden está "PENDING" o "IN_PROGRESS")
     if (![ "PENDING", "IN_PROGRESS" ].includes(order.status)) {
-      return new Response(JSON.stringify({ error: 'La orden no está en un estado válido para registrar una visita' }), {
+      return NextResponse.json({ error: 'La orden no está en un estado válido para registrar una visita' }, {
         status: 400,
-      });
+      }); // Usamos NextResponse
     }
 
     // Verificar si el trabajador está asignado a la orden
     if (order.workerId && order.workerId !== workerId) {
-      return new Response(
-        JSON.stringify({ error: 'El trabajador no está asignado a esta orden' }),
+      return NextResponse.json(
+        { error: 'El trabajador no está asignado a esta orden' },
         { status: 400 }
-      );
+      ); // Usamos NextResponse
     }
 
     // Verificar si el trabajador existe
@@ -113,9 +81,7 @@ export async function POST(req) {
       where: { dni: workerId },
     });
     if (!worker) {
-      return new Response(JSON.stringify({ error: 'Trabajador no encontrado' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 400 }); // Usamos NextResponse
     }
 
     // Verificar la disponibilidad del trabajador en la fecha de la visita
@@ -150,15 +116,12 @@ export async function POST(req) {
     });
 
     // Responder con la visita creada
-    return new Response(JSON.stringify(newVisit), {
+    return NextResponse.json(newVisit, {
       status: 201, // Creado con éxito
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al crear la visita:', error);
-    return new Response(JSON.stringify({ error: 'Error al crear la visita' }), {
-      status: 500, // Error en el servidor
-    });
+    return NextResponse.json({ error: 'Error al crear la visita' }, { status: 500 }); // Usamos NextResponse
   }
 }
 
@@ -173,11 +136,10 @@ export async function PUT(req) {
     // Leer el cuerpo de la solicitud
     const { id, orderId, workerId, date, description } = await req.json();
 
-    // Validar que el ID esté presente
     if (!id) {
-      return new Response(JSON.stringify({ error: 'ID es requerido' }), {
+      return NextResponse.json({ error: 'ID es requerido' }, {
         status: 400, // Bad request
-      });
+      }); // Usamos NextResponse
     }
 
     // Verificar si la visita existe
@@ -185,52 +147,41 @@ export async function PUT(req) {
       where: { id },
     });
     if (!existingVisit) {
-      return new Response(JSON.stringify({ error: 'Visita no encontrada' }), {
-        status: 404, // Not found
-      });
+      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 }); // Usamos NextResponse
     }
 
     // Validaciones
     if (!orderId || !workerId || !date || !description) {
-      return new Response(JSON.stringify({ error: 'Todos los campos son requeridos' }), {
+      return NextResponse.json({ error: 'Todos los campos son requeridos' }, {
         status: 400, // Bad request
-      });
+      }); // Usamos NextResponse
     }
 
-    // Validar el formato de la fecha
     const visitDate = new Date(date);
     if (isNaN(visitDate.getTime())) {
-      return new Response(JSON.stringify({ error: 'Fecha inválida' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'Fecha inválida' }, { status: 400 }); // Usamos NextResponse
     }
 
     // Verificar que la fecha no sea en el futuro
     const currentDate = new Date();
     if (visitDate > currentDate) {
-      return new Response(JSON.stringify({ error: 'La fecha de la visita no puede ser en el futuro' }), {
+      return NextResponse.json({ error: 'La fecha de la visita no puede ser en el futuro' }, {
         status: 400,
-      });
+      }); // Usamos NextResponse
     }
 
-    // Verificar si la orden existe
     const order = await prisma.order.findUnique({
       where: { id: orderId },
     });
     if (!order) {
-      return new Response(JSON.stringify({ error: 'Orden no encontrada' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 400 }); // Usamos NextResponse
     }
 
-    // Verificar si el trabajador existe
     const worker = await prisma.worker.findUnique({
       where: { dni: workerId },
     });
     if (!worker) {
-      return new Response(JSON.stringify({ error: 'Trabajador no encontrado' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 400 }); // Usamos NextResponse
     }
 
     // Actualizar la visita
@@ -244,15 +195,12 @@ export async function PUT(req) {
       },
     });
 
-    return new Response(JSON.stringify(updatedVisit), {
+    return NextResponse.json(updatedVisit, {
       status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al actualizar la visita:', error);
-    return new Response(JSON.stringify({ error: 'Error al actualizar la visita' }), {
-      status: 500, // Error en el servidor
-    });
+    return NextResponse.json({ error: 'Error al actualizar la visita' }, { status: 500 }); // Usamos NextResponse
   }
 }
 
@@ -264,14 +212,12 @@ export async function DELETE(req) {
   }
 
   try {
-    // Leer el cuerpo de la solicitud
     const { id } = await req.json();
 
-    // Validar que el ID esté presente
     if (!id) {
-      return new Response(JSON.stringify({ error: 'ID es requerido' }), {
+      return NextResponse.json({ error: 'ID es requerido' }, {
         status: 400, // Bad request
-      });
+      }); // Usamos NextResponse
     }
 
     // Verificar si la visita existe
@@ -279,9 +225,7 @@ export async function DELETE(req) {
       where: { id },
     });
     if (!existingVisit) {
-      return new Response(JSON.stringify({ error: 'Visita no encontrada' }), {
-        status: 404, // Not found
-      });
+      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 }); // Usamos NextResponse
     }
 
     // Eliminar la visita
@@ -289,14 +233,11 @@ export async function DELETE(req) {
       where: { id },
     });
 
-    return new Response(JSON.stringify({ message: 'Visita eliminada' }), {
+    return NextResponse.json({ message: 'Visita eliminada' }, {
       status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al eliminar la visita:', error);
-    return new Response(JSON.stringify({ error: 'Error al eliminar la visita' }), {
-      status: 500, // Error en el servidor
-    });
+    return NextResponse.json({ error: 'Error al eliminar la visita' }, { status: 500 }); // Usamos NextResponse
   }
 }

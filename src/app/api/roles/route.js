@@ -1,32 +1,22 @@
-import prisma from '@/lib/prisma';
-import { verifyJWT } from '../login/route';
-import { rateLimit } from '@/lib/rateLimiter';
+import { prisma } from '@/lib/prisma';
+import { verifyAndLimit } from '@/lib/permissions'; // Usamos la función de permisos
+import { NextResponse } from 'next/server'; // Importar NextResponse
 
 export async function GET(req) {
-  // Aplicamos Rate Limiting
-  const rateLimitResponse = await rateLimit(req);
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
+  // Verificamos el token JWT y aplicamos Rate Limiting
+  const authResponse = await verifyAndLimit(req); // No se pasa el rol porque todos pueden ver los roles
+  if (authResponse) {
+    return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
 
   try {
-    const user = await verifyJWT(req); // Verificamos el token JWT
-
-    if (user instanceof Response) {
-      return user; // Si hay un error con el token, devolvemos la respuesta de error
-    }
-
-    const roles = await prisma.role.findMany(); // Obtener todos los roles
+    // Obtener todos los roles
+    const roles = await prisma.role.findMany();
     console.log(roles);
 
-    return new Response(JSON.stringify(roles), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(roles, { status: 200 }); // Usar NextResponse.json()
   } catch (error) {
     console.error("Error al obtener roles:", error);
-    return new Response(JSON.stringify({ error: "Error al obtener roles" }), {
-      status: 500,
-    });
+    return NextResponse.json({ error: "Error al obtener roles" }, { status: 500 });
   }
 }

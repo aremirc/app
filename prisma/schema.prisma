@@ -34,11 +34,17 @@ model User {
   @@index([roleId]) // El índice hace referencia al campo escalar `roleId` en lugar del campo de relación `role`
 }
 
+model Permission {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // Nombre del permiso (ej: "create_user", "delete_order", "assign_worker")
+  roles Role[] @relation("RolePermissions") // Relación con los roles
+}
+
 model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  permissions String[] // Lista de permisos para el rol (por ejemplo, "create_order", "assign_worker")
-  users       User[]   @relation("UserRole") // Nombre explícito de la relación para evitar ambigüedad
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  permissions Permission[] @relation("RolePermissions") // Relación con los permisos asociados al rol
+  users       User[]       @relation("UserRole") // Relación con los usuarios
 }
 
 model Client {
@@ -70,7 +76,7 @@ model Order {
 
   userId     String? // Asegúrate de que este campo haga referencia a un Usuario
   user       User?        @relation(fields: [userId], references: [dni]) // Relación con el usuario que gestionó la orden
-  Conformity Conformity[]
+  Conformity Conformity[] // Relación con las conformidades de la orden
 }
 
 model Visit {

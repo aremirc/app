@@ -1,23 +1,6 @@
-import prisma from '@/lib/prisma';
-import { verifyJWT } from '../login/route';
-import { rateLimit } from '@/lib/rateLimiter';
-
-// Función para verificar JWT y aplicar Rate Limiting
-async function verifyAndLimit(req) {
-  // Verificar el token JWT
-  const user = await verifyJWT(req);
-  if (user instanceof Response) {
-    return user; // Si hay un error con el token, devolvemos la respuesta de error
-  }
-
-  // Aplicar Rate Limiting
-  const rateLimitResponse = await rateLimit(req);
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
-  }
-
-  return null; // Si todo es correcto, no se retorna nada
-}
+import { prisma } from '@/lib/prisma';
+import { verifyAndLimit } from '@/lib/permissions'; // Importar la función de permisos
+import { NextResponse } from 'next/server'; // Importar NextResponse
 
 // Obtener todos los clientes
 export async function GET(req) {
@@ -31,48 +14,27 @@ export async function GET(req) {
     const clients = await prisma.client.findMany();
     console.log(clients);
 
-    return new Response(JSON.stringify(clients), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(clients, { status: 200 }); // Usar NextResponse.json()
   } catch (error) {
     console.error('Error al obtener clientes:', error);
-    return new Response(JSON.stringify({ error: 'Error en la base de datos' }), {
-      status: 500,
-    });
+    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 });
   }
 }
 
 // Crear un nuevo cliente
 export async function POST(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, "Admin");  // Asegurarse de que el usuario sea un Admin
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
 
   try {
-    // Verificar el token JWT antes de proceder
-    const user = await verifyJWT(req); // Esto devuelve los datos del usuario (incluyendo el rol)
-    if (user instanceof Response) {
-      return user; // Si el token es inválido, retornar error 401
-    }
-
-    // Verificar si el usuario tiene el rol adecuado (por ejemplo, "Admin")
-    const userRole = await prisma.role.findUnique({
-      where: { id: user.roleId },
-    });
-    if (!userRole || userRole.name !== "Admin") {
-      return new Response(JSON.stringify({ error: 'No tienes permisos para crear un cliente' }), {
-        status: 403, // Forbidden
-      });
-    }
-
     // Leer el cuerpo de la solicitud
     const { dni, name, email, phone, address } = await req.json();
 
     // Validaciones básicas
     if (!dni || !name || !email) {
-      return new Response(JSON.stringify({ error: 'Todos los campos son requeridos' }), {
+      return NextResponse.json({ error: 'Todos los campos son requeridos' }, {
         status: 400, // Bad request
       });
     }
@@ -80,14 +42,14 @@ export async function POST(req) {
     // Validar formato de correo electrónico
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     if (!emailRegex.test(email)) {
-      return new Response(JSON.stringify({ error: 'Correo electrónico no válido' }), {
+      return NextResponse.json({ error: 'Correo electrónico no válido' }, {
         status: 400,
       });
     }
 
     // Validación del formato del DNI (Ejemplo simple, depende del formato de tu país)
     if (!/^\d{8}$/.test(dni)) {
-      return new Response(JSON.stringify({ error: 'DNI no válido. Debe contener 8 dígitos' }), {
+      return NextResponse.json({ error: 'DNI no válido. Debe contener 8 dígitos' }, {
         status: 400,
       });
     }
@@ -97,7 +59,7 @@ export async function POST(req) {
       where: { email },
     });
     if (existingClientEmail) {
-      return new Response(JSON.stringify({ error: 'El correo electrónico ya está registrado' }), {
+      return NextResponse.json({ error: 'El correo electrónico ya está registrado' }, {
         status: 400,
       });
     }
@@ -107,7 +69,7 @@ export async function POST(req) {
       where: { dni },
     });
     if (existingClientDNI) {
-      return new Response(JSON.stringify({ error: 'El DNI ya está registrado' }), {
+      return NextResponse.json({ error: 'El DNI ya está registrado' }, {
         status: 400,
       });
     }
@@ -125,13 +87,10 @@ export async function POST(req) {
 
     // Responder con los datos del nuevo cliente (sin el DNI, por razones de privacidad)
     // const { dni: _, ...newClient } = newClient;
-    return new Response(JSON.stringify(newClient), {
-      status: 201, // Creado con éxito
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(newClient, { status: 201 }); // Crear respuesta con estado 201
   } catch (error) {
     console.error('Error al crear el cliente:', error);
-    return new Response(JSON.stringify({ error: 'Error al crear el cliente' }), {
+    return NextResponse.json({ error: 'Error al crear el cliente' }, {
       status: 500, // Error en el servidor
     });
   }
@@ -139,7 +98,7 @@ export async function POST(req) {
 
 // Actualizar un cliente existente
 export async function PUT(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, "Admin");  // Asegurarse de que el usuario sea un Admin
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -150,7 +109,7 @@ export async function PUT(req) {
 
     // Validar que el DNI esté presente
     if (!dni) {
-      return new Response(JSON.stringify({ error: 'DNI es requerido' }), {
+      return NextResponse.json({ error: 'DNI es requerido' }, {
         status: 400, // Bad request
       });
     }
@@ -160,7 +119,7 @@ export async function PUT(req) {
       where: { dni },
     });
     if (!existingClient) {
-      return new Response(JSON.stringify({ error: 'Cliente no encontrado' }), {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, {
         status: 404, // Not found
       });
     }
@@ -168,7 +127,7 @@ export async function PUT(req) {
     // Validar formato de correo electrónico
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     if (email && !emailRegex.test(email)) {
-      return new Response(JSON.stringify({ error: 'Correo electrónico no válido' }), {
+      return NextResponse.json({ error: 'Correo electrónico no válido' }, {
         status: 400,
       });
     }
@@ -184,13 +143,10 @@ export async function PUT(req) {
       },
     });
 
-    return new Response(JSON.stringify(updatedClient), {
-      status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(updatedClient, { status: 200 }); // Respuesta OK
   } catch (error) {
     console.error('Error al actualizar el cliente:', error);
-    return new Response(JSON.stringify({ error: 'Error al actualizar el cliente' }), {
+    return NextResponse.json({ error: 'Error al actualizar el cliente' }, {
       status: 500, // Error en el servidor
     });
   }
@@ -198,7 +154,7 @@ export async function PUT(req) {
 
 // Eliminar un cliente
 export async function DELETE(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, "Admin");  // Asegurarse de que el usuario sea un Admin
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -209,7 +165,7 @@ export async function DELETE(req) {
 
     // Validar que el DNI esté presente
     if (!dni) {
-      return new Response(JSON.stringify({ error: 'DNI es requerido' }), {
+      return NextResponse.json({ error: 'DNI es requerido' }, {
         status: 400, // Bad request
       });
     }
@@ -219,7 +175,7 @@ export async function DELETE(req) {
       where: { dni },
     });
     if (!existingClient) {
-      return new Response(JSON.stringify({ error: 'Cliente no encontrado' }), {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, {
         status: 404, // Not found
       });
     }
@@ -229,13 +185,10 @@ export async function DELETE(req) {
       where: { dni },
     });
 
-    return new Response(JSON.stringify({ message: 'Cliente eliminado con éxito' }), {
-      status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json({ message: 'Cliente eliminado con éxito' }, { status: 200 }); // Respuesta OK
   } catch (error) {
     console.error('Error al eliminar el cliente:', error);
-    return new Response(JSON.stringify({ error: 'Error al eliminar el cliente' }), {
+    return NextResponse.json({ error: 'Error al eliminar el cliente' }, {
       status: 500, // Error en el servidor
     });
   }

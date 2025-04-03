@@ -7,10 +7,10 @@ import { useClients } from "@/hooks/useClients";
 
 // Esquema de validación con Zod
 const clientSchema = z.object({
-  dni: z.string().min(1, "El DNI es obligatorio").length(8, "El DNI debe tener 8 dígitos numéricos"),
+  dni: z.string().min(1, "El DNI es obligatorio").length(8, "El DNI debe tener 8 dígitos numéricos").regex(/^\d{8}$/, "El DNI debe ser solo numérico"),
   name: z.string().min(1, "El nombre es obligatorio"),
-  email: z.string().email("Correo electrónico inválido"),
-  phone: z.string().min(1, "El teléfono es obligatorio"),
+  email: z.string().email("Correo electrónico inválido").min(1, "El correo electrónico es obligatorio"),
+  phone: z.string().min(1, "El teléfono es obligatorio").regex(/^\d{9}$/, "El teléfono debe tener 9 dígitos numéricos"),
   address: z.string().min(1, "La dirección es obligatoria"),
 });
 

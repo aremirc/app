@@ -1,23 +1,6 @@
-import prisma from '@/lib/prisma';
-import { verifyJWT } from '../login/route';
-import { rateLimit } from '@/lib/rateLimiter';
-
-// Función para verificar JWT y aplicar Rate Limiting
-async function verifyAndLimit(req) {
-  // Verificar el token JWT
-  const user = await verifyJWT(req);
-  if (user instanceof Response) {
-    return user; // Si hay un error con el token, devolvemos la respuesta de error
-  }
-
-  // Aplicar Rate Limiting
-  const rateLimitResponse = await rateLimit(req);
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
-  }
-
-  return null; // Si todo es correcto, no se retorna nada
-}
+import { prisma } from '@/lib/prisma';
+import { verifyAndLimit } from '@/lib/permissions'; // Importar la función de permisos
+import { NextResponse } from 'next/server'; // Importar NextResponse
 
 // Obtener todos los servicios
 export async function GET(req) {
@@ -31,57 +14,32 @@ export async function GET(req) {
     const services = await prisma.service.findMany();
     console.log(services);
 
-    return new Response(JSON.stringify(services), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(services, { status: 200 }); // Usar NextResponse.json()
   } catch (error) {
     console.error('Error al obtener servicios:', error);
-    return new Response(JSON.stringify({ error: 'Error en la base de datos' }), {
-      status: 500,
-    });
+    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 });
   }
 }
 
 // Crear un nuevo servicio
 export async function POST(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, "Admin");
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
 
   try {
-    // Verificar el token JWT antes de proceder
-    const user = await verifyJWT(req); // Esto devuelve los datos del usuario (incluyendo el rol)
-    if (user instanceof Response) {
-      return user; // Si el token es inválido, retornar error 401
-    }
-
-    // Verificar si el usuario tiene el rol adecuado (por ejemplo, "Admin")
-    const userRole = await prisma.role.findUnique({
-      where: { id: user.roleId },
-    });
-    if (!userRole || userRole.name !== "Admin") {
-      return new Response(JSON.stringify({ error: 'No tienes permisos para crear un servicio' }), {
-        status: 403, // Forbidden
-      });
-    }
-
     // Leer el cuerpo de la solicitud
     const { name, description, price } = await req.json();
 
     // Validaciones básicas
     if (!name || !price) {
-      return new Response(JSON.stringify({ error: 'Nombre y precio son requeridos' }), {
-        status: 400, // Bad request
-      });
+      return NextResponse.json({ error: 'Nombre y precio son requeridos' }, { status: 400 }); // Bad request
     }
 
     // Validar el precio: debe ser un número positivo
     if (isNaN(price) || price <= 0) {
-      return new Response(JSON.stringify({ error: 'El precio debe ser un número positivo' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'El precio debe ser un número positivo' }, { status: 400 });
     }
 
     // // Verificar si el servicio con el mismo nombre ya existe
@@ -105,21 +63,16 @@ export async function POST(req) {
     });
 
     // Responder con el servicio creado
-    return new Response(JSON.stringify(newService), {
-      status: 201, // Creado con éxito
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(newService, { status: 201 }); // Creado con éxito
   } catch (error) {
     console.error('Error al crear el servicio:', error);
-    return new Response(JSON.stringify({ error: 'Error al crear el servicio' }), {
-      status: 500, // Error en el servidor
-    });
+    return NextResponse.json({ error: 'Error al crear el servicio' }, { status: 500 }); // Error en el servidor
   }
 }
 
 // Actualizar un servicio existente
 export async function PUT(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, "Admin");
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -130,9 +83,7 @@ export async function PUT(req) {
 
     // Validar que el ID esté presente
     if (!id) {
-      return new Response(JSON.stringify({ error: 'ID es requerido' }), {
-        status: 400, // Bad request
-      });
+      return NextResponse.json({ error: 'ID es requerido' }, { status: 400 }); // Bad request
     }
 
     // Verificar si el servicio existe
@@ -140,23 +91,17 @@ export async function PUT(req) {
       where: { id },
     });
     if (!existingService) {
-      return new Response(JSON.stringify({ error: 'Servicio no encontrado' }), {
-        status: 404, // Not found
-      });
+      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 }); // Not found
     }
 
     // Validaciones básicas
     if (!name || !price) {
-      return new Response(JSON.stringify({ error: 'Nombre y precio son requeridos' }), {
-        status: 400, // Bad request
-      });
+      return NextResponse.json({ error: 'Nombre y precio son requeridos' }, { status: 400 }); // Bad request
     }
 
     // Validar el precio: debe ser un número positivo
     if (isNaN(price) || price <= 0) {
-      return new Response(JSON.stringify({ error: 'El precio debe ser un número positivo' }), {
-        status: 400,
-      });
+      return NextResponse.json({ error: 'El precio debe ser un número positivo' }, { status: 400 });
     }
 
     // Actualizar el servicio
@@ -169,21 +114,16 @@ export async function PUT(req) {
       },
     });
 
-    return new Response(JSON.stringify(updatedService), {
-      status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(updatedService, { status: 200 }); // OK
   } catch (error) {
     console.error('Error al actualizar el servicio:', error);
-    return new Response(JSON.stringify({ error: 'Error al actualizar el servicio' }), {
-      status: 500, // Error en el servidor
-    });
+    return NextResponse.json({ error: 'Error al actualizar el servicio' }, { status: 500 }); // Error en el servidor
   }
 }
 
 // Eliminar un servicio
 export async function DELETE(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, "Admin");
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -194,9 +134,7 @@ export async function DELETE(req) {
 
     // Validar que el ID esté presente
     if (!id) {
-      return new Response(JSON.stringify({ error: 'ID es requerido' }), {
-        status: 400, // Bad request
-      });
+      return NextResponse.json({ error: 'ID es requerido' }, { status: 400 }); // Bad request
     }
 
     // Verificar si el servicio existe
@@ -204,9 +142,7 @@ export async function DELETE(req) {
       where: { id },
     });
     if (!existingService) {
-      return new Response(JSON.stringify({ error: 'Servicio no encontrado' }), {
-        status: 404, // Not found
-      });
+      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 }); // Not found
     }
 
     // Eliminar el servicio
@@ -214,14 +150,9 @@ export async function DELETE(req) {
       where: { id },
     });
 
-    return new Response(JSON.stringify({ message: 'Servicio eliminado con éxito' }), {
-      status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json({ message: 'Servicio eliminado con éxito' }, { status: 200 }); // OK
   } catch (error) {
     console.error('Error al eliminar el servicio:', error);
-    return new Response(JSON.stringify({ error: 'Error al eliminar el servicio' }), {
-      status: 500, // Error en el servidor
-    });
+    return NextResponse.json({ error: 'Error al eliminar el servicio' }, { status: 500 }); // Error en el servidor
   }
 }

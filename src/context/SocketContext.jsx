@@ -30,12 +30,12 @@ export const SocketProvider = ({ children }) => {
     });
 
     socketRef.current.on("connect", () => {
-      console.log("Conectado a WebSocket");
+      // console.log("Conectado a WebSocket");
     });
 
     // Cuando la conexión se pierde, tratamos de reconectar
     socketRef.current.on("disconnect", () => {
-      console.log("Desconectado del WebSocket");
+      // console.log("Desconectado del WebSocket");
     });
 
     setSocket(socketRef.current);

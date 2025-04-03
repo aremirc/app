@@ -1,4 +1,5 @@
 import { RateLimiterMemory } from 'rate-limiter-flexible';
+import { NextResponse } from 'next/server'; // Importar NextResponse
 
 // Configuración del Rate Limiter
 const rateLimiter = new RateLimiterMemory({
@@ -18,8 +19,8 @@ export async function rateLimit(req) {
     return null;
   } catch (err) {
     // Si se excede el límite, respondemos con un error 429 (Too Many Requests)
-    return new Response(
-      JSON.stringify({ message: 'Too many requests, please try again later.' }),
+    return NextResponse.json(
+      { message: 'Too many requests, please try again later.' },
       { status: 429 }
     );
   }

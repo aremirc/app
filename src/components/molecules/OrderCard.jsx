@@ -14,7 +14,7 @@ const orderSchema = z.object({
   description: z.string().min(1, "La descripción es obligatoria"),
   clientId: z.string().min(1, "Selecciona un cliente"),
   workerId: z.string().min(1, "Selecciona un trabajador"),
-  status: z.string().min(1, "Selecciona el estado de la orden"),
+  status: z.enum(orderStatuses, { message: "Selecciona un estado válido" }), // Uso de enum para validar el status
   services: z.array(z.string()).nonempty("Selecciona al menos un servicio"),
 });
 
@@ -49,13 +49,13 @@ const OrderCard = ({ order, handleCancel }) => {
     defaultValues: order || defaultValues,
     mode: "onBlur", // Validación al perder el foco
   });
-  
+
   // Usando useQuery para obtener clientes, trabajadores y servicios
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ["clients"],
     queryFn: fetchClients
   });
-  
+
   const { data: workers = [], isLoading: loadingWorkers } = useQuery({
     queryKey: ["workers"],
     queryFn: fetchWorkers
@@ -68,6 +68,14 @@ const OrderCard = ({ order, handleCancel }) => {
 
   // Combinamos todas las cargas en una sola variable
   const loading = loadingClients || loadingWorkers || loadingServices;
+
+  const handleServiceChange = (serviceId) => {
+    const currentServices = watch("services");
+    const updatedServices = currentServices.includes(serviceId)
+      ? currentServices.filter(id => id !== serviceId)
+      : [...currentServices, serviceId];
+    setValue("services", updatedServices);
+  };
 
   const onSubmit = (data) => {
     if (order) {
@@ -178,6 +186,8 @@ const OrderCard = ({ order, handleCancel }) => {
               <div className="space-y-2">
                 {loadingServices ? (
                   <p>Cargando servicios...</p>
+                ) : services.length === 0 ? (
+                  <p>No hay servicios disponibles.</p>
                 ) : (
                   services.map((service) => (
                     <div key={service.id} className="flex items-center">
@@ -186,13 +196,7 @@ const OrderCard = ({ order, handleCancel }) => {
                         id={`service-${service.id}`}
                         value={service.id}
                         checked={(watch("services") ?? []).includes(service.id)}
-                        onChange={() => {
-                          const currentServices = watch("services");
-                          const updatedServices = currentServices.includes(service.id)
-                            ? currentServices.filter(id => id !== service.id)
-                            : [...currentServices, service.id];
-                          setValue("services", updatedServices);
-                        }}
+                        onChange={() => handleServiceChange(service.id)}
                         className="mr-2"
                         disabled={order || loading}
                       />

@@ -9,19 +9,19 @@ import { useVisits } from "@/hooks/useVisits";
 
 // Esquema de validación con Zod
 const visitSchema = z.object({
-  date: z.string().min(1, "La fecha es obligatoria"),
+  date: z.string().refine(value => !isNaN(Date.parse(value)), "La fecha no es válida"),
   description: z.string().min(1, "La descripción es obligatoria"),
-  orderId: z.string().min(1, "La orden es obligatoria"),
+  orderId: z.number().min(1, "La orden es obligatoria"),
   workerId: z.string().min(1, "El trabajador es obligatorio"),
   clientId: z.string().min(1, "El cliente es obligatorio"),
 });
 
 const defaultValues = {
-  date: "", 
-  description: "", 
-  orderId: "", 
-  workerId: "", 
-  clientId: "" 
+  date: "",
+  description: "",
+  orderId: undefined,
+  workerId: "",
+  clientId: ""
 };
 
 // Funciones de consulta para react-query
@@ -45,7 +45,7 @@ const VisitCard = ({ visit, handleCancel }) => {
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, reset } = useForm({
     resolver: zodResolver(visitSchema),
-    defaultValues: visit || defaultValues,
+    defaultValues: visit ? { ...visit, date: new Date(visit.date).toISOString().split('T')[0] } : defaultValues,
     mode: "onBlur",
   });
 
@@ -128,6 +128,10 @@ const VisitCard = ({ visit, handleCancel }) => {
                 {...field}
                 className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.orderId ? 'border-red-500' : ''}`}
                 disabled={loading}
+                onChange={(e) => {
+                  // Convertir el valor seleccionado a número
+                  field.onChange(Number(e.target.value));
+                }}
               >
                 <option value="" disabled>Selecciona una orden</option>
                 {loading ? <option value="" disabled>Cargando órdenes...</option> : orders?.map(order => (

@@ -1,28 +1,10 @@
-import bcrypt from 'bcrypt';
-import { verifyJWT } from '../login/route';
-import { rateLimit } from '@/lib/rateLimiter';
+import { verifyAndLimit } from '@/lib/permissions'; // Importamos la función
 import prisma from '@/lib/prisma';
-
-// Función para verificar JWT y aplicar Rate Limiting
-async function verifyAndLimit(req) {
-  // Verificar el token JWT
-  const user = await verifyJWT(req);
-  if (user instanceof Response) {
-    return user; // Si hay un error con el token, devolvemos la respuesta de error
-  }
-
-  // Aplicar Rate Limiting
-  const rateLimitResponse = await rateLimit(req);
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
-  }
-
-  return null; // Si todo es correcto, no se retorna nada
-}
+import { NextResponse } from 'next/server'; // Importa NextResponse
 
 // Obtener todos los trabajadores
 export async function GET(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req); // Llamamos a verifyAndLimit
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -35,42 +17,30 @@ export async function GET(req) {
         visits: true,  // Incluir las visitas realizadas por el trabajador
       },
     });
-    console.log(workers);
 
-    return new Response(JSON.stringify(workers), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(workers, { status: 200 }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al obtener trabajadores:', error);
-    return new Response(JSON.stringify({ error: 'Error en la base de datos' }), {
-      status: 500,
-    });
+    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 }); // Usamos NextResponse
   }
 }
 
 // Crear un nuevo trabajador
 export async function POST(req) {
-  const rateLimitResponse = await rateLimit(req);
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Si el límite se excede, devolver la respuesta 429
+  const authResponse = await verifyAndLimit(req, 'Admin'); // Solo los Admins pueden crear trabajadores
+  if (authResponse) {
+    return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
 
   try {
-    // Verificar el token JWT antes de proceder
-    const user = await verifyJWT(req);
-    if (user instanceof Response) {
-      return user; // Si el token es inválido, retornar error 401
-    }
-
     // Leer el cuerpo de la solicitud
     const { dni, firstName, lastName, email, phone } = await req.json();
 
     // Validaciones básicas
     if (!dni || !firstName || !lastName || !email) {
-      return new Response(JSON.stringify({ error: 'Todos los campos son requeridos' }), {
+      return NextResponse.json({ error: 'Todos los campos son requeridos' }, {
         status: 400, // Bad request
-      });
+      }); // Usamos NextResponse
     }
 
     // Verificar si el trabajador ya existe por DNI
@@ -78,9 +48,9 @@ export async function POST(req) {
       where: { dni },
     });
     if (existingWorker) {
-      return new Response(JSON.stringify({ error: 'El trabajador ya existe' }), {
+      return NextResponse.json({ error: 'El trabajador ya existe' }, {
         status: 400,
-      });
+      }); // Usamos NextResponse
     }
 
     // Crear un nuevo trabajador
@@ -95,21 +65,20 @@ export async function POST(req) {
     });
 
     // Responder con el trabajador creado
-    return new Response(JSON.stringify(newWorker), {
+    return NextResponse.json(newWorker, {
       status: 201, // Creado con éxito
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al crear el trabajador:', error);
-    return new Response(JSON.stringify({ error: 'Error al crear el trabajador' }), {
+    return NextResponse.json({ error: 'Error al crear el trabajador' }, {
       status: 500, // Error en el servidor
-    });
+    }); // Usamos NextResponse
   }
 }
 
 // Actualizar un trabajador existente
 export async function PUT(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, 'Admin'); // Solo los Admins pueden actualizar trabajadores
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -120,9 +89,9 @@ export async function PUT(req) {
 
     // Validar que el DNI esté presente
     if (!dni) {
-      return new Response(JSON.stringify({ error: 'DNI es requerido' }), {
+      return NextResponse.json({ error: 'DNI es requerido' }, {
         status: 400, // Bad request
-      });
+      }); // Usamos NextResponse
     }
 
     // Verificar si el trabajador existe
@@ -130,9 +99,9 @@ export async function PUT(req) {
       where: { dni },
     });
     if (!existingWorker) {
-      return new Response(JSON.stringify({ error: 'Trabajador no encontrado' }), {
+      return NextResponse.json({ error: 'Trabajador no encontrado' }, {
         status: 404, // Not found
-      });
+      }); // Usamos NextResponse
     }
 
     // Actualizar el trabajador
@@ -146,21 +115,20 @@ export async function PUT(req) {
       },
     });
 
-    return new Response(JSON.stringify(updatedWorker), {
+    return NextResponse.json(updatedWorker, {
       status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al actualizar el trabajador:', error);
-    return new Response(JSON.stringify({ error: 'Error al actualizar el trabajador' }), {
+    return NextResponse.json({ error: 'Error al actualizar el trabajador' }, {
       status: 500, // Error en el servidor
-    });
+    }); // Usamos NextResponse
   }
 }
 
 // Eliminar un trabajador
 export async function DELETE(req) {
-  const authResponse = await verifyAndLimit(req);
+  const authResponse = await verifyAndLimit(req, 'Admin'); // Solo los Admins pueden eliminar trabajadores
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
   }
@@ -171,9 +139,9 @@ export async function DELETE(req) {
 
     // Validar que el DNI esté presente
     if (!dni) {
-      return new Response(JSON.stringify({ error: 'DNI es requerido' }), {
+      return NextResponse.json({ error: 'DNI es requerido' }, {
         status: 400, // Bad request
-      });
+      }); // Usamos NextResponse
     }
 
     // Verificar si el trabajador existe
@@ -181,9 +149,9 @@ export async function DELETE(req) {
       where: { dni },
     });
     if (!existingWorker) {
-      return new Response(JSON.stringify({ error: 'Trabajador no encontrado' }), {
+      return NextResponse.json({ error: 'Trabajador no encontrado' }, {
         status: 404, // Not found
-      });
+      }); // Usamos NextResponse
     }
 
     // Eliminar el trabajador
@@ -191,14 +159,13 @@ export async function DELETE(req) {
       where: { dni },
     });
 
-    return new Response(JSON.stringify({ message: 'Trabajador eliminado' }), {
+    return NextResponse.json({ message: 'Trabajador eliminado' }, {
       status: 200, // OK
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }); // Usamos NextResponse
   } catch (error) {
     console.error('Error al eliminar el trabajador:', error);
-    return new Response(JSON.stringify({ error: 'Error al eliminar el trabajador' }), {
+    return NextResponse.json({ error: 'Error al eliminar el trabajador' }, {
       status: 500, // Error en el servidor
-    });
+    }); // Usamos NextResponse
   }
 }

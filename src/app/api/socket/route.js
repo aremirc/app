@@ -49,5 +49,6 @@ export async function POST(req) {
   });
 
   // Terminar la respuesta HTTP (porque WebSocket se maneja de manera diferente)
+  // Aquí devolvemos una respuesta HTTP para que Next.js maneje la conexión WebSocket
   return new NextResponse(null, { status: 200 });
 }

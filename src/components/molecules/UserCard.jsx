@@ -12,12 +12,12 @@ const userSchema = z.object({
   dni: z.string().min(1, "El DNI es obligatorio").regex(/^\d{8}$/, "El DNI debe tener 8 dígitos"),
   username: z.string().min(3, "El nombre de usuario es obligatorio"),
   email: z.string().email("Correo electrónico inválido"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").regex(/[A-Z]/, "Debe contener al menos una letra mayúscula").regex(/\d/, "Debe contener al menos un número").regex(/[\W_]/, "Debe contener al menos un carácter especial"),
   firstName: z.string().min(1, "El nombre es obligatorio").optional(),
   lastName: z.string().min(1, "El apellido es obligatorio").optional(),
-  phone: z.string().optional(),
+  phone: z.string().regex(/^\d{9}$/, "El teléfono debe tener 9 dígitos numéricos").optional(),
   // roleId: z.string().optional(),
-  roleId: z.number().int().positive().optional(),
+  roleId: z.number().int().positive().refine(val => val > 0, "El Rol es obligatorio"),
 });
 
 const defaultValues = {
@@ -45,7 +45,7 @@ const UserCard = ({ user, handleCancel }) => {
     mode: "onBlur", // Validación al perder el foco
   });
 
-  const { data: roles = [], isLoading: rolesLoading } = useQuery({
+  const { data: roles = [], isLoading: rolesLoading, isError: rolesError } = useQuery({
     queryKey: ["roles"],
     queryFn: fetchRoles
   });
@@ -135,17 +135,20 @@ const UserCard = ({ user, handleCancel }) => {
         {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
 
         {!user && (
-          <Controller
-            name="phone"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                placeholder="Teléfono"
-                className={`mb-4 ${errors.phone ? "border-red-500" : ""}`}
-              />
-            )}
-          />
+          <>
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="Teléfono"
+                  className={`mb-4 ${errors.phone ? "border-red-500" : ""}`}
+                />
+              )}
+            />
+            {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
+          </>
         )}
 
         <Controller
@@ -174,16 +177,22 @@ const UserCard = ({ user, handleCancel }) => {
                 id="roleId"
                 {...field}
                 className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.roleId ? "border-red-500" : ""}`}
-                disabled={rolesLoading}
+                disabled={rolesLoading || rolesError} // Deshabilitar solo si hay error o carga
+                onChange={(e) => {
+                  // Convertir el valor seleccionado a número
+                  field.onChange(Number(e.target.value));
+                }}
               >
                 {rolesLoading ? (
                   <option value="" disabled>Cargando roles...</option>
+                ) : rolesError ? (
+                  <option value="" disabled>Error al cargar roles</option>
                 ) : roles.length ? (
                   roles.map((role) => (
                     <option key={role.id} value={role.id}>{role.name}</option>
                   ))
                 ) : (
-                  <option value="" disabled>No hay roles disponibles</option>
+                  <option value="" disabled>No hay roles disponibles</option> // Si no hay roles
                 )}
               </select>
             </div>

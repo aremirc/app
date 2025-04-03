@@ -15,7 +15,7 @@ const serviceSchema = z.object({
 const defaultValues = {
   name: "",
   description: "",
-  price: "",
+  price: 0.01,
 };
 
 const ServiceCard = ({ service, handleCancel }) => {
