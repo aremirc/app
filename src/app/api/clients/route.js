@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
+import { verifyCsrfToken } from '@/lib/csrf';
 import { verifyAndLimit } from '@/lib/permissions'; // Importar la función de permisos
 import { NextResponse } from 'next/server'; // Importar NextResponse
 
@@ -23,6 +24,9 @@ export async function GET(req) {
 
 // Crear un nuevo cliente
 export async function POST(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, "Admin");  // Asegurarse de que el usuario sea un Admin
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
@@ -98,6 +102,9 @@ export async function POST(req) {
 
 // Actualizar un cliente existente
 export async function PUT(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, "Admin");  // Asegurarse de que el usuario sea un Admin
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
@@ -154,6 +161,9 @@ export async function PUT(req) {
 
 // Eliminar un cliente
 export async function DELETE(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, "Admin");  // Asegurarse de que el usuario sea un Admin
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente

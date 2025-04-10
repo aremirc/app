@@ -1,6 +1,5 @@
 import { Server } from "socket.io";
 import { NextResponse } from "next/server";  // Importar NextResponse
-import prisma from "@/lib/prisma"; // Suponiendo que tienes un cliente Prisma
 
 // Responder con un mensaje cuando se hace una solicitud GET a esta ruta
 export function GET(req) {
@@ -17,38 +16,40 @@ export async function POST(req) {
     return user; // Si hay un error con el token, devolver respuesta de error
   }
 
-  const io = new Server(req.socket.server, {
-    path: "/api/socket", // Definir el path del WebSocket
-  });
+  // Verificar si WebSocket ya está inicializado
+  if (!req.socket.server.io) {
+    console.log('Inicializando socket.io...');
 
-  io.on("connection", (socket) => {
-    console.log("Usuario conectado:", socket.id);
-
-    socket.on("new-visit", async (visitData) => {
-      try {
-        const newVisit = await prisma.visit.create({
-          data: {
-            date: new Date(visitData.date),
-            description: visitData.description || "Descripción por defecto",
-            orderId: visitData.orderId,
-            workerId: visitData.workerId,
-            clientId: visitData.clientId,
-          },
-        });
-
-        // Emitir evento a todos los clientes conectados
-        io.emit("new-visit", newVisit);
-      } catch (error) {
-        console.error("Error al crear nueva visita:", error);
-      }
+    const io = new Server(req.socket.server, {
+      cors: {
+        origin: process.env.NODE_ENV === 'development'
+          ? '*'
+          : `https://${req.headers.host}`, // Usar el host de la solicitud para producción
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
     });
 
-    socket.on("disconnect", () => {
-      console.log("Usuario desconectado:", socket.id);
+    io.on('connection', (socket) => {
+      console.log('Nuevo usuario conectado: ' + socket.id);
+
+      // Acceder a las cookies en la conexión WebSocket
+      const cookies = socket.request.headers.cookie;  // Accede a las cookies del socket
+      console.log('Cookies recibidas en WebSocket:', cookies);
+
+      socket.on('message', (msg) => {
+        console.log('Mensaje recibido: ', msg);
+        socket.emit('response', 'Mensaje recibido');
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Usuario desconectado:', socket.id);
+      });
     });
-  });
+
+    req.socket.server.io = io; // Asignar el servidor de WebSocket al servidor HTTP
+  }
 
   // Terminar la respuesta HTTP (porque WebSocket se maneja de manera diferente)
-  // Aquí devolvemos una respuesta HTTP para que Next.js maneje la conexión WebSocket
   return new NextResponse(null, { status: 200 });
 }

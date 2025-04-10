@@ -30,9 +30,10 @@
 // 5. Tip: Explore how you can extend the ORM with scalable connection pooling, global caching, and real-time database events. Read: https://pris.ly/cli/beyond-orm   
 
 import { NextResponse } from 'next/server'; // Importar NextResponse
-import bcrypt from 'bcrypt';
 import { verifyAndLimit } from '@/lib/permissions'; // Importar la función para verificar permisos
+import { verifyCsrfToken } from '@/lib/csrf';
 import prisma from '@/lib/prisma';  // Importar la instancia de Prisma
+import bcrypt from 'bcrypt';
 
 // Obtener todos los usuarios con roles
 export async function GET(req) {
@@ -65,6 +66,9 @@ export async function GET(req) {
 
 // Crear un nuevo usuario con validación optimizada
 export async function POST(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, 'Admin');
   if (authResponse) {
     return authResponse;  // Si no tiene permisos, devolver respuesta con error 403
@@ -131,6 +135,9 @@ export async function POST(req) {
 
 // Actualizar un usuario (requiere rol "Admin")
 export async function PUT(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, 'Admin');
   if (authResponse) {
     return authResponse; // Si no tiene permisos, devolver error 403
@@ -205,6 +212,9 @@ export async function PUT(req) {
 
 // Eliminar un usuario (requiere rol "Admin")
 export async function DELETE(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, 'Admin');
   if (authResponse) {
     return authResponse; // Si no tiene permisos, devolver error 403

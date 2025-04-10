@@ -1,31 +1,44 @@
 import jwt from 'jsonwebtoken';
-import { parseCookies } from 'nookies';  // Para obtener las cookies
-import { NextResponse } from 'next/server'; // Importar NextResponse
-import dotenv from 'dotenv';
+import { NextResponse } from 'next/server';
+import { parse } from 'cookie';
 
-dotenv.config(); // Cargar las variables de entorno
+// Función para obtener el token desde las cookies
+const getTokenFromCookies = (req) => {
+  const cookies = parse(req.headers.get('Cookie') || '');
+  return cookies.token;
+};
 
-export async function verifyJWT(req) {
+// Función para generar una respuesta estándar de error
+const createErrorResponse = (message, status = 401) => {
+  return NextResponse.json({ error: message }, { status });
+};
+
+// Función para verificar el JWT
+const verifyAccessToken = (token) => {
   try {
-    // Obtener cookies desde el servidor
-    const cookies = parseCookies({ req });
-    const token = cookies.token;  // Suponiendo que el JWT se guarda en una cookie llamada 'token'
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'No se proporcionó token de autenticación' },
-        { status: 401 }
-      );
-    }
-
-    // Verificar y decodificar el JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return decoded; // Retorna los datos decodificados del JWT (puedes usar estos datos en la ruta protegida)
+    return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    console.error('Error en la verificación del token:', error);
-    return NextResponse.json(
-      { error: 'Token inválido o expirado' },
-      { status: 401 } // Unauthorized
-    );
+    throw error;
+  }
+};
+
+// Función principal de verificación de JWT
+export async function verifyJWT(req) {
+  const token = getTokenFromCookies(req);
+
+  if (!token) {
+    return createErrorResponse('No se proporcionó token de autenticación');
+  }
+
+  try {
+    // Intentar verificar el token de acceso
+    const decoded = verifyAccessToken(token);
+    return decoded;  // Retorna los datos decodificados del JWT si la verificación es exitosa
+  } catch (error) {
+    // Si el token ha expirado o ha fallado la verificación
+    if (error.name === 'TokenExpiredError') {
+      return createErrorResponse('Token expirado', 401); // Error específico por expiración del token
+    }
+    return createErrorResponse('Error en la verificación del token', 401);  // Otros errores de verificación
   }
 }

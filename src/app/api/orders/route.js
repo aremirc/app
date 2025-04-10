@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
+import { verifyCsrfToken } from '@/lib/csrf';
 import { verifyAndLimit } from '@/lib/permissions';  // Asegúrate de importar la función correctamente
 import { NextResponse } from 'next/server'; // Importar NextResponse
 
@@ -26,6 +27,9 @@ export async function GET(req) {
 
 // Crear una nueva orden
 export async function POST(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, "Admin");
   if (authResponse) return authResponse;
 
@@ -74,6 +78,9 @@ export async function POST(req) {
 
 // Editar una orden existente
 export async function PUT(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, "Admin");
   if (authResponse) return authResponse;
 
@@ -110,6 +117,9 @@ export async function PUT(req) {
 
 // Eliminar una orden
 export async function DELETE(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, "Admin");
   if (authResponse) return authResponse;
 

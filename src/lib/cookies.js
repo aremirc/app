@@ -1,39 +1,68 @@
-import { setCookie, destroyCookie } from 'nookies';
+import { serialize, parse } from 'cookie';
 
-export function setAuthCookies(ctx, token, role) {
-  setCookie(ctx, 'token', token, {
-    maxAge: 30 * 24 * 60 * 60,  // 30 días
-    path: '/',
-    secure: process.env.NODE_ENV === 'production', // Solo en producción
-    sameSite: 'lax',  // O 'strict' si no necesitas compartir entre sitios
-    httpOnly: true,   // No accesible desde JavaScript
-  });
+export function setAuthCookies(response, token, role) {
+  const cookies = [
+    serialize('token', token, {
+      maxAge: 30 * 24 * 60 * 60,  // 30 días
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',  // Solo en producción
+      sameSite: 'lax',  // O 'strict' si no necesitas compartir entre sitios
+      httpOnly: true,   // No accesible desde JavaScript
+    }),
+    serialize('user_role', role, {
+      maxAge: 30 * 24 * 60 * 60,  // 30 días
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',  // Solo en producción
+      sameSite: 'lax',
+      httpOnly: true,
+    })
+  ];
 
-  setCookie(ctx, 'user_role', role, {
-    maxAge: 30 * 24 * 60 * 60,
-    path: '/',
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    httpOnly: true,
-  });
+  // Agregar todas las cookies a la respuesta
+  response.headers.set('Set-Cookie', cookies.join(', '));  // Usamos `join` para que las cookies no se sobrescriban
 }
 
-export function removeAuthCookies(ctx) {
-  destroyCookie(ctx, 'token', { path: '/' });
-  destroyCookie(ctx, 'user_role', { path: '/' });
-  destroyCookie(ctx, 'refresh_token', { path: '/' });
+export function removeAuthCookies(response) {
+  const cookies = [
+    serialize('token', '', {
+      maxAge: -1,  // Caducar la cookie
+      path: '/',
+    }),
+    serialize('user_role', '', {
+      maxAge: -1,  // Caducar la cookie
+      path: '/',
+    }),
+    serialize('refresh_token', '', {
+      maxAge: -1,  // Caducar la cookie
+      path: '/',
+    })
+  ];
+
+  // Agregar todas las cookies de eliminación a la respuesta
+  response.headers.set('Set-Cookie', cookies.join(', '));  // Usamos `join` para asegurarnos de no sobrescribir
 }
 
-export function setRefreshTokenCookies(ctx, refreshToken) {
-  setCookie(ctx, 'refresh_token', refreshToken, {
+export function setRefreshTokenCookies(response, refreshToken) {
+  const refreshTokenCookie = serialize('refresh_token', refreshToken, {
     maxAge: 60 * 60 * 24 * 30,  // 30 días
     path: '/',
     secure: process.env.NODE_ENV === 'production', // Solo en producción
     sameSite: 'lax',  // O 'strict' si no necesitas compartir entre sitios
     httpOnly: true,   // No accesible desde JavaScript
   });
+
+  // Establecer la cookie de refresh token
+  response.headers.append('Set-Cookie', refreshTokenCookie);  // Usamos `append` para agregar la cookie sin sobrescribir
 }
 
-export function removeRefreshTokenCookies(ctx) {
-  destroyCookie(ctx, 'refresh_token', { path: '/' });
+export function removeRefreshTokenCookies(response) {
+  response.headers.set('Set-Cookie', serialize('refresh_token', '', {
+    maxAge: -1,  // Caducar la cookie
+    path: '/',
+  }));
+}
+
+export function getCookies(request) {
+  const cookies = request.headers.get('Cookie') || '';
+  return parse(cookies);
 }

@@ -33,6 +33,8 @@ export const SocketProvider = ({ children }) => {
       reconnectionDelay: 1000, // Retraso entre intentos de reconexión
       reconnectionDelayMax: 5000, // Retraso máximo entre intentos
       timeout: 10000, // Tiempo máximo de espera para establecer la conexión
+      transports: ['websocket'],
+      withCredentials: true, // Esto asegura que las cookies se envíen con la solicitud
     });
 
     socketRef.current.on("connect_error", (err) => {
@@ -42,6 +44,13 @@ export const SocketProvider = ({ children }) => {
     socketRef.current.on("connect", () => {
       // console.log("Conectado a WebSocket");
     });
+
+    socketRef.current.on('response', (msg) => {
+      console.log('Respuesta del servidor:', msg);
+    });
+    
+    // Enviar mensaje al servidor
+    socketRef.current.emit('message', 'Hola desde el cliente');
 
     // Cuando la conexión se pierde, tratamos de reconectar
     socketRef.current.on("disconnect", () => {

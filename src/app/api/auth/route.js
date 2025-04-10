@@ -1,11 +1,8 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
 import prisma from '@/lib/prisma';
 import { setAuthCookies, setRefreshTokenCookies, removeAuthCookies } from '@/lib/cookies';
 import { NextResponse } from 'next/server'; // Importamos NextResponse
-
-dotenv.config(); // Cargar las variables de entorno
 
 // Función para manejar el login
 export async function POST(req) {
@@ -90,8 +87,8 @@ export async function POST(req) {
     );
 
     // Establecemos las cookies con el token y el refresh token
-    setAuthCookies({ res }, accessToken, user.roleId); // Setea el JWT en cookie HttpOnly
-    setRefreshTokenCookies({ res }, refreshToken); // Setea el refresh token en cookie HttpOnly
+    setAuthCookies(res, accessToken, user.roleId); // Setea el JWT en cookie HttpOnly
+    setRefreshTokenCookies(res, refreshToken); // Setea el refresh token en cookie HttpOnly
 
     return res;
   } catch (error) {
@@ -113,7 +110,7 @@ export async function DELETE(req) {
     );
 
     // Eliminar cookies de JWT y refresh token
-    removeAuthCookies({ res });
+    removeAuthCookies(res);
 
     return res;
   } catch (error) {

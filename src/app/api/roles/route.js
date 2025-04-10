@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { verifyAndLimit } from '@/lib/permissions'; // Usamos la función de permisos
 import { NextResponse } from 'next/server'; // Importar NextResponse
 

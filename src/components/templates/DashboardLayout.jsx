@@ -14,26 +14,31 @@ const DashboardLayout = ({ children }) => {
   const { user, loading } = useAuth()
 
   return (
-    loading ? (
-      <LoadingSpinner />
-    ) : (
-      user ? (
-        <QueryClientProvider client={queryClient}>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <div className="flex-1 grid sm:grid-cols-[250px_1fr] grid-cols-1 sm:gap-4 bg-border-light dark:bg-background-dark">
-              <Sidebar />
-              <main className="flex flex-col">
-                {children}
-                <Toaster />
-              </main>
+    <>
+      <Toaster />
+      {loading ? (
+        <LoadingSpinner />
+      ) : (
+        user ? (
+          <QueryClientProvider client={queryClient}>
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <div className="flex-1 grid sm:grid-cols-[250px_1fr] grid-cols-1 sm:gap-4 bg-border-light dark:bg-background-dark">
+                <Sidebar />
+                <main className="flex flex-col">
+                  {children}
+                </main>
+              </div>
+              <Footer />
             </div>
-            <Footer />
+          </QueryClientProvider>
+        ) :
+          <div className="flex flex-col justify-between min-h-screen bg-gradient-to-r bg-background-light dark:bg-background-dark">
+            <Header title="Login" />
+            {children}
           </div>
-        </QueryClientProvider>
-      ) :
-        <>{children}</>
-    )
+      )}
+    </>
   )
 }
 

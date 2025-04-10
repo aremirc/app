@@ -1,6 +1,7 @@
-import { verifyAndLimit } from '@/lib/permissions'; // Importamos la función
-import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server'; // Importa NextResponse
+import { verifyAndLimit } from '@/lib/permissions'; // Importamos la función
+import { verifyCsrfToken } from '@/lib/csrf';
+import prisma from '@/lib/prisma';
 
 // Obtener todos los trabajadores
 export async function GET(req) {
@@ -27,6 +28,9 @@ export async function GET(req) {
 
 // Crear un nuevo trabajador
 export async function POST(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, 'Admin'); // Solo los Admins pueden crear trabajadores
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
@@ -78,6 +82,9 @@ export async function POST(req) {
 
 // Actualizar un trabajador existente
 export async function PUT(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, 'Admin'); // Solo los Admins pueden actualizar trabajadores
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
@@ -128,6 +135,9 @@ export async function PUT(req) {
 
 // Eliminar un trabajador
 export async function DELETE(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req, 'Admin'); // Solo los Admins pueden eliminar trabajadores
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente

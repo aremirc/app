@@ -16,10 +16,27 @@ const api = axios.create({
   withCredentials: true, // Asegúrate de que las cookies HttpOnly se envíen con las solicitudes
 });
 
-// Interceptor para agregar el token JWT a cada solicitud (si es necesario)
+// Función para obtener el token CSRF desde el backend
+const getCsrfToken = async () => {
+  try {
+    const response = await axios.get("/api/csrf-token");
+    return response.data.csrfToken;  // Debería devolver el token CSRF
+  } catch (error) {
+    console.error("Error al obtener el token CSRF", error);
+    return null;
+  }
+};
+
+// Interceptor para agregar el token CSRF a las solicitudes
 api.interceptors.request.use(
-  (config) => {
-    // Si es necesario agregar encabezados o manejar autenticación, lo harías aquí
+  async (config) => {
+    // Solo agregar CSRF Token en solicitudes modificadoras (POST, PUT, DELETE)
+    if (['post', 'put', 'delete'].includes(config.method)) {
+      const csrfToken = await getCsrfToken();
+      if (csrfToken) {
+        config.headers['csrf-token'] = csrfToken;  // Añadir el token CSRF al encabezado
+      }
+    }
     return config;
   },
   (error) => {

@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
+import { verifyCsrfToken } from '@/lib/csrf';
 import { verifyAndLimit } from '@/lib/permissions'; // Importamos la función centralizada
 import { NextResponse } from 'next/server'; // Importa NextResponse
 
@@ -23,6 +24,9 @@ export async function GET(req) {
 
 // Crear una nueva visita
 export async function POST(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req); // Verificación centralizada de JWT y Rate Limiting
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
@@ -127,6 +131,9 @@ export async function POST(req) {
 
 // Actualizar una visita existente
 export async function PUT(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req);
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
@@ -206,6 +213,9 @@ export async function PUT(req) {
 
 // Eliminar una visita
 export async function DELETE(req) {
+  // Verificar el token CSRF
+  verifyCsrfToken(req);
+
   const authResponse = await verifyAndLimit(req);
   if (authResponse) {
     return authResponse; // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
