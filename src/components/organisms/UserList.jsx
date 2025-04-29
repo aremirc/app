@@ -5,7 +5,6 @@ import Link from "next/link"
 
 const UserList = () => {
   const { user, logout } = useAuth()
-
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   // Ref para detectar clics fuera del menú
@@ -27,7 +26,10 @@ const UserList = () => {
   }, [])
 
   return (
-    <div className="text-text-dark flex items-center gap-2 cursor-pointer" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+    <div
+      className="text-text-dark flex items-center gap-2 cursor-pointer"
+      onClick={() => setIsMenuOpen(!isMenuOpen)}
+    >
       <div className="relative">
         <img
           className="w-10 h-10 rounded-full"
@@ -37,7 +39,7 @@ const UserList = () => {
         <Badge count={user.notifications} />
       </div>
       <div className="flex flex-col justify-center">
-        <h4>{user.name}</h4>
+        <h4 className="text-md">{user.name}</h4>
         <p className="text-xs text-text-dark">{user.role}</p>
       </div>
 
@@ -47,13 +49,25 @@ const UserList = () => {
           ref={menuRef} // Usar ref para detectar clics fuera del menú
           className="absolute top-3/4 right-0 mt-2 w-48 bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark rounded-lg shadow-lg shadow-shadow-light dark:shadow-shadow-dark overflow-hidden"
         >
-          <ul>
-            <li className="px-4 py-2 hover:bg-border-light dark:hover:bg-border-dark hover:text-primary-dark cursor-pointer">
-              <Link href="/profile" className="flex">Ver mi perfil</Link>
-            </li>
-            <li className="px-4 py-2 hover:bg-border-light dark:hover:bg-border-dark hover:text-primary-dark cursor-pointer">Configuración</li>
-            <li className="px-4 py-2 hover:bg-border-light dark:hover:bg-border-dark hover:text-primary-dark cursor-pointer" onClick={logout}>Cerrar sesión</li>
-          </ul>
+          <div>
+            <Link
+              href="/profile"
+              className="block px-4 py-2 hover:bg-border-light dark:hover:bg-border-dark hover:text-primary-dark"
+            >
+              Ver mi perfil
+            </Link>
+            <div
+              className="block px-4 py-2 hover:bg-border-light dark:hover:bg-border-dark hover:text-primary-dark cursor-pointer"
+            >
+              Configuración
+            </div>
+            <div
+              onClick={logout}
+              className="block px-4 py-2 hover:bg-border-light dark:hover:bg-border-dark hover:text-primary-dark cursor-pointer"
+            >
+              Cerrar sesión
+            </div>
+          </div>
         </div>
       )}
     </div>

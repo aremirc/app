@@ -1,5 +1,4 @@
 import { useAuth } from "@/context/AuthContext"
-import Title from "../atoms/Title"
 import Navbar from "../organisms/NavBar"
 import UserList from "../organisms/UserList"
 import useDarkMode from "@/hooks/useDarkMode"
@@ -8,28 +7,30 @@ import { usePathname } from "next/navigation"
 
 const Header = ({ title = "Dashboard" }) => {
   const { user } = useAuth()
-  const { isDark, toggleDarkMode } = useDarkMode();
-  const pathname = usePathname();
+  const { isDark, toggleDarkMode } = useDarkMode()
+  const pathname = usePathname()
 
   // Verificación de pathname para evitar errores con rutas vacías
-  const camelCasePathname = pathname && pathname
-    .split('/')
-    .filter(Boolean) // Elimina los elementos vacíos
-    .map((segment, index) =>
-      index === 1 ? segment : segment.charAt(0).toUpperCase() + segment.slice(1)
-    )
-    .join('') || title; // Si pathname está vacío o es falsy, usa el título por defecto
+  const camelCasePathname = (pathname && typeof pathname === 'string' && pathname.trim()) // Verifica que pathname sea una cadena válida
+    ? pathname
+      .split('/')[1]
+      .charAt(0).toUpperCase() + pathname.slice(1).split('/')[0].slice(1) // Capitaliza la primera letra de la primera sección
+    : title // Si pathname está vacío o no es válido, usa el título por defecto
 
   return (
     <header className="sticky top-0 bg-gradient-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-10">
       <div className="container lg:max-w-full mx-auto flex justify-between items-center">
-        <div className="relative">
-          <Title text={camelCasePathname} />
-          <Countdown className="fixed text-red-500 font-bold" />
+        <Countdown className="fixed top-0 sm:top-auto text-red-500 font-bold" />
+
+        <div className={`relative transform ${user?.role ? "sm:translate-x-64" : ""}`}>
+          <h1 className="text-background-dark text-3xl font-bold">{camelCasePathname}</h1>
         </div>
+
         {/* <Navbar /> */}
-        {user && <UserList />}
+
+        {user?.role && <UserList />}
       </div>
+
       <button
         onClick={toggleDarkMode}
         type="button"

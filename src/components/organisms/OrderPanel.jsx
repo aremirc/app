@@ -1,78 +1,84 @@
-import { useState } from "react";
-import { useOrders } from "@/hooks/useOrders"; // Importamos el hook
-import Input from "../atoms/Input";
-import Button from "../atoms/Button";
-import Table from "../molecules/Table";
-import Card from "../molecules/Card";
-import DashboardGrid from "../templates/DashboardGrid";
-import OrderCard from "../molecules/OrderCard";
-import { useDebounce } from "@/hooks/useDebounce";
-import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"; // Hook para WebSocket
+import { useState } from "react"
+import { useOrders } from "@/hooks/useOrders" // Importamos el hook
+import Button from "../atoms/Button"
+import Table from "../molecules/Table"
+import Card from "../molecules/Card"
+import DashboardGrid from "./DashboardGrid"
+import OrderCard from "../molecules/OrderCard"
+import useRealTimeUpdates from "@/hooks/useRealTimeUpdates" // Hook para WebSocket
+import SearchBar from "../molecules/SearchBar"
+import { useAuth } from "@/context/AuthContext"
+
+const headers = [
+  { key: "id", label: "ID" },
+  { key: "description", label: "Descripción" },
+  { key: "clientId", label: "ID del Cliente" },
+  { key: "status", label: "Estado" },
+  { key: "createdAt", label: "Fecha de Creación" }
+]
 
 const OrderPanel = () => {
-  const [search, setSearch] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const { orders, error, isLoading, deleteOrderMutation } = useOrders();
+  const { user } = useAuth()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const { orders, error, isLoading, deleteOrderMutation } = useOrders()
 
   // Llamar al hook de WebSocket para recibir actualizaciones en tiempo real
-  useRealTimeUpdates(); // Aquí es donde se maneja la lógica WebSocket
+  useRealTimeUpdates() // Aquí es donde se maneja la lógica WebSocket
 
   const handleDelete = (id) => {
-    const orderToDelete = orders.find((order) => order.id === id);
-    setSelectedOrder(orderToDelete);
-    setIsDeleteConfirmationOpen(true);
-  };
+    const orderToDelete = orders.find((order) => order.id === id)
+    setSelectedOrder(orderToDelete)
+    setIsDeleteConfirmationOpen(true)
+  }
 
   const confirmDelete = () => {
-    deleteOrderMutation.mutate(selectedOrder.id);
-    setSelectedOrder(null);
-    setIsDeleteConfirmationOpen(false);
-  };
+    deleteOrderMutation.mutate(selectedOrder.id)
+    setSelectedOrder(null)
+    setIsDeleteConfirmationOpen(false)
+  }
 
   const cancelDelete = () => {
-    setIsDeleteConfirmationOpen(false);
-    setSelectedOrder(null);
-  };
+    setIsDeleteConfirmationOpen(false)
+    setSelectedOrder(null)
+  }
 
   const handleEdit = (id) => {
-    const orderToEdit = orders.find((order) => order.id === id);
-    setSelectedOrder(orderToEdit);
-    setIsModalOpen(true);
-  };
+    const orderToEdit = orders.find((order) => order.id === id)
+    setSelectedOrder(orderToEdit)
+    setIsModalOpen(true)
+  }
 
   const handleCancel = () => {
-    setSelectedOrder(null);
-    setIsModalOpen(false);
-  };
-
-  const debouncedSearch = useDebounce(search, 500);
+    setSelectedOrder(null)
+    setIsModalOpen(false)
+  }
 
   // Filtrar las órdenes por la descripción con el debounce
   const filteredOrders = orders.filter((order) =>
-    order.description.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+    order.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <DashboardGrid>
       <Card>
-        <div className="flex flex-col gap-2 mb-3">
-          <div className="flex justify-between items-center gap-2">
+        <div className="flex flex-col gap-4 mb-3">
+          <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Órdenes</h2>
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              className="hover:bg-primary dark:hover:bg-primary-dark"
-            >
-              Agregar Orden
-            </Button>
+            {user.role === 'ADMIN' &&
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
+              >
+                AGREGAR ORDEN
+              </Button>
+            }
           </div>
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <SearchBar
             placeholder="Buscar orden"
-            className="w-1/3"
+            onSearch={setSearchTerm}
           />
         </div>
 
@@ -82,10 +88,11 @@ const OrderPanel = () => {
           <p>{error.message}</p>
         ) : (
           <Table
-            headers={["Id", "Description", "ClientId", "Status", "CreatedAt"]}
+            headers={headers}
             data={filteredOrders}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            showActions={user.role === 'ADMIN'}
           />
         )}
       </Card>
@@ -121,7 +128,7 @@ const OrderPanel = () => {
         </div>
       )}
     </DashboardGrid>
-  );
-};
+  )
+}
 
-export default OrderPanel;
+export default OrderPanel

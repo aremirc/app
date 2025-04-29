@@ -1,38 +1,29 @@
-import { useSocket } from "@/context/SocketContext";
-import { useEffect, useState } from "react";
+"use client"
+
+import { useEffect, useState } from "react"
 
 const ConnectionStatus = () => {
-  const socket = useSocket();
-  const [status, setStatus] = useState("Desconectado");
+  const [isOnline, setIsOnline] = useState(true)
 
+  // Conexión del navegador
   useEffect(() => {
-    if (!socket) return;
-
-    socket.on("connect", () => {
-      setStatus("Conectado");
-    });
-
-    socket.on("disconnect", () => {
-      setStatus("Desconectado");
-    });
-
-    socket.on("reconnect_attempt", () => {
-      setStatus("Reconectando...");
-    });
-
-    socket.on("connect_error", () => {
-      setStatus("Error de conexión");
-    });
-
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("reconnect_attempt");
-      socket.off("connect_error");
-    };
-  }, [socket]);
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+  }, [])
 
-  return <p>Estado de la conexión: {status}</p>;
-};
+  return (
+    <div className="text-sm space-y-1">
+      <p className={isOnline ? "text-green-600" : "text-red-600"}>
+        Estado del navegador: {isOnline ? "Conectado" : "Sin conexión"}
+      </p>
+    </div>
+  )
+}
 
-export default ConnectionStatus;
+export default ConnectionStatus

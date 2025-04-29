@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
 
 export function middleware(req) {
-  // const protocol = req.headers.get('x-forwarded-proto') || 'http';
-  // const host = req.headers.get('host');
-  // const url = req.nextUrl.pathname;
+  // const protocol = req.headers.get('x-forwarded-proto') || 'http'
+  // const host = req.headers.get('host')
+  // const url = req.nextUrl.pathname
   
   // if (protocol !== 'https') {
   //   // Redirigir a HTTPS con la URL correctamente formada
-  //   return  NextResponse.redirect(`https://${host}${url}`, 301);
+  //   return  NextResponse.redirect(`https://${host}${url}`, 301)
   // }
 
   // Crear la respuesta y establecer las cabeceras de seguridad

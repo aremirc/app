@@ -75,4 +75,57 @@ module.exports = {
     },
   },
   plugins: [],
-}; 
+};
+
+
+// /** @type {import('tailwindcss').Config} */
+// module.exports = {
+//   content: [
+//     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+//     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+//     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+//   ],
+//   darkMode: "class", // Usar .dark en el <html> o <body>
+//   theme: {
+//     screens: {
+//       xs: "480px",
+//       sm: "640px",
+//       md: "768px",
+//       lg: "1024px",
+//       xl: "1280px",
+//       "2xl": "1536px",
+//     },
+//     extend: {
+//       colors: {
+//         primary: "#4FD1C5",
+//         "primary-light": "#A1E9E0",
+//         "primary-dark": "#38A89C",
+
+//         background: "#FFFFFF",
+//         "background-dark": "#121212",
+
+//         text: "#333333",
+//         "text-dark": "#E0E0E0",
+
+//         accent: "#4FD1C5",
+//         "accent-dark": "#38A89C",
+
+//         border: "#E2E8F0",
+//         "border-dark": "#444444",
+
+//         shadow: "rgba(0, 0, 0, 0.1)",
+//         "shadow-dark": "rgba(255, 255, 255, 0.2)",
+
+//         secondary: "#FBBF24",
+//         "secondary-dark": "#F59E0B",
+
+//         danger: "#F87171",
+//         "danger-dark": "#EF4444",
+
+//         success: "#34D399",
+//         "success-dark": "#10B981",
+//       },
+//     },
+//   },
+//   plugins: [],
+// };

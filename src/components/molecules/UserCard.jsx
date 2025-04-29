@@ -1,11 +1,11 @@
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import Input from "../atoms/Input";
-import Button from "../atoms/Button";
-import api from "@/lib/axios";
-import { useQuery } from "@tanstack/react-query";
-import { useUsers } from "@/hooks/useUsers";
+import { useForm, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import Input from "../atoms/Input"
+import Button from "../atoms/Button"
+import api from "@/lib/axios"
+import { useQuery } from "@tanstack/react-query"
+import { useUsers } from "@/hooks/useUsers"
 
 // Esquema de validación con Zod
 const userSchema = z.object({
@@ -18,7 +18,7 @@ const userSchema = z.object({
   phone: z.string().regex(/^\d{9}$/, "El teléfono debe tener 9 dígitos numéricos").optional(),
   // roleId: z.string().optional(),
   roleId: z.number().int().positive().refine(val => val > 0, "El Rol es obligatorio"),
-});
+})
 
 const defaultValues = {
   dni: "",
@@ -28,36 +28,36 @@ const defaultValues = {
   email: "",
   phone: "",
   password: "",
-  roleId: 2, // Rol por defecto
-};
+  roleId: 3, // Rol por defecto
+}
 
 const fetchRoles = async () => {
-  const { data } = await api.get("/api/roles");
-  return data;
-};
+  const { data } = await api.get("/api/roles")
+  return data
+}
 
 const UserCard = ({ user, handleCancel }) => {
-  const { addUserMutation, updateUserMutation } = useUsers();
+  const { addUserMutation, updateUserMutation } = useUsers()
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset } = useForm({
     resolver: zodResolver(userSchema),
     defaultValues: user ? { ...user, password: '' } : defaultValues,
     mode: "onBlur", // Validación al perder el foco
-  });
+  })
 
   const { data: roles = [], isLoading: rolesLoading, isError: rolesError } = useQuery({
     queryKey: ["roles"],
     queryFn: fetchRoles
-  });
+  })
 
   const onSubmit = (data) => {
     if (user) {
-      updateUserMutation.mutateAsync(data);
+      updateUserMutation.mutateAsync(data)
     } else {
-      addUserMutation.mutateAsync(data);
+      addUserMutation.mutateAsync(data)
     }
     handleCancel()
-  };
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
@@ -77,19 +77,6 @@ const UserCard = ({ user, handleCancel }) => {
           )}
         />
         {errors.dni && <p className="text-red-500 text-sm">{errors.dni.message}</p>}
-
-        <Controller
-          name="username"
-          control={control}
-          render={({ field }) => (
-            <Input
-              {...field}
-              placeholder="Nombre de usuario"
-              className={`mb-4 ${errors.username ? "border-red-500" : ""}`}
-            />
-          )}
-        />
-        {errors.username && <p className="text-red-500 text-sm">{errors.username.message}</p>}
 
         {!user && (
           <>
@@ -152,6 +139,19 @@ const UserCard = ({ user, handleCancel }) => {
         )}
 
         <Controller
+          name="username"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              placeholder="Usuario"
+              className={`mb-4 ${errors.username ? "border-red-500" : ""}`}
+            />
+          )}
+        />
+        {errors.username && <p className="text-red-500 text-sm">{errors.username.message}</p>}
+
+        <Controller
           name="password"
           control={control}
           render={({ field }) => (
@@ -180,7 +180,7 @@ const UserCard = ({ user, handleCancel }) => {
                 disabled={rolesLoading || rolesError} // Deshabilitar solo si hay error o carga
                 onChange={(e) => {
                   // Convertir el valor seleccionado a número
-                  field.onChange(Number(e.target.value));
+                  field.onChange(Number(e.target.value))
                 }}
               >
                 {rolesLoading ? (
@@ -212,7 +212,7 @@ const UserCard = ({ user, handleCancel }) => {
         </div>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default UserCard;
+export default UserCard

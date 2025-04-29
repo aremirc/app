@@ -1,78 +1,80 @@
-import { useState } from "react";
-import { useVisits } from "@/hooks/useVisits";  // Importamos el hook
-import Input from "../atoms/Input";
-import Button from "../atoms/Button";
-import Table from "../molecules/Table";
-import Card from "../molecules/Card";
-import DashboardGrid from "../templates/DashboardGrid";
-import VisitCard from "../molecules/VisitCard";
-import { useDebounce } from "@/hooks/useDebounce";
-import useRealTimeUpdates from "@/hooks/useRealTimeUpdates";  // Hook para WebSocket
+import { useState } from "react"
+import { useVisits } from "@/hooks/useVisits"  // Importamos el hook
+import Button from "../atoms/Button"
+import Table from "../molecules/Table"
+import Card from "../molecules/Card"
+import DashboardGrid from "./DashboardGrid"
+import VisitCard from "../molecules/VisitCard"
+import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"  // Hook para WebSocket
+import SearchBar from "../molecules/SearchBar"
+
+const headers = [
+  { key: "id", label: "ID" },
+  { key: "date", label: "Fecha" },
+  { key: "description", label: "Descripción" },
+  { key: "orderId", label: "ID de Orden" },
+  { key: "userId", label: "ID de Trabajador" }
+]
 
 const VisitPanel = () => {
-  const [search, setSearch] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
-  const [selectedVisit, setSelectedVisit] = useState(null);
-  const { visits, error, isLoading, deleteVisitMutation } = useVisits();
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [selectedVisit, setSelectedVisit] = useState(null)
+  const { visits, error, isLoading, deleteVisitMutation } = useVisits()
 
   // Llamar al hook de WebSocket para recibir actualizaciones en tiempo real
-  useRealTimeUpdates();  // Aquí es donde se maneja la lógica WebSocket
+  useRealTimeUpdates()  // Aquí es donde se maneja la lógica WebSocket
 
   const handleDelete = (id) => {
-    const visitToDelete = visits.find((visit) => visit.id === id);
-    setSelectedVisit(visitToDelete);
-    setIsDeleteConfirmationOpen(true);
-  };
+    const visitToDelete = visits.find((visit) => visit.id === id)
+    setSelectedVisit(visitToDelete)
+    setIsDeleteConfirmationOpen(true)
+  }
 
   const confirmDelete = () => {
-    deleteVisitMutation.mutate(selectedVisit.id);
-    setSelectedVisit(null);
-    setIsDeleteConfirmationOpen(false);
-  };
+    deleteVisitMutation.mutate(selectedVisit.id)
+    setSelectedVisit(null)
+    setIsDeleteConfirmationOpen(false)
+  }
 
   const cancelDelete = () => {
-    setIsDeleteConfirmationOpen(false);
-    setSelectedVisit(null);
-  };
+    setIsDeleteConfirmationOpen(false)
+    setSelectedVisit(null)
+  }
 
   const handleEdit = (id) => {
-    const visitToEdit = visits.find((visit) => visit.id === id);
-    setSelectedVisit(visitToEdit);
-    setIsModalOpen(true);
-  };
+    const visitToEdit = visits.find((visit) => visit.id === id)
+    setSelectedVisit(visitToEdit)
+    setIsModalOpen(true)
+  }
 
   const handleCancel = () => {
-    setSelectedVisit(null);
-    setIsModalOpen(false);
-  };
-
-  const debouncedSearch = useDebounce(search, 500);
+    setSelectedVisit(null)
+    setIsModalOpen(false)
+  }
 
   // Filtrar las visitas por la fecha con el debounce
   const filteredVisits = visits.filter((visit) =>
-    visit.date.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+    visit.date.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <DashboardGrid>
       <Card>
-        <div className="flex flex-col gap-2 mb-3">
-          <div className="flex justify-between items-center gap-2">
+        <div className="flex flex-col gap-4 mb-3">
+          <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Visitas</h2>
             <Button
               onClick={() => setIsModalOpen(true)}
-              className="hover:bg-primary dark:hover:bg-primary-dark"
+              className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
             >
-              Agregar Visita
+              AGREGAR VISITA
             </Button>
           </div>
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <SearchBar
             placeholder="Buscar visita"
-            className="w-1/3"
+            onSearch={setSearchTerm}
           />
         </div>
 
@@ -82,7 +84,7 @@ const VisitPanel = () => {
           <p>{error.message}</p>
         ) : (
           <Table
-            headers={["Id", "Date", "Description", "OrderId", "WorkerId"]}
+            headers={headers}
             data={filteredVisits}
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -121,7 +123,7 @@ const VisitPanel = () => {
         </div>
       )}
     </DashboardGrid>
-  );
-};
+  )
+}
 
-export default VisitPanel;
+export default VisitPanel

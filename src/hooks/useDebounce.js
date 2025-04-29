@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
 
 /**
  * Hook de debounce optimizado.
@@ -11,19 +11,19 @@ import { useState, useEffect } from 'react';
  */
 
 export const useDebounce = (value, delay = 500) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
+  const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
     // Configura el temporizador para el debounce
     const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
+      setDebouncedValue(value)
+    }, delay)
 
     // Limpiar el temporizador cuando el valor o el retraso cambian
     return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
+      clearTimeout(handler)
+    }
+  }, [value, delay])
 
-  return debouncedValue;
-};
+  return debouncedValue
+}

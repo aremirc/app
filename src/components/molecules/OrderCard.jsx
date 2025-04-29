@@ -1,90 +1,93 @@
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import Input from "../atoms/Input";
-import Button from "../atoms/Button";
-import api from "@/lib/axios";
-import { useQuery } from "@tanstack/react-query";
-import { useOrders } from "@/hooks/useOrders";
+import { useForm, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import Input from "../atoms/Input"
+import Button from "../atoms/Button"
+import api from "@/lib/axios"
+import { useQuery } from "@tanstack/react-query"
+import { useOrders } from "@/hooks/useOrders"
 
 // Definición del esquema de validación de Zod
-const orderStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+const orderStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
 
 const orderSchema = z.object({
   description: z.string().min(1, "La descripción es obligatoria"),
   clientId: z.string().min(1, "Selecciona un cliente"),
-  workerId: z.string().min(1, "Selecciona un trabajador"),
+  workerIds: z.string().min(1, "Selecciona al menos un trabajador"),
+  // workerIds: z.array(z.string()).min(1, "Selecciona al menos un trabajador").max(2, "Puedes asignar solo hasta dos trabajadores"),
   status: z.enum(orderStatuses, { message: "Selecciona un estado válido" }), // Uso de enum para validar el status
-  services: z.array(z.string()).nonempty("Selecciona al menos un servicio"),
-});
+  services: z.array(z.number()).min(0, {
+    message: "Selecciona al menos un servicio",
+  }),
+})
 
 const defaultValues = {
   description: "",
   status: orderStatuses[0],
   clientId: "",
-  workerId: "",
+  workerIds: "",
   services: [],
-};
+}
 
 const fetchClients = async () => {
-  const { data } = await api.get("/api/clients");
-  return data;
-};
+  const { data } = await api.get("/api/clients")
+  return data
+}
 
 const fetchWorkers = async () => {
-  const { data } = await api.get("/api/workers");
-  return data;
-};
+  const { data } = await api.get("/api/workers")
+  return data
+}
 
 const fetchServices = async () => {
-  const { data } = await api.get("/api/services");
-  return data;
-};
+  const { data } = await api.get("/api/services")
+  return data
+}
 
 const OrderCard = ({ order, handleCancel }) => {
-  const { addOrderMutation, updateOrderMutation } = useOrders();
+  const { addOrderMutation, updateOrderMutation } = useOrders()
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue } = useForm({
     resolver: zodResolver(orderSchema),
     defaultValues: order || defaultValues,
     mode: "onBlur", // Validación al perder el foco
-  });
+  })
 
   // Usando useQuery para obtener clientes, trabajadores y servicios
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ["clients"],
     queryFn: fetchClients
-  });
+  })
 
   const { data: workers = [], isLoading: loadingWorkers } = useQuery({
     queryKey: ["workers"],
     queryFn: fetchWorkers
-  });
+  })
 
   const { data: services = [], isLoading: loadingServices } = useQuery({
     queryKey: ["services"],
     queryFn: fetchServices
-  });
+  })
 
   // Combinamos todas las cargas en una sola variable
-  const loading = loadingClients || loadingWorkers || loadingServices;
+  const loading = loadingClients || loadingWorkers || loadingServices
 
   const handleServiceChange = (serviceId) => {
-    const currentServices = watch("services");
+    const currentServices = watch("services") ?? []
     const updatedServices = currentServices.includes(serviceId)
       ? currentServices.filter(id => id !== serviceId)
-      : [...currentServices, serviceId];
-    setValue("services", updatedServices);
-  };
+      : [...currentServices, serviceId]
+    setValue("services", updatedServices)
+  }
 
   const onSubmit = (data) => {
     if (order) {
-      updateOrderMutation.mutateAsync(data);
+      updateOrderMutation.mutateAsync(data)
     } else {
-      addOrderMutation.mutateAsync(data);
+      addOrderMutation.mutateAsync(data)
     }
     handleCancel()
-  };
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
@@ -151,11 +154,11 @@ const OrderCard = ({ order, handleCancel }) => {
         {errors.clientId && <p className="text-red-500 text-sm">{errors.clientId.message}</p>}
 
         <Controller
-          name="workerId"
+          name="workerIds"
           control={control}
           render={({ field }) => (
             <div className="mb-4">
-              <label htmlFor="workerId" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="workerIds" className="block text-sm font-medium text-gray-700">
                 Selecciona un Trabajador
               </label>
               <select {...field} className="shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark" disabled={loading}>
@@ -173,7 +176,7 @@ const OrderCard = ({ order, handleCancel }) => {
             </div>
           )}
         />
-        {errors.workerId && <p className="text-red-500 text-sm">{errors.workerId.message}</p>}
+        {errors.workerIds && <p className="text-red-500 text-sm">{errors.workerIds.message}</p>}
 
         <Controller
           name="services"
@@ -224,7 +227,7 @@ const OrderCard = ({ order, handleCancel }) => {
         </div>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default OrderCard;
+export default OrderCard

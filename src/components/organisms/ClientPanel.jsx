@@ -1,82 +1,87 @@
-import { useState } from "react";
-import { useClients } from "@/hooks/useClients"; // Importamos el hook
-import Input from "../atoms/Input";
-import Button from "../atoms/Button";
-import Table from "../molecules/Table";
-import Card from "../molecules/Card";
-import DashboardGrid from "../templates/DashboardGrid";
-import ClientCard from "../molecules/ClientCard"; // Componente para agregar/editar cliente
-import { useDebounce } from "@/hooks/useDebounce";
-import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"; // Hook para WebSocket
+import { useState } from "react"
+import { useClients } from "@/hooks/useClients" // Importamos el hook
+import Button from "../atoms/Button"
+import Table from "../molecules/Table"
+import Card from "../molecules/Card"
+import DashboardGrid from "./DashboardGrid"
+import ClientCard from "../molecules/ClientCard" // Componente para agregar/editar cliente
+import useRealTimeUpdates from "@/hooks/useRealTimeUpdates" // Hook para WebSocket
+import SearchBar from "../molecules/SearchBar"
+import { useAuth } from "@/context/AuthContext"
+
+const headers = [
+  { key: "dni", label: "DNI" },
+  { key: "name", label: "Nombre" },
+  { key: "email", label: "Correo Electrónico" },
+  { key: "phone", label: "Teléfono" },
+  { key: "address", label: "Dirección" }
+]
 
 const ClientPanel = () => {
-  const [search, setSearch] = useState("");  // Estado para la búsqueda
-  const [isModalOpen, setIsModalOpen] = useState(false);  // Control del modal para agregar/editar cliente
-  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);  // Control del modal de confirmación de eliminación
-  const [selectedClient, setSelectedClient] = useState(null);  // Cliente seleccionado
-  const { clients, error, isLoading, deleteClientMutation } = useClients();
+  const { user } = useAuth()
+  const [searchTerm, setSearchTerm] = useState("")  // Estado para la búsqueda
+  const [isModalOpen, setIsModalOpen] = useState(false)  // Control del modal para agregar/editar cliente
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)  // Control del modal de confirmación de eliminación
+  const [selectedClient, setSelectedClient] = useState(null)  // Cliente seleccionado
+  const { clients, error, isLoading, deleteClientMutation } = useClients()
 
   // Llamamos al hook de WebSocket para recibir actualizaciones en tiempo real
-  useRealTimeUpdates(); 
+  useRealTimeUpdates()
 
   // Funciones para manejo de eliminación de cliente
   const handleDelete = (dni) => {
-    const clientToDelete = clients.find((client) => client.dni === dni);
-    setSelectedClient(clientToDelete);  // Guardar el cliente seleccionado
-    setIsDeleteConfirmationOpen(true);  // Abrir el modal de confirmación
-  };
+    const clientToDelete = clients.find((client) => client.dni === dni)
+    setSelectedClient(clientToDelete)  // Guardar el cliente seleccionado
+    setIsDeleteConfirmationOpen(true)  // Abrir el modal de confirmación
+  }
 
   const confirmDelete = () => {
-    deleteClientMutation.mutate(selectedClient.dni);  // Llamamos a la mutación para eliminar el cliente
-    setSelectedClient(null);
-    setIsDeleteConfirmationOpen(false);  // Cerrar el modal de confirmación
-  };
+    deleteClientMutation.mutate(selectedClient.dni)  // Llamamos a la mutación para eliminar el cliente
+    setSelectedClient(null)
+    setIsDeleteConfirmationOpen(false)  // Cerrar el modal de confirmación
+  }
 
   const cancelDelete = () => {
-    setIsDeleteConfirmationOpen(false);  // Cerrar el modal sin eliminar
-    setSelectedClient(null);
-  };
+    setIsDeleteConfirmationOpen(false)  // Cerrar el modal sin eliminar
+    setSelectedClient(null)
+  }
 
   // Función para editar un cliente
   const handleEdit = (dni) => {
-    const clientToEdit = clients.find((client) => client.dni === dni);
-    setSelectedClient(clientToEdit);
-    setIsModalOpen(true);  // Abrir el modal para editar cliente
-  };
+    const clientToEdit = clients.find((client) => client.dni === dni)
+    setSelectedClient(clientToEdit)
+    setIsModalOpen(true)  // Abrir el modal para editar cliente
+  }
 
   // Función para cancelar la edición
   const handleCancel = () => {
-    setSelectedClient(null);
-    setIsModalOpen(false);  // Cerrar el modal de edición
-  };
-
-  // Configuración de búsqueda con debounce
-  const debouncedSearch = useDebounce(search, 500);
+    setSelectedClient(null)
+    setIsModalOpen(false)  // Cerrar el modal de edición
+  }
 
   // Filtrar los clientes según la búsqueda con debounce
   const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <DashboardGrid>
       <Card>
-        <div className="flex flex-col gap-2 mb-3">
-          <div className="flex justify-between items-center gap-2">
+        <div className="flex flex-col gap-4 mb-3">
+          <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Clientes</h2>
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              className="hover:bg-primary dark:hover:bg-primary-dark"
-            >
-              Agregar Cliente
-            </Button>
+            {user.role === 'ADMIN' &&
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
+              >
+                AGREGAR CLIENTE
+              </Button>
+            }
           </div>
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}  // Actualiza la búsqueda
+          <SearchBar
             placeholder="Buscar cliente"
-            className="w-1/3"
+            onSearch={setSearchTerm}
           />
         </div>
 
@@ -86,10 +91,11 @@ const ClientPanel = () => {
           <p>{error.message}</p>  // Si hay un error, mostramos el mensaje de error
         ) : (
           <Table
-            headers={["DNI", "Name", "Email", "Phone", "Address"]}  // Encabezados de la tabla
+            headers={headers}  // Encabezados de la tabla
             data={filteredClients}  // Datos filtrados
             onEdit={handleEdit}  // Función para editar
             onDelete={handleDelete}  // Función para eliminar
+            showActions={user.role === 'ADMIN'}
           />
         )}
       </Card>
@@ -127,7 +133,7 @@ const ClientPanel = () => {
         </div>
       )}
     </DashboardGrid>
-  );
-};
+  )
+}
 
-export default ClientPanel;
+export default ClientPanel

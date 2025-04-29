@@ -1,7 +1,5 @@
-// components/Chart.js
-
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'react-chartjs-2'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
 
 ChartJS.register(
   CategoryScale,
@@ -11,7 +9,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend
-);
+)
 
 const Chart = ({ data }) => {
   const chartData = {
@@ -25,14 +23,14 @@ const Chart = ({ data }) => {
         fill: true,
       },
     ],
-  };
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mt-6">
       <h3 className="text-xl font-semibold">Ventas por Mes</h3>
       <Line data={chartData} />
     </div>
-  );
+  )
 }
 
-export default Chart;
+export default Chart

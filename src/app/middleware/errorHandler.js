@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
 
 export function middleware(req) {
     try {
         // Aquí iría tu lógica principal del middleware
-        return NextResponse.next();
+        return NextResponse.next()
     } catch (error) {
-        console.error(error);
-        return new NextResponse('Internal Server Error', { status: 500 });
+        console.error(error)
+        return new NextResponse('Internal Server Error', { status: 500 })
     }
 }

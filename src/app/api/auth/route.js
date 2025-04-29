@@ -1,20 +1,20 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import prisma from '@/lib/prisma';
-import { setAuthCookies, setRefreshTokenCookies, removeAuthCookies } from '@/lib/cookies';
-import { NextResponse } from 'next/server'; // Importamos NextResponse
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import prisma from '@/lib/prisma'
+import { setAuthCookies, setRefreshTokenCookies, removeAuthCookies } from '@/lib/cookies'
+import { NextResponse } from 'next/server' // Importamos NextResponse
 
 // Función para manejar el login
 export async function POST(req) {
   try {
-    const { usernameOrEmail, password } = await req.json();
+    const { usernameOrEmail, password } = await req.json()
 
     // Validar que ambos campos están presentes
     if (!usernameOrEmail || !password) {
       return NextResponse.json(
         { error: 'Nombre de usuario o correo electrónico y contraseña son requeridos' },
         { status: 400 }
-      );
+      )
     }
 
     // Buscar el usuario por nombre de usuario o correo electrónico
@@ -25,32 +25,32 @@ export async function POST(req) {
           { username: usernameOrEmail },
         ],
       },
-    });
+    })
 
     if (!user) {
       return NextResponse.json(
         { error: 'Credenciales incorrectas' },
         { status: 401 }
-      );
+      )
     }
 
     // Verificar la contraseña usando bcrypt
-    const isPasswordValid = await (password === user.password || bcrypt.compare(password, user.password));
+    const isPasswordValid = await (password === user.password || bcrypt.compare(password, user.password))
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Credenciales incorrectas' },
         { status: 401 }
-      );
+      )
     }
 
     // Verificar las variables de entorno necesarias
-    const requiredEnvVars = ['JWT_SECRET', 'JWT_EXPIRATION', 'REFRESH_TOKEN_SECRET', 'REFRESH_TOKEN_EXPIRATION'];
+    const requiredEnvVars = ['JWT_SECRET', 'JWT_EXPIRATION', 'REFRESH_TOKEN_SECRET', 'REFRESH_TOKEN_EXPIRATION']
     for (const varName of requiredEnvVars) {
       if (!process.env[varName]) {
         return NextResponse.json(
           { error: `Falta la variable de entorno ${varName}` },
           { status: 500 }
-        );
+        )
       }
     }
 
@@ -59,17 +59,17 @@ export async function POST(req) {
       { dni: user.dni, username: user.username, roleId: user.roleId },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION }
-    );
+    )
 
     // Generar un Refresh Token (para obtener un nuevo JWT)
     const refreshToken = jwt.sign(
       { dni: user.dni, username: user.username, roleId: user.roleId },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: process.env.REFRESH_TOKEN_EXPIRATION }
-    );
+    )
 
     // Obtener el rol del usuario
-    const role = await prisma.role.findUnique({ where: { id: user.roleId } });
+    const role = await prisma.role.findUnique({ where: { id: user.roleId } })
 
     const res = NextResponse.json(
       {
@@ -84,19 +84,19 @@ export async function POST(req) {
         },
       },
       { status: 200 }
-    );
+    )
 
     // Establecemos las cookies con el token y el refresh token
-    setAuthCookies(res, accessToken, user.roleId); // Setea el JWT en cookie HttpOnly
-    setRefreshTokenCookies(res, refreshToken); // Setea el refresh token en cookie HttpOnly
+    setAuthCookies(res, accessToken, user.roleId) // Setea el JWT en cookie HttpOnly
+    setRefreshTokenCookies(res, refreshToken) // Setea el refresh token en cookie HttpOnly
 
-    return res;
+    return res
   } catch (error) {
-    console.error('Error en el proceso de login:', error);
+    console.error('Error en el proceso de login:', error)
     return NextResponse.json(
       { error: 'Ocurrió un error en el proceso de inicio de sesión' },
       { status: 500 }
-    );
+    )
   }
 }
 
@@ -107,17 +107,17 @@ export async function DELETE(req) {
     const res = NextResponse.json(
       { message: 'Sesión cerrada correctamente' },
       { status: 200 }
-    );
+    )
 
     // Eliminar cookies de JWT y refresh token
-    removeAuthCookies(res);
+    removeAuthCookies(res)
 
-    return res;
+    return res
   } catch (error) {
-    console.error('Error al cerrar sesión:', error);
+    console.error('Error al cerrar sesión:', error)
     return NextResponse.json(
       { error: 'Ocurrió un error al cerrar sesión' },
       { status: 500 }
-    );
+    )
   }
 }

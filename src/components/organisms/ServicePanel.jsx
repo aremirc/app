@@ -1,83 +1,84 @@
-import { useState } from "react";
-import { useServices } from "@/hooks/useServices";  // Importamos el hook
-import Input from "../atoms/Input";
-import Button from "../atoms/Button";
-import Table from "../molecules/Table";
-import Card from "../molecules/Card";
-import DashboardGrid from "../templates/DashboardGrid";
-import ServiceCard from "../molecules/ServiceCard"; // Usamos ServiceCard para el modal de agregar/editar
-import { useDebounce } from "@/hooks/useDebounce";
-import useRealTimeUpdates from "@/hooks/useRealTimeUpdates";  // Hook para WebSocket
+import { useState } from "react"
+import { useServices } from "@/hooks/useServices"  // Importamos el hook
+import Button from "../atoms/Button"
+import Table from "../molecules/Table"
+import Card from "../molecules/Card"
+import DashboardGrid from "./DashboardGrid"
+import ServiceCard from "../molecules/ServiceCard" // Usamos ServiceCard para el modal de agregar/editar
+import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"  // Hook para WebSocket
+import SearchBar from "../molecules/SearchBar"
+
+const headers = [
+  { key: "id", label: "ID" },
+  { key: "name", label: "Nombre" },
+  { key: "description", label: "Descripción" },
+  { key: "price", label: "Precio" }
+]
 
 const ServicePanel = () => {
-  const [search, setSearch] = useState("");  // Estado de búsqueda
-  const [isModalOpen, setIsModalOpen] = useState(false);  // Controla la apertura del modal
-  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);  // Controla la apertura de la confirmación de eliminación
-  const [selectedService, setSelectedService] = useState(null);  // Servicio seleccionado
-  const { services, error, isLoading, deleteServiceMutation } = useServices();  // Obtenemos los servicios del hook
+  const [searchTerm, setSearchTerm] = useState("")  // Estado de búsqueda
+  const [isModalOpen, setIsModalOpen] = useState(false)  // Controla la apertura del modal
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)  // Controla la apertura de la confirmación de eliminación
+  const [selectedService, setSelectedService] = useState(null)  // Servicio seleccionado
+  const { services, error, isLoading, deleteServiceMutation } = useServices()  // Obtenemos los servicios del hook
 
   // Llamar al hook de WebSocket para recibir actualizaciones en tiempo real
-  useRealTimeUpdates();  // Maneja la lógica WebSocket para actualizaciones en tiempo real
+  useRealTimeUpdates()  // Maneja la lógica WebSocket para actualizaciones en tiempo real
 
   // Función para manejar la eliminación de un servicio
   const handleDelete = (id) => {
-    const serviceToDelete = services.find((service) => service.id === id);
-    setSelectedService(serviceToDelete);
-    setIsDeleteConfirmationOpen(true);  // Abrir modal de confirmación
-  };
+    const serviceToDelete = services.find((service) => service.id === id)
+    setSelectedService(serviceToDelete)
+    setIsDeleteConfirmationOpen(true)  // Abrir modal de confirmación
+  }
 
   // Función para confirmar la eliminación
   const confirmDelete = () => {
-    deleteServiceMutation.mutate(selectedService.id);  // Eliminar servicio
-    setSelectedService(null);  // Limpiar servicio seleccionado
-    setIsDeleteConfirmationOpen(false);  // Cerrar modal de confirmación
-  };
+    deleteServiceMutation.mutate(selectedService.id)  // Eliminar servicio
+    setSelectedService(null)  // Limpiar servicio seleccionado
+    setIsDeleteConfirmationOpen(false)  // Cerrar modal de confirmación
+  }
 
   // Función para cancelar la eliminación
   const cancelDelete = () => {
-    setIsDeleteConfirmationOpen(false);  // Cerrar modal de confirmación
-    setSelectedService(null);  // Limpiar servicio seleccionado
-  };
+    setIsDeleteConfirmationOpen(false)  // Cerrar modal de confirmación
+    setSelectedService(null)  // Limpiar servicio seleccionado
+  }
 
   // Función para editar un servicio
   const handleEdit = (id) => {
-    const serviceToEdit = services.find((service) => service.id === id);
-    setSelectedService(serviceToEdit);
-    setIsModalOpen(true);  // Abrir modal para editar
-  };
+    const serviceToEdit = services.find((service) => service.id === id)
+    setSelectedService(serviceToEdit)
+    setIsModalOpen(true)  // Abrir modal para editar
+  }
 
   // Función para cancelar la edición
   const handleCancel = () => {
-    setSelectedService(null);  // Limpiar servicio seleccionado
-    setIsModalOpen(false);  // Cerrar modal de edición
-  };
-
-  const debouncedSearch = useDebounce(search, 500);  // Aplicar debounce para la búsqueda
+    setSelectedService(null)  // Limpiar servicio seleccionado
+    setIsModalOpen(false)  // Cerrar modal de edición
+  }
 
   // Filtrar los servicios con la búsqueda aplicada
   const filteredServices = services.filter((service) =>
-    service.name.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+    service.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <DashboardGrid>
       <Card>
-        <div className="flex flex-col gap-2 mb-3">
-          <div className="flex justify-between items-center gap-2">
+        <div className="flex flex-col gap-4 mb-3">
+          <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Servicios</h2>
             <Button
               onClick={() => setIsModalOpen(true)}  // Abre el modal de agregar
-              className="hover:bg-primary dark:hover:bg-primary-dark"
+              className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
             >
-              Agregar Servicio
+              AGREGAR SERVICIO
             </Button>
           </div>
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}  // Actualiza el valor de búsqueda
+          <SearchBar
             placeholder="Buscar servicio"
-            className="w-1/3"
+            onSearch={setSearchTerm}
           />
         </div>
 
@@ -87,7 +88,7 @@ const ServicePanel = () => {
           <p>{error.message}</p>  // Si hay un error, muestra el mensaje de error
         ) : (
           <Table
-            headers={["Id", "Name", "Description", "Price"]}  // Encabezados de la tabla
+            headers={headers}  // Encabezados de la tabla
             data={filteredServices}  // Datos de los servicios filtrados
             onEdit={handleEdit}  // Función para editar
             onDelete={handleDelete}  // Función para eliminar
@@ -128,7 +129,7 @@ const ServicePanel = () => {
         </div>
       )}
     </DashboardGrid>
-  );
-};
+  )
+}
 
-export default ServicePanel;
+export default ServicePanel

@@ -1,11 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+
+const protectedRoutes = ['/dashboard', '/admin']
 
 export function middleware(req) {
-    if (req.method === 'POST') {
-        const { username, email } = req.body;
-        if (!username || !email) {
-            return new NextResponse('Bad Request', { status: 400 });
-        }
-    }
-    return NextResponse.next();
+  const isProtected = protectedRoutes.some(route => req.nextUrl.pathname.startsWith(route))
+  const token = req.cookies.get('auth_token')?.value
+
+  if (isProtected && !token) {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  return NextResponse.next()
 }

@@ -1,8 +1,8 @@
 "use client"
 
-import AuthSection from "../organisms/AuthSection";
-import { useAuth } from "@/context/AuthContext";
-import AuthenticatedSection from "../organisms/AuthenticatedSection";
+import AuthSection from "../organisms/AuthSection"
+import { useAuth } from "@/context/AuthContext"
+import AuthenticatedSection from "../organisms/AuthenticatedSection"
 
 const AuthTemplate = () => {
   const { user } = useAuth()

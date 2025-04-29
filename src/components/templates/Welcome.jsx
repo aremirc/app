@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion'; // Usaremos framer-motion para animaciones
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion' // Usaremos framer-motion para animaciones
 
 export default function WelcomePage() {
-  const [isMounted, setIsMounted] = useState(false);
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
     // Este efecto garantiza que las animaciones no se ejecuten en el servidor
-    setIsMounted(true);
-  }, []);
+    setIsMounted(true)
+  }, [])
 
   return (
-    <div className="flex items-center justify-center flex-1 bg-gradient-to-r from-indigo-600 to-blue-800 text-white px-6 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-600 to-blue-800 text-white px-6 py-12">
       <div className="text-center max-w-2xl mx-auto">
         {/* Animación del encabezado */}
         <motion.h1
@@ -58,5 +58,5 @@ export default function WelcomePage() {
         </motion.div>
       </div>
     </div>
-  );
+  )
 }

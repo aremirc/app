@@ -1,4 +1,4 @@
-import { serialize, parse } from 'cookie';
+import { serialize, parse } from 'cookie'
 
 export function setAuthCookies(response, token, role) {
   const cookies = [
@@ -16,10 +16,10 @@ export function setAuthCookies(response, token, role) {
       sameSite: 'lax',
       httpOnly: true,
     })
-  ];
+  ]
 
   // Agregar todas las cookies a la respuesta
-  response.headers.set('Set-Cookie', cookies.join(', '));  // Usamos `join` para que las cookies no se sobrescriban
+  response.headers.set('Set-Cookie', cookies.join(', '))  // Usamos `join` para que las cookies no se sobrescriban
 }
 
 export function removeAuthCookies(response) {
@@ -36,10 +36,10 @@ export function removeAuthCookies(response) {
       maxAge: -1,  // Caducar la cookie
       path: '/',
     })
-  ];
+  ]
 
   // Agregar todas las cookies de eliminación a la respuesta
-  response.headers.set('Set-Cookie', cookies.join(', '));  // Usamos `join` para asegurarnos de no sobrescribir
+  response.headers.set('Set-Cookie', cookies.join(', '))  // Usamos `join` para asegurarnos de no sobrescribir
 }
 
 export function setRefreshTokenCookies(response, refreshToken) {
@@ -49,20 +49,20 @@ export function setRefreshTokenCookies(response, refreshToken) {
     secure: process.env.NODE_ENV === 'production', // Solo en producción
     sameSite: 'lax',  // O 'strict' si no necesitas compartir entre sitios
     httpOnly: true,   // No accesible desde JavaScript
-  });
+  })
 
   // Establecer la cookie de refresh token
-  response.headers.append('Set-Cookie', refreshTokenCookie);  // Usamos `append` para agregar la cookie sin sobrescribir
+  response.headers.append('Set-Cookie', refreshTokenCookie)  // Usamos `append` para agregar la cookie sin sobrescribir
 }
 
 export function removeRefreshTokenCookies(response) {
   response.headers.set('Set-Cookie', serialize('refresh_token', '', {
     maxAge: -1,  // Caducar la cookie
     path: '/',
-  }));
+  }))
 }
 
 export function getCookies(request) {
-  const cookies = request.headers.get('Cookie') || '';
-  return parse(cookies);
+  const cookies = request.headers.get('Cookie') || ''
+  return parse(cookies)
 }

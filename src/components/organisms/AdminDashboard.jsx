@@ -1,7 +1,7 @@
 import ProtectedRoute from "../ProtectedRoute"
 
 const AdminDashboard = ({ children }) => (
-  <ProtectedRoute allowedRoles={["Admin"]}>
+  <ProtectedRoute allowedRoles={["ADMIN"]}>
     {children}
   </ProtectedRoute>
 )

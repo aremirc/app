@@ -1,77 +1,79 @@
-import { useState } from "react";
-import { useUsers } from "@/hooks/useUsers";  // Importamos el hook
-import Input from "../atoms/Input";
-import Button from "../atoms/Button";
-import Table from "../molecules/Table";
-import Card from "../molecules/Card";
-import DashboardGrid from "../templates/DashboardGrid";
-import UserCard from "../molecules/UserCard";
-import { useDebounce } from "@/hooks/useDebounce";
-import useRealTimeUpdates from "@/hooks/useRealTimeUpdates";  // Hook para WebSocket
+import { useState } from "react"
+import { useUsers } from "@/hooks/useUsers"  // Importamos el hook
+import Button from "../atoms/Button"
+import Table from "../molecules/Table"
+import Card from "../molecules/Card"
+import DashboardGrid from "./DashboardGrid"
+import UserCard from "../molecules/UserCard"
+import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"  // Hook para WebSocket
+import SearchBar from "../molecules/SearchBar"
+
+const headers = [
+  { key: "dni", label: "DNI" },
+  { key: "username", label: "Nombre de Usuario" },
+  { key: "email", label: "Correo Electrónico" },
+  { key: "roleName", label: "Rol" },
+  { key: "createdAt", label: "Fecha de Creación" }
+]
 
 const UserPanel = () => {
-  const [search, setSearch] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const { users, error, isLoading, deleteUserMutation } = useUsers();
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const { users, error, isLoading, deleteUserMutation } = useUsers()
 
   // Llamar al hook de WebSocket para recibir actualizaciones en tiempo real
-  useRealTimeUpdates();  // Aquí es donde se maneja la lógica WebSocket
+  useRealTimeUpdates()  // Aquí es donde se maneja la lógica WebSocket
 
   const handleDelete = (dni) => {
-    const userToDelete = users.find((user) => user.dni === dni);
-    setSelectedUser(userToDelete);
-    setIsDeleteConfirmationOpen(true);
-  };
+    const userToDelete = users.find((user) => user.dni === dni)
+    setSelectedUser(userToDelete)
+    setIsDeleteConfirmationOpen(true)
+  }
 
   const confirmDelete = () => {
-    deleteUserMutation.mutate(selectedUser.dni);
-    setSelectedUser(null);
-    setIsDeleteConfirmationOpen(false);
-  };
+    deleteUserMutation.mutate(selectedUser.dni)
+    setSelectedUser(null)
+    setIsDeleteConfirmationOpen(false)
+  }
 
   const cancelDelete = () => {
-    setIsDeleteConfirmationOpen(false);
-    setSelectedUser(null);
-  };
+    setIsDeleteConfirmationOpen(false)
+    setSelectedUser(null)
+  }
 
   const handleEdit = (dni) => {
-    const userToEdit = users.find((user) => user.dni === dni);
-    setSelectedUser(userToEdit);
-    setIsModalOpen(true);
-  };
+    const userToEdit = users.find((user) => user.dni === dni)
+    setSelectedUser(userToEdit)
+    setIsModalOpen(true)
+  }
 
   const handleCancel = () => {
-    setSelectedUser(null);
-    setIsModalOpen(false);
-  };
-
-  const debouncedSearch = useDebounce(search, 500);
+    setSelectedUser(null)
+    setIsModalOpen(false)
+  }
 
   const filteredUsers = users.filter((user) =>
-    user.username.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <DashboardGrid>
       <Card>
-        <div className="flex flex-col gap-2 mb-3">
-          <div className="flex justify-between items-center gap-2">
+        <div className="flex flex-col gap-4 mb-3">
+          <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Usuarios</h2>
             <Button
               onClick={() => setIsModalOpen(true)}
-              className="hover:bg-primary dark:hover:bg-primary-dark"
+              className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
             >
-              Agregar Usuario
+              AGREGAR USUARIO
             </Button>
           </div>
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <SearchBar
             placeholder="Buscar usuario"
-            className="w-1/3"
+            onSearch={setSearchTerm}
           />
         </div>
 
@@ -81,8 +83,11 @@ const UserPanel = () => {
           <p>{error.message}</p>
         ) : (
           <Table
-            headers={["DNI", "Username", "Email", "RoleId", "CreatedAt"]}
-            data={filteredUsers}
+            headers={headers}
+            data={filteredUsers.map(user => ({
+              ...user,
+              roleName: user.role?.name
+            }))}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -114,7 +119,7 @@ const UserPanel = () => {
         </div>
       )}
     </DashboardGrid>
-  );
-};
+  )
+}
 
-export default UserPanel;
+export default UserPanel

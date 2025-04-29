@@ -1,8 +1,8 @@
-import Link from "next/link";
+import Link from "next/link"
 
 const Custom404 = () => {
   return (
-    <div className="animate-fade-in flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-6">
+    <div className="min-h-screen animate-fade-in flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-6">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg text-center">
 
         {/* <div className="mb-6">
@@ -49,7 +49,7 @@ const Custom404 = () => {
         
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Custom404;
+export default Custom404

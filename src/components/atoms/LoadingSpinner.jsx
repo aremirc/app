@@ -5,7 +5,7 @@ const LoadingSpinner = () => {
       <div className="w-3 h-3 rounded-full bg-primary animate-bounce delay-200"></div>
       <div className="w-3 h-3 rounded-full bg-primary-dark animate-bounce delay-400"></div>
     </div>
-  );
+  )
 }
 
-export default LoadingSpinner;
+export default LoadingSpinner

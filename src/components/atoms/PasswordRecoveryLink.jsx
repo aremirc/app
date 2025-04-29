@@ -1,13 +1,14 @@
-import { handleToast } from "@/lib/toast";
+import Link from 'next/link'
 
 const PasswordRecoveryLink = () => {
-  const recovery = (e) => {
-    e.preventDefault();  // Evitar la acción predeterminada del enlace
-  }
-
   return (
     <div className="mt-4 text-center">
-      <a className="text-primary hover:underline" onClick={recovery} href="#">¿Olvidaste tu contraseña?</a>
+      <Link
+        href="/recovery"
+        className="text-primary hover:underline cursor-pointer"
+      >
+        ¿Olvidaste tu contraseña?
+      </Link>
     </div>
   )
 }
