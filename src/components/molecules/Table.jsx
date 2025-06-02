@@ -29,7 +29,7 @@ const Table = ({ headers, data, onEdit = () => { }, onDelete = () => { }, showAc
             {headers.map((header) => (
               <td
                 key={header.key}
-                className={`px-3 py-2 block xl:table-cell ${header.key === "id" ? "hidden" : ""}`}
+                className={`px-3 py-2 block xl:table-cell`}
               >
                 <span className="font-semibold text-xs text-text table-cell xl:hidden">
                   {header.label}:

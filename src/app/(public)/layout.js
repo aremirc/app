@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext"
 const publicRoutes = ["/", "/login", "/recovery", "/reset-password"]
 
 export default function PublicLayout({ children }) {
-    const { user, loading } = useAuth()
+    const { loading, isAuthenticated } = useAuth()
     const router = useRouter()
     const pathname = usePathname()
 
@@ -18,17 +18,17 @@ export default function PublicLayout({ children }) {
 
     useEffect(() => {
         // Si el usuario ya está logueado y está en una ruta pública, redirige al dashboard
-        if (!loading && user && isPublic) {
+        if (!loading && isAuthenticated && isPublic) {
             router.replace("/dashboard")
         }
-    }, [user, loading, isPublic, router])
+    }, [loading, isAuthenticated, isPublic, router])
 
     if (loading) {
         return <LoadingSpinner />
     }
 
     return (
-        <div className="flex flex-col justify-between min-h-screen bg-background-light dark:bg-background-dark">
+        <div className="flex flex-col justify-between min-h-screen-dvh bg-background-light dark:bg-background-dark">
             <Header />
             <main className="flex-1 flex flex-col">{children}</main>
             <Footer />

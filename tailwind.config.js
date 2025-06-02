@@ -16,6 +16,12 @@ module.exports = {
       '2xl': '1536px',
     },
     extend: {
+      height: {
+        'screen-dvh': '100dvh',
+      },
+      minHeight: {
+        'screen-dvh': '100dvh',
+      },
       colors: {
         // Colores derivados del color base #4FD1C5 (Verde agua)
         primary: {

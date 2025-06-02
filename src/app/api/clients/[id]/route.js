@@ -13,9 +13,7 @@ export async function GET(req, { params }) {
   try {
     // Obtener los detalles del cliente por id
     const client = await prisma.client.findUnique({
-      where: {
-        dni: id,  // Buscamos por el DNI (id del cliente)
-      },
+      where: { id },  // Buscamos por el RUC/DNI (id del cliente)
       include: {
         orders: true,  // Incluir las órdenes del cliente (si es necesario)
         visits: true,  // Incluir las visitas del cliente (si es necesario)
@@ -28,7 +26,8 @@ export async function GET(req, { params }) {
     }
 
     // Devolver los detalles del cliente
-    return NextResponse.json(client, { status: 200 })
+    const { password: _, ...clientWithoutPassword } = client
+    return NextResponse.json(clientWithoutPassword, { status: 200 })
   } catch (error) {
     console.error('Error al obtener cliente:', error)
     return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 })

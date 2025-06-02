@@ -25,7 +25,7 @@ export const SocketProvider = ({ children }) => {
       console.error('No se pudo determinar la URL del WebSocket.')
       return
     }
-    
+
     // Crear la conexión WebSocket con reconexión automática
     socketRef.current = io(socketUrl, {
       reconnection: true, // Habilitar reconexión automática
@@ -33,7 +33,7 @@ export const SocketProvider = ({ children }) => {
       reconnectionDelay: 1000, // Retraso entre intentos de reconexión
       reconnectionDelayMax: 5000, // Retraso máximo entre intentos
       timeout: 10000, // Tiempo máximo de espera para establecer la conexión
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       withCredentials: true, // Esto asegura que las cookies se envíen con la solicitud
     })
 
@@ -42,19 +42,23 @@ export const SocketProvider = ({ children }) => {
     })
 
     socketRef.current.on("connect", () => {
-      // console.log("Conectado a WebSocket")
+      console.log("✅ Conectado al WebSocket con ID:", socketRef.current.id)
     })
 
     // socketRef.current.on('response', (msg) => {
     //   console.log('Respuesta del servidor:', msg)
     // })
-    
+
     // Enviar mensaje al servidor
     // socketRef.current.emit('message', 'Hola desde el cliente')
 
+    socketRef.current.on("connect_error", (err) => {
+      console.error("❌ Error de conexión:", err)
+    })
+
     // Cuando la conexión se pierde, tratamos de reconectar
     socketRef.current.on("disconnect", () => {
-      // console.log("Desconectado del WebSocket")
+      console.warn("🔌 Desconectado del WebSocket")
     })
 
     setSocket(socketRef.current)

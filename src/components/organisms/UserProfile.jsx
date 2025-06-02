@@ -6,6 +6,7 @@ import LoadingSpinner from "@/components/atoms/LoadingSpinner"
 import DashboardGrid from "./DashboardGrid"
 import Icon from "../atoms/Icon"
 import api from "@/lib/axios"
+import Card from "../molecules/Card"
 
 const socialLinks = {
   facebook: "https://facebook.com/usuario",
@@ -70,7 +71,7 @@ const UserProfile = () => {
   return (
     <div className="p-5">
       <div className="relative w-full h-40 bg-primary dark:bg-primary-dark rounded-lg">
-        <div className="absolute w-[90%] flex flex-col sm:flex-row items-center justify-between bg-white/85 dark:bg-gray-800/95 shadow-lg rounded-lg p-6 top-3/4 left-1/2 transform -translate-x-1/2">
+        <Card className="absolute w-[90%] flex flex-col sm:flex-row items-center justify-between bg-white/85 dark:bg-gray-800/95 shadow-lg rounded-lg p-6 top-1/4 sm:top-3/4 left-1/2 transform -translate-x-1/2">
           {/* Vista: Información del Usuario */}
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -81,6 +82,9 @@ const UserProfile = () => {
                 src={user.avatar || '/default-avatar.webp'}
                 alt="Avatar del usuario"
                 className="w-16 h-16 rounded-full object-cover"
+                onError={(e) => {
+                  e.target.src = "/default-avatar.webp"
+                }}
               />
             </div>
             <div>
@@ -114,9 +118,9 @@ const UserProfile = () => {
               </a>
             )}
           </div>
-        </div>
+        </Card>
       </div>
-      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8 mt-24">
+      <Card className="dark:bg-gray-800 shadow-lg rounded-lg p-8 mt-12 sm:mt-24">
         {!isEditing ? (
           <>
             <DashboardGrid>
@@ -125,18 +129,18 @@ const UserProfile = () => {
                 <ul className="text-gray-600 dark:text-gray-300 space-y-1">
                   <li><strong>Rol:</strong> {user.role.name || 'Desconocido'}</li>
                   <li><strong>N° DNI:</strong> {user.dni}</li>
-                  <li><strong>Nombre Completo:</strong> {user.firstName + ' ' + user.lastName || 'Desconocido'}</li>
+                  <li><strong>Nombre:</strong> {user.firstName + ' ' + user.lastName || 'Desconocido'}</li>
                   <li><strong>Correo:</strong> {user.email || ''}</li>
                   <li><strong>Celular:</strong> {user.phone || ''}</li>
-                  <li><strong>Ubicación:</strong> {user.location || 'Perú'}</li>
+                  <li><strong>Ubicación:</strong> {user.country || 'Perú'}</li>
                   <li><strong>Miembro desde:</strong> {new Date(user.createdAt).toLocaleDateString()}</li>
                 </ul>
               </div>
               <div className="">
                 <h3 className="text-lg font-semibold text-primary dark:text-gray-200 mb-2">Actividad Reciente</h3>
                 <ul className="text-gray-600 dark:text-gray-300">
-                  <li><strong>Último inicio de sesión:</strong> {new Date(user.lastLogin).toLocaleString()}</li>
-                  <li><strong>Última actualización de perfil:</strong> {new Date(user.lastUpdated).toLocaleString()}</li>
+                  <li><strong>Último inicio de sesión:</strong> {new Date(user.lastLogin || '').toLocaleDateString()}</li>
+                  <li><strong>Última actualización de perfil:</strong> {new Date(user.updatedAt).toLocaleDateString()}</li>
                   <li><strong>Tarea pendiente:</strong> {user.pendingTask || "No hay tareas pendientes."}</li>
                 </ul>
               </div>
@@ -165,7 +169,7 @@ const UserProfile = () => {
             <EditProfileForm user={user} />
           </>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

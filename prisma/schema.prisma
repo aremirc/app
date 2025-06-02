@@ -9,152 +9,25 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // Cambiar a otro proveedor si es necesario
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  dni       String   @id // DNI como identificador único
-  username  String   @unique
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  phone     String?
-  roleId    Int // Suponiendo que tienes un campo `roleId` que hace referencia al rol del usuario
-  role      Role     @relation("UsersWithRole", fields: [roleId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relación con órdenes donde participa como gestor
-  managedOrders Order[] @relation("ManagedByUser")
-
-  // Relación con órdenes como técnico (many-to-many)
-  orderWorkers OrderWorker[]
-
-  // Relación con visitas realizadas (como técnico)
-  visits Visit[]
-
-  // Disponibilidad, si es técnico
-  availability Availability[]
-
-  // Métricas de desempeño (si es técnico)
-  completedOrders     Int    @default(0) // Número de órdenes completadas
-  totalWorkingTime    Int    @default(0) // Tiempo total trabajado en minutos
-  averageSatisfaction Float? // Promedio de satisfacción del cliente
-
-  conformities Conformity[]
-
-  @@index([roleId]) // El índice hace referencia al campo escalar `roleId` en lugar del campo de relación `role`
+enum Gender {
+  MALE
+  FEMALE
 }
 
-model Role {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique
-  users       User[]       @relation("UsersWithRole")
-  permissions Permission[] @relation("PermissionsOfRole")
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
 }
 
-model Permission {
-  id    Int    @id @default(autoincrement())
-  name  String @unique // Nombre del permiso (ej: "create_user", "delete_order", "assign_worker")
-  roles Role[] @relation("PermissionsOfRole")
-}
-
-model Client {
-  dni       String   @id // DNI como identificador único
-  name      String
-  email     String   @unique
-  phone     String?
-  address   String?
-  orders    Order[] // Relación con órdenes de servicio
-  visits    Visit[] // Relación con visitas realizadas
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Order {
-  id            Int         @id @default(autoincrement())
-  description   String
-  status        OrderStatus
-  statusDetails String? // Detalles adicionales sobre el estado de la orden
-  clientId      String
-  client        Client      @relation(fields: [clientId], references: [dni])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  // Técnico(s) asignado(s)
-  workers OrderWorker[]
-
-  // Visitas relacionadas
-  visits   Visit[]
-  services Service[]
-
-  // Usuario gestor
-  userId    String? // Asegúrate de que este campo haga referencia a un Usuario
-  managedBy User?   @relation("ManagedByUser", fields: [userId], references: [dni]) // Relación con el usuario que gestionó la orden
-
-  // Conformidades
-  conformities Conformity[] // Relación con las conformidades de la orden
-}
-
-model OrderWorker {
-  orderId Int
-  order   Order @relation(fields: [orderId], references: [id])
-
-  userId String
-  user   User   @relation(fields: [userId], references: [dni])
-
-  status OrderWorkerStatus // Estado del servicio: (por ejemplo, assigned, in_progress, completed)
-
-  @@id([orderId, userId]) // Llave primaria compuesta para evitar duplicados
-}
-
-model Visit {
-  id          Int      @id @default(autoincrement())
-  date        DateTime // Fecha y hora de inicio de la visita
-  endTime     DateTime // Fin de la visita
-  description String // Descripción de la visita (trabajo realizado, incidentes, etc.)
-  orderId     Int
-  order       Order    @relation(fields: [orderId], references: [id])
-  userId      String
-  user        User     @relation(fields: [userId], references: [dni])
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [dni])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  evaluation  Float? // Evaluación de la visita (por ejemplo, puntuación de satisfacción del cliente)
-}
-
-model Service {
-  id          Int           @id @default(autoincrement())
-  name        String // Nombre del servicio (ej. "Instalación eléctrica", "Mantenimiento HVAC")
-  description String? // Descripción detallada del servicio
-  price       Float // Precio del servicio
-  status      ServiceStatus // Estado del servicio: 'active' o 'inactive'
-  createdAt   DateTime      @default(now()) // Fecha de creación
-  updatedAt   DateTime      @updatedAt // Fecha de última actualización
-  orders      Order[] // Relación con órdenes en las que se ha utilizado este servicio
-}
-
-model Availability {
-  id        Int      @id @default(autoincrement())
-  userId    String // DNI del usuario al que pertenece la disponibilidad
-  user      User     @relation(fields: [userId], references: [dni])
-  startDate DateTime // Fecha de inicio de la disponibilidad
-  endDate   DateTime // Fecha de fin de la disponibilidad
-  type      String // Tipo de disponibilidad (por ejemplo: "full-time", "part-time")
-}
-
-model Conformity {
-  id          Int      @id @default(autoincrement())
-  orderId     Int
-  order       Order    @relation(fields: [orderId], references: [id])
-  description String // Descripción de la conformidad
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String
-  user        User     @relation(fields: [userId], references: [dni])
+enum ClientType {
+  INDIVIDUAL
+  COMPANY
 }
 
 enum OrderStatus {
@@ -162,7 +35,8 @@ enum OrderStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
-  FAILED // Estado adicional si deseas rastrear fallos en la ejecución de las órdenes
+  ON_HOLD
+  FAILED
 }
 
 enum ServiceStatus {
@@ -171,11 +45,277 @@ enum ServiceStatus {
 }
 
 enum OrderWorkerStatus {
-  ASSIGNED // El trabajador fue asignado pero aún no comenzó
-  IN_PROGRESS // El trabajo está en curso
-  COMPLETED // El trabajo fue completado
-  FAILED // El trabajo falló o no se pudo completar
-  CANCELLED // El trabajo fue cancelado antes de iniciarse
-  REASSIGNED // El trabajador fue reemplazado por otro
-  DECLINED // El trabajador rechazó la asignación
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+  REASSIGNED
+  DECLINED
+}
+
+enum ToolStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  LOST
+  RETIRED
+}
+
+enum EvidenceType {
+  PHOTO
+  VIDEO
+}
+
+enum AvailabilityType {
+  FULL_TIME
+  PART_TIME
+  ON_CALL
+}
+
+enum NotificationType {
+  PENDING_TASK
+  SYSTEM_ALERT
+  PROFILE_UPDATE
+  NEW_MESSAGE
+  ASSIGNMENT_UPDATE
+  VISIT_REMINDER
+  ACCOUNT_STATUS_CHANGE
+  FEEDBACK_REQUEST
+}
+
+model User {
+  dni         String     @id
+  firstName   String
+  lastName    String
+  username    String     @unique
+  email       String     @unique
+  phone       String?
+  address     String?
+  password    String
+  gender      Gender
+  avatar      String?
+  country     String?
+  socialLinks Json?
+  birthDate   DateTime?
+  status      UserStatus @default(ACTIVE)
+  roleId      Int
+  role        Role       @relation("UsersWithRole", fields: [roleId], references: [id])
+  isVerified  Boolean    @default(false)
+  lastLogin   DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relaciones
+  managedOrders Order[]        @relation("ManagedByUser")
+  orderWorkers  OrderWorker[]
+  availability  Availability[]
+  notifications Notification[]
+  conformities  Conformity[]
+  visits        Visit[]
+
+  // Métricas
+  completedOrders     Int    @default(0)
+  totalWorkingTime    Int    @default(0)
+  averageSatisfaction Float?
+
+  @@index([roleId])
+  @@index([deletedAt])
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    String
+  user      User             @relation(fields: [userId], references: [dni])
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  @@index([userId])
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  users       User[]       @relation("UsersWithRole")
+  permissions Permission[] @relation("PermissionsOfRole")
+}
+
+model Permission {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  roles Role[] @relation("PermissionsOfRole")
+}
+
+model Client {
+  id                 String     @id
+  name               String
+  email              String     @unique
+  password           String?
+  phone              String?
+  address            String?
+  type               ClientType
+  contactPersonName  String?
+  contactPersonPhone String?
+  notes              String?
+  isActive           Boolean    @default(true)
+  deletedAt          DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  orders Order[]
+  visits Visit[]
+}
+
+model Order {
+  id                    Int         @id @default(autoincrement())
+  description           String
+  scheduledDate         DateTime?
+  endDate               DateTime?
+  alternateContactName  String?
+  alternateContactPhone String?
+  status                OrderStatus
+  statusDetails         String?
+  clientId              String
+  client                Client      @relation(fields: [clientId], references: [id])
+  conformity            Conformity?
+  createdBy             String
+  updatedBy             String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  workers         OrderWorker[]
+  visits          Visit[]
+  services        Service[]
+  locations       Location[]
+  toolAssignments ToolAssignment[]
+
+  managedBy User? @relation("ManagedByUser", fields: [createdBy], references: [dni])
+
+  @@index([createdBy])
+}
+
+model OrderWorker {
+  orderId       Int
+  order         Order             @relation(fields: [orderId], references: [id])
+  userId        String
+  user          User              @relation(fields: [userId], references: [dni])
+  status        OrderWorkerStatus
+  isResponsible Boolean           @default(false)
+
+  @@id([orderId, userId])
+}
+
+model Tool {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  serial      String?    @unique
+  status      ToolStatus @default(AVAILABLE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  assignments ToolAssignment[]
+}
+
+model ToolAssignment {
+  id         String    @id @default(cuid())
+  tool       Tool      @relation(fields: [toolId], references: [id])
+  toolId     String
+  order      Order     @relation(fields: [orderId], references: [id])
+  orderId    Int
+  usedAt     DateTime  @default(now())
+  returnedAt DateTime?
+}
+
+model Location {
+  id        Int     @id @default(autoincrement())
+  latitude  Float
+  longitude Float
+  label     String?
+  order     Order?  @relation(fields: [orderId], references: [id])
+  orderId   Int?
+}
+
+model Visit {
+  id          Int        @id @default(autoincrement())
+  date        DateTime
+  endTime     DateTime
+  description String
+  orderId     Int
+  order       Order      @relation(fields: [orderId], references: [id])
+  userId      String
+  user        User       @relation(fields: [userId], references: [dni])
+  clientId    String
+  client      Client     @relation(fields: [clientId], references: [id])
+  isReviewed  Boolean    @default(false)
+  evaluation  Float?
+  evidences   Evidence[]
+  createdBy   String
+  updatedBy   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model Evidence {
+  id        Int          @id @default(autoincrement())
+  visitId   Int
+  visit     Visit        @relation(fields: [visitId], references: [id])
+  type      EvidenceType
+  url       String
+  comment   String?
+  createdAt DateTime     @default(now())
+
+  @@index([visitId])
+}
+
+model Service {
+  id            Int           @id @default(autoincrement())
+  name          String
+  description   String?
+  price         Float
+  estimatedTime Int?
+  status        ServiceStatus
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  orders        Order[]
+}
+
+model Availability {
+  id        Int              @id @default(autoincrement())
+  userId    String
+  user      User             @relation(fields: [userId], references: [dni])
+  startDate DateTime
+  endDate   DateTime
+  type      AvailabilityType
+
+  @@index([userId])
+}
+
+model Conformity {
+  id              Int       @id @default(autoincrement())
+  orderId         Int       @unique
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User      @relation(fields: [userId], references: [dni])
+  description     String
+  accepted        Boolean   @default(true)
+  rejectionReason String?
+  signature       String?
+  files           Json?
+  rating          Float?
+  feedback        String?
+  conformityDate  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
 }

@@ -20,6 +20,9 @@ export async function GET(req, { params }) {
         role: true,  // Incluir el rol asociado
         visits: true,
         availability: true,
+        managedOrders: true,
+        orderWorkers: true,
+        notifications: true,
       },
     })
 

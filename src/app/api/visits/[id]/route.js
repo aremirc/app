@@ -17,6 +17,7 @@ export async function GET(req, { params }) {
         id: parseInt(id),  // Asegúrate de convertir el `id` a entero si es necesario
       },
       include: {
+        evidences: true,
         order: true,
         user: true, // Puedes incluir los trabajadores relacionados si es necesario
         client: true, // Puedes incluir el cliente si es necesario

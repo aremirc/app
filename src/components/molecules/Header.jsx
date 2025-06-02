@@ -20,15 +20,20 @@ const Header = ({ title = "Dashboard" }) => {
   return (
     <header className="sticky top-0 bg-gradient-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-10">
       <div className="container lg:max-w-full mx-auto flex justify-between items-center">
-        <Countdown className="fixed top-0 sm:top-auto text-red-500 font-bold" />
+        {user?.role?.name && (
+          <Countdown className="fixed top-0 sm:top-auto text-red-500 font-bold" />
+        )}
 
-        <div className={`relative transform ${user?.role ? "sm:translate-x-64" : ""}`}>
+        <div className={`relative flex items-center justify-center gap-3 transform ${user?.role?.name ? "sm:translate-x-64" : ""}`}>
+          <div className="col-span-full flex items-center justify-center">
+            <button className="flex items-center justify-center text-black text-4xl transition duration-200 ease-in-out" onClick={() => window.history.back()}>&#8249;</button>
+          </div>
           <h1 className="text-background-dark text-3xl font-bold">{camelCasePathname}</h1>
         </div>
 
         {/* <Navbar /> */}
 
-        {user?.role && <UserList />}
+        {user?.role?.name && <UserList />}
       </div>
 
       <button

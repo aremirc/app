@@ -4,7 +4,6 @@ import prisma from '@/lib/prisma'
 import { parse } from 'cookie'
 import { setAuthCookies, setRefreshTokenCookies } from '@/lib/cookies'
 
-// Constants for environment variables
 const JWT_SECRET = process.env.JWT_SECRET
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION
@@ -12,16 +11,19 @@ const REFRESH_TOKEN_EXPIRATION = process.env.REFRESH_TOKEN_EXPIRATION
 
 const createToken = (user, secret, expiration) => {
   return jwt.sign(
-    { dni: user.dni, username: user.username, roleId: user.roleId },
+    {
+      dni: user.dni,
+      username: user.username,
+      role: user.role.name
+    },
     secret,
     { expiresIn: expiration }
   )
 }
 
-// Helper to handle common error responses
 const errorResponse = (message, errorDetails, status) => {
   return NextResponse.json(
-    { 
+    {
       status: 'error',
       message,
       errorDetails,
@@ -36,11 +38,10 @@ export async function GET(req) {
     const cookies = parse(req.headers.get('cookie') || '')
     const token = cookies.token
 
-    // If token is missing, return basic API status
     if (!token) {
       return NextResponse.json({
         status: 'success',
-        message: 'La API está funcionando correctamente',
+        message: '¡Todo está en orden!',
         timestamp: new Date().toISOString(),
       }, { status: 200 })
     }
@@ -56,24 +57,33 @@ export async function GET(req) {
       return errorResponse('Token expirado o inválido', err.message, 401)
     }
 
-    const role = await prisma.role.findUnique({ where: { id: decoded.roleId } })
-    if (!role) {
-      return errorResponse('Rol no encontrado', 'No se pudo encontrar el rol asociado al usuario', 404)
-    }
-
-    const userData = {
-      id: decoded.dni,
-      name: decoded.username,
-      roleId: decoded.roleId,
-      role: role.name,
-      avatar: decoded.avatar || 'https://cdn.pixabay.com/photo/2024/07/22/17/11/elegance-in-profile-8913207_640.png',
-      notifications: 3,
+    const user = await prisma.user.findUnique({
+      where: { dni: decoded.dni },
+      select: {
+        avatar: true,
+        dni: true,
+        firstName: true,
+        gender: true,
+        birthDate: true,
+        lastName: true,
+        notifications: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
+        roleId: true,
+        username: true,
+      }
+    })
+    if (!user) {
+      return errorResponse('Usuario no encontrado', 'No se pudo encontrar el usuario asociado al token', 404)
     }
 
     return NextResponse.json({
       status: 'success',
       message: 'Datos de usuario obtenidos exitosamente',
-      data: { user: userData },
+      data: { user },
       timestamp: new Date().toISOString(),
     }, { status: 200 })
 
@@ -85,10 +95,9 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const cookies = req.cookies // Accedemos a las cookies
-    const refreshToken = cookies.get('refresh_token')?.value // Obtenemos el valor de 'refresh_token'
+    const cookies = req.cookies
+    const refreshToken = cookies.get('refresh_token')?.value ?? null // nullish coalescing
 
-    // If refresh token is missing
     if (!refreshToken) {
       return errorResponse('No se proporcionó refresh token', 'Falta el refresh token en la solicitud', 400)
     }
@@ -100,7 +109,18 @@ export async function POST(req) {
       return errorResponse('Refresh token no válido', err.message, 401)
     }
 
-    const user = await prisma.user.findUnique({ where: { dni: decoded.dni } })
+    const user = await prisma.user.findUnique({
+      where: { dni: decoded.dni },
+      select: {
+        dni: true,
+        username: true,
+        roleId: true,
+        role: {
+          select: { name: true }
+        }
+      }
+    })
+
     if (!user) {
       return errorResponse('Usuario no encontrado', 'No se pudo encontrar el usuario asociado al refresh token', 404)
     }
@@ -109,8 +129,8 @@ export async function POST(req) {
     const newRefreshToken = createToken(user, REFRESH_TOKEN_SECRET, REFRESH_TOKEN_EXPIRATION)
 
     const res = NextResponse.json(
-      { 
-        status: 'success', 
+      {
+        status: 'success',
         message: 'Tokens renovados exitosamente',
         data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
         timestamp: new Date().toISOString()

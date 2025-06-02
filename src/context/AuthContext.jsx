@@ -11,9 +11,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState({ // Inicializar como invitado (usuario sin permisos)
     name: "Invitado",  // Nombre genérico para el invitado
     roleId: 0,         // roleId 0, indicando que no es un usuario con permisos especiales
-    avatar: "https://static-00.iconduck.com/assets.00/user-icon-2046x2048-9pwm22pp.png"
+    avatar: "/default-avatar.webp"
   })
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const router = useRouter()
@@ -34,26 +35,40 @@ export const AuthProvider = ({ children }) => {
           } else {
             return response.data.message
           }
-        } else {
-          throw new Error(response.data.message || 'Error en la API')
+          // } else {
+          //   throw new Error(response.data.message || 'Error en la API')
         }
       })
 
+      const hora = new Date().getHours()
+      let saludo
+
+      if (hora < 12) {
+        saludo = "¡Buenos días"
+      } else if (hora < 18) {
+        saludo = "¡Buenas tardes"
+      } else {
+        saludo = "¡Buenas noches"
+      }
+
       toast.promise(promise, {
         loading: 'Verificando sesión...',
-        success: (response) => response?.user?.name ? `¡Sesión verificada! Bienvenido, ${response.user.name}` : response,
-        error: (err) => `Error: ${err.message || 'No autenticado o sesión inválida'}`,
+        success: (response) => response?.user?.firstName ? `${saludo}, ${response.user.firstName}! ¡Qué alegría tenerte aquí!` : response,
+        error: (err) => `${err.response.data.message || err.message || 'No autenticado o sesión inválida'}`,
       })
 
       const response = await promise
       if (response && response.user) {
         setUser(response.user)
+        setIsAuthenticated(true)
       } else {
         setUser(null)
+        setIsAuthenticated(false)
       }
     } catch (err) {
       console.error('Error al verificar la sesión:', err)
       setUser(null)
+      logout()
     } finally {
       setLoading(false)
     }
@@ -86,6 +101,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data?.userData) {
         setUser(response.data.userData) // Establecer el usuario
+        setIsAuthenticated(true)
 
         // Guardar el tiempo de inicio en localStorage
         localStorage.setItem('startTime', Date.now())
@@ -118,8 +134,13 @@ export const AuthProvider = ({ children }) => {
   }, [router])
 
   const logout = useCallback(async () => {
-    try {
-      await api.delete('/api/auth') // Llamar a la API para cerrar sesión
+    try { // Llamar a la API para cerrar sesión
+      await api.delete('/api/auth')
+      // toast.promise(api.delete('/api/auth'), {
+      //   loading: 'Cerrando sesión...',
+      //   success: (response) => `¡${response.data.message}!`,
+      //   error: (err) => `Error: ${err.config.response.data.message || err.message || 'No autenticado o sesión inválida'}`,
+      // })
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
     }
@@ -129,11 +150,12 @@ export const AuthProvider = ({ children }) => {
     // localStorage.clear() // Si quieres eliminar todo el contenido del localStorage
 
     setUser(null)
+    setIsAuthenticated(false)
     router.push('/login') // Redirigir al login después de cerrar sesión
   }, [router])
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout, refreshTokens }}>
+    <AuthContext.Provider value={{ user, loading, error, login, logout, refreshTokens, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   )

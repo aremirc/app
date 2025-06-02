@@ -20,10 +20,15 @@ const Countdown = ({ className = '' }) => {
     // Verificar si el tiempo está a punto de expirar y renovar el token
     if (timeLeft <= 300 && timeLeft > 0 && !toastActive) { // Si quedan menos de 5 minutos y el toast no está activo
       const toastId = 'session-expiring-toast'
-      setToastActive(true) // Activar el estado del toast
+      toast.dismiss(toastId) // Forzar cierre previo si quedara "colgado"
+      setToastActive(true) // Activar el estado del toast      
+
+      const durationMs = timeLeft <= 60 ? timeLeft * 1000 : 30000
 
       toast('Tu sesión está a punto de expirar. ¿Quieres renovar los tokens?', {
         id: toastId,
+        duration: durationMs,
+        dismissible: true,
         action: {
           label: 'Renovar tokens',
           onClick: async () => {
@@ -37,6 +42,10 @@ const Countdown = ({ className = '' }) => {
           setToastActive(false) // Desactivar el estado del toast cuando desaparezca
         },
       })
+
+      setTimeout(() => {
+        setToastActive(false)
+      }, durationMs) // sincronizado con duration
     }
 
     // Si el tiempo ha expirado, cerramos la sesión

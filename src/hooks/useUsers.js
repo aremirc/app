@@ -16,42 +16,22 @@ export const useUsers = () => {
   })
 
   const addUserMutation = useMutation({
-    mutationFn: async (newUser) => {
-      // Primero, agregar al usuario
-      const userResponse = await api.post("/api/users", newUser)
-      
-      // Luego, agregar al trabajador
-      const workerResponse = await api.post("/api/workers", newUser)
-  
-      return { userResponse, workerResponse } // Devuelve ambas respuestas para sincronizar
-    },
+    mutationFn: (newUser) => api.post("/api/users", newUser),
     onSuccess: (newUser) => {
       queryClient.invalidateQueries(["users"])
-      queryClient.invalidateQueries(["workers"])
       handleToast("¡Usuario agregado con éxito!")
       if (socket) socket.emit('new-user', newUser)
     },
     onError: () => {
       handleToast("Error al agregar el usuario.", "error")
     }
-  })  
+  })
 
   const updateUserMutation = useMutation({
-    mutationFn: async (updatedUser) => {
-      // Actualiza el usuario
-      const userResponse = await api.put("/api/users", updatedUser)
-  
-      // Actualiza el trabajador
-      const workerResponse = await api.put("/api/workers", updatedUser)
-  
-      return { userResponse, workerResponse } // Devuelve ambas respuestas para sincronizar
-    },
+    mutationFn: (updatedUser) => api.put("/api/users", updatedUser),
     onSuccess: (updatedUser) => {
       queryClient.setQueryData(["users"], (prevUsers) =>
         prevUsers.map((user) => (user.dni === updatedUser.dni ? updatedUser : user))
-      )
-      queryClient.setQueryData(["workers"], (prevWorkers) =>
-        prevWorkers.map((worker) => (worker.dni === updatedUser.dni ? updatedUser : worker))
       )
       handleToast("¡Usuario actualizado correctamente!")
       if (socket) socket.emit('user-updated', updatedUser)
@@ -62,18 +42,9 @@ export const useUsers = () => {
   })
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (dni) => {
-      // Elimina al usuario
-      await api.delete("/api/users", { data: { dni } })
-      
-      // Elimina al trabajador
-      await api.delete("/api/workers", { data: { dni } })
-  
-      // También puedes hacer más acciones relacionadas con la eliminación (como eliminar órdenes asociadas, etc.)
-    },
+    mutationFn: (dni) => api.delete("/api/users", { data: { dni } }), // También puedes hacer más acciones relacionadas con la eliminación (como eliminar órdenes asociadas, etc.)
     onSuccess: (dni) => {
       queryClient.invalidateQueries(["users"])
-      queryClient.invalidateQueries(["workers"])
       handleToast("¡Usuario eliminado correctamente!")
       if (socket) socket.emit('user-deleted', dni)
     },

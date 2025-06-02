@@ -1,167 +1,192 @@
-import prisma from '@/lib/prisma'
+import { NextResponse } from 'next/server'
 import { verifyCsrfToken } from '@/lib/csrf'
-import { verifyAndLimit } from '@/lib/permissions' // Importar la función de permisos
-import { NextResponse } from 'next/server' // Importar NextResponse
+import { verifyAndLimit } from '@/lib/permissions'
+import prisma from '@/lib/prisma'
 
-// Obtener todos los servicios
 export async function GET(req) {
-  const authResponse = await verifyAndLimit(req)
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  const authResponse = await verifyAndLimit(req, 'ADMIN')
+  if (authResponse) return authResponse
 
   try {
-    // Obtener todos los servicios
-    const services = await prisma.service.findMany()
+    const searchParams = req.nextUrl.searchParams
 
-    return NextResponse.json(services, { status: 200 }) // Usar NextResponse.json()
+    const status = searchParams.get('status')?.toUpperCase() // 'ACTIVE' | 'INACTIVE'
+    const minPrice = parseFloat(searchParams.get('minPrice'))
+    const maxPrice = parseFloat(searchParams.get('maxPrice'))
+
+    const whereClause = {
+      ...(status && { status }),
+      ...(Number.isFinite(minPrice) && { price: { gte: minPrice } }),
+      ...(Number.isFinite(maxPrice) && {
+        price: {
+          ...(Number.isFinite(minPrice) ? { gte: minPrice } : {}),
+          lte: maxPrice,
+        },
+      }),
+    }
+
+    const services = await prisma.service.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        estimatedTime: true,
+        status: true,
+      },
+    })
+
+    return NextResponse.json(services, { status: 200 })
   } catch (error) {
     console.error('Error al obtener servicios:', error)
     return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 })
   }
 }
 
-// Crear un nuevo servicio
 export async function POST(req) {
-  // Verificar el token CSRF
   verifyCsrfToken(req)
-
   const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  if (authResponse) return authResponse
 
   try {
-    // Leer el cuerpo de la solicitud
-    const { name, description, price } = await req.json()
+    const { name, description, price, estimatedTime, status } = await req.json()
 
-    // Validaciones básicas
-    if (!name || !price) {
-      return NextResponse.json({ error: 'Nombre y precio son requeridos' }, { status: 400 }) // Bad request
+    if (!name || !price || !status) {
+      return NextResponse.json({ error: 'Nombre, precio y estado son requeridos' }, { status: 400 })
     }
 
-    // Validar el precio: debe ser un número positivo
-    if (isNaN(price) || price <= 0) {
+    if (typeof name !== "string" || name.trim() === "") {
+      return NextResponse.json({ error: 'Nombre no válido' }, { status: 400 })
+    }
+
+    if (typeof price !== 'number' || price <= 0) {
       return NextResponse.json({ error: 'El precio debe ser un número positivo' }, { status: 400 })
     }
 
-    // // Verificar si el servicio con el mismo nombre ya existe
-    // const existingService = await prisma.service.findUnique({
-    //   where: { name },
-    // })
-    // if (existingService) {
-    //   return new Response(
-    //     JSON.stringify({ error: `Ya existe un servicio con el nombre '${name}'` }),
-    //     { status: 400 }
-    //   )
-    // }
+    if (estimatedTime && (isNaN(estimatedTime) || estimatedTime <= 0)) {
+      return NextResponse.json({ error: 'El tiempo estimado debe ser un número positivo' }, { status: 400 })
+    }
 
-    // Crear el nuevo servicio
-    const newService = await prisma.service.create({
-      data: {
-        name,
-        description: description || null, // Si no se proporciona descripción, se guarda como null
-        price,
+    if (!["ACTIVE", "INACTIVE"].includes(status)) {
+      return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
+    }
+
+    const existingService = await prisma.service.findFirst({
+      where: {
+        name: {
+          equals: name,
+          mode: 'insensitive', // No distingue mayúsculas/minúsculas
+        },
       },
     })
 
-    // Responder con el servicio creado
-    return NextResponse.json(newService, { status: 201 }) // Creado con éxito
+    if (existingService) {
+      return NextResponse.json({ error: `Ya existe un servicio con el nombre '${name}'` }, { status: 409 })
+    }
+
+    const newService = await prisma.service.create({
+      data: {
+        name,
+        description: description || null,
+        price,
+        estimatedTime: estimatedTime || null,
+        status
+      },
+    })
+
+    return NextResponse.json(newService, { status: 201 })
   } catch (error) {
     console.error('Error al crear el servicio:', error)
-    return NextResponse.json({ error: 'Error al crear el servicio' }, { status: 500 }) // Error en el servidor
+    return NextResponse.json({ error: 'Error al crear el servicio' }, { status: 500 })
   }
 }
 
-// Actualizar un servicio existente
 export async function PUT(req) {
-  // Verificar el token CSRF
   verifyCsrfToken(req)
-
   const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  if (authResponse) return authResponse
 
   try {
-    // Leer el cuerpo de la solicitud
-    const { id, name, description, price } = await req.json()
+    const { id, name, description, price, estimatedTime, status } = await req.json()
 
-    // Validar que el ID esté presente
-    if (!id) {
-      return NextResponse.json({ error: 'ID es requerido' }, { status: 400 }) // Bad request
+    if (!id || !name || !price || !status) {
+      return NextResponse.json({ error: 'ID, nombre, precio y estado son requeridos' }, { status: 400 })
     }
 
-    // Verificar si el servicio existe
-    const existingService = await prisma.service.findUnique({
-      where: { id },
-    })
-    if (!existingService) {
-      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 }) // Not found
+    if (typeof name !== "string" || name.trim() === "") {
+      return NextResponse.json({ error: 'Nombre no válido' }, { status: 400 })
     }
 
-    // Validaciones básicas
-    if (!name || !price) {
-      return NextResponse.json({ error: 'Nombre y precio son requeridos' }, { status: 400 }) // Bad request
-    }
-
-    // Validar el precio: debe ser un número positivo
-    if (isNaN(price) || price <= 0) {
+    if (typeof price !== "number" || price <= 0) {
       return NextResponse.json({ error: 'El precio debe ser un número positivo' }, { status: 400 })
     }
 
-    // Actualizar el servicio
+    if (estimatedTime && (isNaN(estimatedTime) || estimatedTime <= 0)) {
+      return NextResponse.json({ error: 'El tiempo estimado debe ser un número positivo' }, { status: 400 })
+    }
+
+    const validStatus = ["ACTIVE", "INACTIVE"]
+    const normalizedStatus = status.toUpperCase()
+    if (!validStatus.includes(normalizedStatus)) {
+      return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
+    }
+
+    const existingService = await prisma.service.findUnique({ where: { id } })
+    if (!existingService) {
+      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
+    }
+
+    const nameConflict = await prisma.service.findFirst({
+      where: {
+        name: { equals: name, mode: "insensitive" },
+        NOT: { id }, // evita el mismo servicio actual
+      },
+    })
+    if (nameConflict) {
+      return NextResponse.json({ error: `Ya existe un servicio con el nombre '${name}'` }, { status: 409 })
+    }
+
     const updatedService = await prisma.service.update({
       where: { id },
       data: {
         name,
-        description: description || null, // Si no se proporciona descripción, se guarda como null
+        description: description || null,
         price,
+        estimatedTime: estimatedTime || null,
+        status: normalizedStatus,
       },
     })
 
-    return NextResponse.json(updatedService, { status: 200 }) // OK
+    return NextResponse.json(updatedService, { status: 200 })
   } catch (error) {
     console.error('Error al actualizar el servicio:', error)
-    return NextResponse.json({ error: 'Error al actualizar el servicio' }, { status: 500 }) // Error en el servidor
+    return NextResponse.json({ error: 'Error al actualizar el servicio' }, { status: 500 })
   }
 }
 
-// Eliminar un servicio
 export async function DELETE(req) {
-  // Verificar el token CSRF
   verifyCsrfToken(req)
-
   const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  if (authResponse) return authResponse
 
   try {
-    // Leer el cuerpo de la solicitud
     const { id } = await req.json()
 
-    // Validar que el ID esté presente
     if (!id) {
-      return NextResponse.json({ error: 'ID es requerido' }, { status: 400 }) // Bad request
+      return NextResponse.json({ error: 'ID es requerido' }, { status: 400 })
     }
 
-    // Verificar si el servicio existe
-    const existingService = await prisma.service.findUnique({
-      where: { id },
-    })
+    const existingService = await prisma.service.findUnique({ where: { id } })
     if (!existingService) {
-      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 }) // Not found
+      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
     }
 
-    // Eliminar el servicio
-    await prisma.service.delete({
-      where: { id },
-    })
+    await prisma.service.delete({ where: { id } })
 
-    return NextResponse.json({ message: 'Servicio eliminado con éxito' }, { status: 200 }) // OK
+    return NextResponse.json({ message: 'Servicio eliminado con éxito' }, { status: 200 })
   } catch (error) {
     console.error('Error al eliminar el servicio:', error)
-    return NextResponse.json({ error: 'Error al eliminar el servicio' }, { status: 500 }) // Error en el servidor
+    return NextResponse.json({ error: 'Error al eliminar el servicio' }, { status: 500 })
   }
 }

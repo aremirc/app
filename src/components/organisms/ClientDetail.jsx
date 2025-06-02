@@ -108,10 +108,6 @@ const ClientDetail = ({ clientId }) => {
           ))}
         </div>
       </Card>
-
-      <div className="flex justify-end pt-4">
-        <Button className="bg-primary hover:bg-primary/75 text-white px-6 py-2 rounded-xl transition duration-200 ease-in-out" onClick={() => window.history.back()}>Volver</Button>
-      </div>
     </div >
   )
 }

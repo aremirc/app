@@ -18,12 +18,42 @@ export async function GET(req, { params }) {
         id: parseInt(id), // Asegúrate de que el `id` sea un número
       },
       include: {
-        client: true, // Puedes incluir el cliente si es necesario
-        workers: true, // Puedes incluir los trabajadores relacionados si es necesario
-        visits: true,
-        services: true, // Si quieres incluir los servicios asociados
-        managedBy: true,
-        conformities: true,
+        client: {
+          select: {
+            name: true,
+            phone: true,
+            address: true,
+            type: true,
+            contactPersonName: true,
+            contactPersonPhone: true,
+            notes: true,
+          },
+        },
+        workers: {
+          include: {
+            user: {
+              select: {
+                dni: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                gender: true,
+                avatar: true,
+                birthDate: true,
+              },
+            },
+          },
+        },
+        visits: {
+          include: {
+            // user: true,
+            // evidences: true,
+          },
+        },
+        // services: true,
+        // managedBy: true,
+        locations: true,
+        conformity: true,
       },
     })
 

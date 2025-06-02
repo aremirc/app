@@ -10,9 +10,9 @@ import SearchBar from "../molecules/SearchBar"
 
 const headers = [
   { key: "dni", label: "DNI" },
-  { key: "username", label: "Nombre de Usuario" },
+  { key: "fullName", label: "Nombre de Usuario" },
   { key: "email", label: "Correo Electrónico" },
-  { key: "roleName", label: "Rol" },
+  { key: "roleName", label: "Rol de Usuario" },
   { key: "createdAt", label: "Fecha de Creación" }
 ]
 
@@ -55,7 +55,7 @@ const UserPanel = () => {
   }
 
   const filteredUsers = users.filter((user) =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+    user.firstName.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -86,6 +86,7 @@ const UserPanel = () => {
             headers={headers}
             data={filteredUsers.map(user => ({
               ...user,
+              fullName: user.firstName + ' ' + user.lastName,
               roleName: user.role?.name
             }))}
             onEdit={handleEdit}

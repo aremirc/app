@@ -42,7 +42,7 @@ const DashboardByRole = () => {
   }
 
   // Si no hay un rol válido, mostrar mensaje de "Rol desconocido" con un enlace
-  const PanelForRole = rolePanels[user.role] || (
+  const PanelForRole = rolePanels[user?.role?.name] || (
     <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900">
       <div className="text-center p-6 rounded-lg shadow-lg bg-white dark:bg-gray-800">
         <h2 className="text-lg font-semibold text-red-500 dark:text-red-400 mb-4">

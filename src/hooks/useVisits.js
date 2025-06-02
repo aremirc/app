@@ -34,7 +34,8 @@ export const useVisits = () => {
 
   // Mutación para actualizar una visita (PUT)
   const updateVisitMutation = useMutation({
-    mutationFn: (updatedVisit) => api.put(`/api/visits/${updatedVisit.id}`, updatedVisit),
+    // mutationFn: (updatedVisit) => api.put(`/api/visits/${updatedVisit.id}`, updatedVisit),
+    mutationFn: (updatedVisit) => api.put("/api/visits", updatedVisit),
     onSuccess: (updatedVisit) => {
       queryClient.invalidateQueries({ queryKey: ["visits"] })
       handleToast("¡Visita actualizada correctamente!")  // Usamos la función utilitaria aquí

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import api from "@/lib/axios"
 import LoadingSpinner from "../atoms/LoadingSpinner"
-import { Pencil, Trash2, MessageSquare } from "lucide-react"
+import { Pencil, Trash2, MessageSquare, Cake } from "lucide-react"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 
@@ -28,6 +28,15 @@ const UserDetail = ({ userId }) => {
     fetchUser()  // Llamamos a la función para obtener el usuario
   }, [userId])  // Dependencia para que se ejecute cuando cambie el `userId`
 
+  const isBirthday = (birthDateStr) => {
+    if (!birthDateStr) return false
+
+    const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
+    const today = new Date()
+
+    return today.getDate() === day && today.getMonth() === month - 1
+  }
+
   // Mostrar "loading" mientras se obtiene el usuario
   if (loading) return <LoadingSpinner />
 
@@ -36,7 +45,6 @@ const UserDetail = ({ userId }) => {
 
   // Si no se encuentra el usuario
   if (!user) return <div className="text-center mt-10">Usuario no encontrado.</div>
-  console.log(user);
 
   return (
     <div className="p-6 space-y-5 w-full mx-auto">
@@ -53,9 +61,12 @@ const UserDetail = ({ userId }) => {
             />
           </div>
           <div className="flex-1 flex flex-col justify-center">
-            <div className="flex flex-col justify-center items-center mb-10">
+            <div className="relative flex flex-col justify-center items-center mb-10">
               <h2 className="text-2xl font-semibold text-primary dark:text-white ">{user.username}</h2>
               <p>{user.role.name}</p>
+              {isBirthday(user.birthDate) && (
+                <Cake className="absolute top-2 left-2 w-5 h-5 text-pink-500 animate-bounce" title="¡Feliz cumpleaños!" />
+              )}
             </div>
             <div className="grid sm:grid-cols-2 gap-5 gap-x-20">
               <p className="text-primary dark:text-primary-dark">Nombre completo <br /> <span className="text-gray-600  dark:text-gray-300">{user.firstName + ' ' + user.lastName}</span></p>
@@ -103,10 +114,6 @@ const UserDetail = ({ userId }) => {
           ))}
         </div>
       </Card>
-
-      <div className="flex justify-end pt-4">
-        <Button className="bg-primary hover:bg-primary/75 text-white px-6 py-2 rounded-xl transition duration-200 ease-in-out" onClick={() => window.history.back()}>Volver</Button>
-      </div>
     </div >
   )
 }

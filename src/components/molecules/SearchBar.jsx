@@ -14,8 +14,11 @@ const SearchBar = ({ placeholder = "Buscar...", onSearch, className = "" }) => {
 
   return (
     <div className="relative">
-      <Icon name="search" color="absolute top-1/2 left-2 transform -translate-y-1/2" active={isFocused} />
+      <label htmlFor="search" className="absolute top-1/2 left-2 transform -translate-y-1/2">
+        <Icon name="search" color="" active={isFocused} />
+      </label>
       <Input
+        id="search"
         type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}

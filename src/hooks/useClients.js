@@ -37,7 +37,7 @@ export const useClients = () => {
     mutationFn: (updatedClient) => api.put("/api/clients", updatedClient),
     onSuccess: (updatedClient) => {
       queryClient.setQueryData(['clients'], (prevClients) =>
-        prevClients.map((client) => (client.dni === updatedClient.dni ? updatedClient : client))
+        prevClients.map((client) => (client.id === updatedClient.id ? updatedClient : client))
       )
       handleToast("¡Cliente actualizado correctamente!")  // Usamos la función utilitaria aquí
       if (socket) {
@@ -52,13 +52,13 @@ export const useClients = () => {
 
   // Mutación para eliminar un cliente
   const deleteClientMutation = useMutation({
-    mutationFn: (dni) => api.delete("/api/clients", { data: { dni } }),
-    onSuccess: (dni) => {
+    mutationFn: (id) => api.delete("/api/clients", { data: { id } }),
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ["clients"] }) // Refrescar la lista de clientes
       handleToast("¡Eliminado correctamente!")  // Usamos la función utilitaria aquí
       if (socket) {
         // Emitir evento WebSocket cuando un cliente es eliminado
-        socket.emit('client-deleted', dni)
+        socket.emit('client-deleted', id)
       }
     },
     onError: () => {

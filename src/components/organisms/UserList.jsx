@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
+import { PartyPopper, Cake } from "lucide-react"
 import Badge from "../atoms/Badge"
 import Link from "next/link"
 
@@ -25,6 +26,15 @@ const UserList = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const isBirthday = (birthDateStr) => {
+    if (!birthDateStr) return false
+
+    const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
+    const today = new Date()
+
+    return today.getDate() === day && today.getMonth() === month - 1
+  }
+
   return (
     <div
       className="text-text-dark flex items-center gap-2 cursor-pointer"
@@ -32,15 +42,24 @@ const UserList = () => {
     >
       <div className="relative">
         <img
-          className="w-10 h-10 rounded-full"
-          src={user.avatar}
+          className="w-10 h-10 object-cover rounded-full"
+          src={user.avatar || '/default-avatar.webp'}
           alt="Avatar"
+          onError={(e) => {
+            e.target.src = "/default-avatar.webp"
+          }}
         />
-        <Badge count={user.notifications} />
+        {isBirthday(user.birthDate) && (
+          <Cake
+            className="absolute -top-1 -right-1 w-4 h-4 text-pink-500 animate-bounce"
+            title="¡Feliz cumpleaños!"
+          />
+        )}
+        <Badge count={user.notifications.length} />
       </div>
       <div className="flex flex-col justify-center">
-        <h4 className="text-md">{user.name}</h4>
-        <p className="text-xs text-text-dark">{user.role}</p>
+        <h4 className="text-md">{user.firstName} {user.lastName}</h4>
+        <p className="text-xs text-text-dark">{user.role.name}</p>
       </div>
 
       {/* Menú desplegable */}

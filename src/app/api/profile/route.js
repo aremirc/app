@@ -1,30 +1,38 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcrypt'
-import prisma from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
-import { verifyJWT } from '@/lib/auth' // Asumimos que este es el archivo donde tienes verifyJWT
+import prisma from '@/lib/prisma'
+import { verifyJWT } from '@/lib/auth'
 import { setAuthCookies, setRefreshTokenCookies } from '@/lib/cookies'
 
 export async function GET(req) {
   const decoded = await verifyJWT(req)
-  if (decoded?.error) return decoded // Si verifyJWT devuelve una respuesta de error, la devolvemos directamente
+  if (decoded?.error) return decoded
 
   try {
     const user = await prisma.user.findUnique({
       where: { dni: decoded.dni },
       select: {
         dni: true,
+        avatar: true,
         username: true,
         firstName: true,
         lastName: true,
         phone: true,
         email: true,
-        role: {
-          select: {
-            name: true,
-          },
-        },
+        isVerified: true,
+        lastLogin: true,
+        birthDate: true,
+        address: true,
+        country: true,
+        gender: true,
         createdAt: true,
+        updatedAt: true,
+        socialLinks: true,
+        notifications: true,
+        role: {
+          select: { name: true },
+        },
       },
     })
 
@@ -41,7 +49,7 @@ export async function GET(req) {
 
 export async function PATCH(req) {
   const decoded = await verifyJWT(req)
-  if (decoded?.error) return decoded // Si verifyJWT devuelve una respuesta de error, la devolvemos directamente
+  if (decoded?.error) return decoded
 
   try {
     const { username, email, password } = await req.json()
@@ -81,25 +89,19 @@ export async function PATCH(req) {
       where: { id: updatedUser.roleId },
     })
 
-    const newAccessToken = jwt.sign(
-      {
-        dni: updatedUser.dni,
-        username: updatedUser.username,
-        roleId: updatedUser.roleId,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRATION }
-    )
+    const payload = {
+      dni: updatedUser.dni,
+      username: updatedUser.username,
+      roleId: updatedUser.roleId,
+    }
 
-    const newRefreshToken = jwt.sign(
-      {
-        dni: updatedUser.dni,
-        username: updatedUser.username,
-        roleId: updatedUser.roleId,
-      },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: process.env.REFRESH_TOKEN_EXPIRATION }
-    )
+    const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRATION,
+    })
+
+    const newRefreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRATION,
+    })
 
     const res = NextResponse.json({
       message: 'Perfil actualizado correctamente',

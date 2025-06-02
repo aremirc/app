@@ -2,19 +2,21 @@ import { useAuth } from "@/context/AuthContext"
 import { useState } from "react"
 import useSticky from "@/hooks/useSticky"
 import { Roles } from "@/constants/roles"
-import { ROUTES } from "@/constants/routes"
 
-import NavBar from "./NavBar"
 import Link from "next/link"
+import NavBar from "./NavBar"
+import Button from "../atoms/Button"
+import OrderCard from "../molecules/OrderCard"
 import { FaAngleRight, FaRegTimesCircle } from "react-icons/fa"
 
 const Sidebar = () => {
   const { user } = useAuth()
   const isSticky = useSticky()
   const [isOpen, setIsOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const toggleAside = () => setIsOpen(!isOpen)
-  const itemNav = Roles[user?.role] || []
+  const itemNav = Roles[user?.role?.name] || []
 
   return (
     <>
@@ -42,14 +44,14 @@ const Sidebar = () => {
         {/* Sidebar */}
         <aside className={`w-64 h-full fixed sm:h-auto sm:left-0 p-4 transition-all duration-300 ease-in-out z-30 ${isOpen ? "top-0 left-0 bg-border-light dark:bg-background-dark" : "-left-[300px]"} sm:top-[5.5rem]`}>
           {/* Logo */}
-          <div className="flex items-center justify-center mb-5">
+          <div className="flex items-center justify-center mb-5 sm:mb-4">
             <Link href="/">
               <img className="w-40 backdrop-blur-0" src="/logo.svg" alt="" />
             </Link>
           </div>
 
           {/* Navegación */}
-          {user?.role && (
+          {user?.role?.name && (
             <div className="px-3">
               {/* <h2 className="text-xl font-bold text-text-light dark:text-primary-dark mb-4">Navegación</h2> */}
               <NavBar itemNav={itemNav} />
@@ -57,20 +59,26 @@ const Sidebar = () => {
           )}
 
           {/* Sección rápida para Admin */}
-          {user?.role === 'Admin' && (
+          {user?.role?.name === 'ADMIN' && (
             <div className="flex flex-col gap-3 bg-primary dark:bg-primary-dark rounded-lg p-4 mt-5">
               <h3 className="text-base font-semibold dark:text-darkSecondary">CREAR NUEVA ORDEN</h3>
               <p className="text-sm dark:text-darkSecondary">Acceso rápido</p>
-              <Link
-                href={ROUTES.orders}
+              <Button
+                onClick={() => setIsModalOpen(true)}
                 className="bg-primary-light dark:bg-background-dark hover:bg-background-light dark:hover:bg-border-dark text-text-light dark:text-text-dark hover:dark:text-text-dark text-center text-sm font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-blue-300 transition"
               >
                 CREAR
-              </Link>
+              </Button>
             </div>
           )}
         </aside>
       </div>
+
+      {isModalOpen && (
+        <OrderCard
+          handleCancel={() => setIsModalOpen(false)}
+        />
+      )}
     </>
   )
 }

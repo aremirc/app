@@ -1,41 +1,136 @@
-import prisma from '@/lib/prisma'
+import { NextResponse } from 'next/server'
 import { verifyCsrfToken } from '@/lib/csrf'
-import { verifyAndLimit } from '@/lib/permissions' // Importamos la función centralizada
-import { NextResponse } from 'next/server' // Importa NextResponse
+import { verifyAndLimit } from '@/lib/permissions'
+import { verifyJWT } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 
-// Obtener todas las visitas
 export async function GET(req) {
-  const authResponse = await verifyAndLimit(req) // Verificación centralizada
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  const authResponse = await verifyAndLimit(req)
+  if (authResponse) return authResponse
 
   try {
-    // Obtener todas las visitas
-    const visits = await prisma.visit.findMany()
+    const decoded = await verifyJWT(req)
+    if (!decoded || decoded?.error) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    }
 
-    return NextResponse.json(visits, { status: 200 }) // Usamos NextResponse
+    const { searchParams } = new URL(req.url)
+    const dateStart = searchParams.get('dateStart')
+    const dateEnd = searchParams.get('dateEnd')
+    const orderId = searchParams.get('orderId')
+    const clientId = searchParams.get('clientId')
+    const isReviewed = searchParams.get('isReviewed')
+    const dniFromQuery = searchParams.get('dni')
+
+    const userRole = decoded.role
+    const userDni = decoded.dni
+
+    const whereClause = {
+      user: {
+        status: 'ACTIVE',
+      },
+    }
+
+    // Si el usuario es TECHNICIAN, ver solo sus propias visitas
+    if (userRole === 'TECHNICIAN') {
+      whereClause.order = {
+        status: 'IN_PROGRESS',
+        workers: {
+          some: {
+            userId: userDni,
+            status: {
+              in: ['ASSIGNED', 'IN_PROGRESS'],
+            },
+          },
+        },
+      }
+    }
+
+    // Si es ADMIN o SUPERVISOR, puede filtrar por dni manualmente
+    if (userRole !== 'TECHNICIAN' && dniFromQuery) {
+      whereClause.order = {
+        ...whereClause.order,
+        workers: {
+          some: {
+            userId: dniFromQuery,
+          },
+        },
+      }
+    }
+
+    if (dateStart || dateEnd) {
+      whereClause.date = {}
+      if (dateStart) whereClause.date.gte = new Date(dateStart)
+      if (dateEnd) whereClause.date.lte = new Date(dateEnd)
+    }
+
+    if (orderId) {
+      whereClause.orderId = parseInt(orderId)
+    }
+
+    if (clientId) {
+      whereClause.clientId = clientId
+    }
+
+    if (isReviewed === 'true' || isReviewed === 'false') {
+      whereClause.isReviewed = isReviewed === 'true'
+    }
+
+    const visits = await prisma.visit.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        date: true,
+        endTime: true,
+        description: true,
+        orderId: true,
+        isReviewed: true,
+        evaluation: true,
+        client: {
+          select: {
+            name: true,
+          },
+        },
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    })
+
+    return NextResponse.json(visits, { status: 200 })
   } catch (error) {
     console.error('Error al obtener visitas:', error)
-    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 }) // Usamos NextResponse
+    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 })
   }
 }
 
-// Crear una nueva visita
 export async function POST(req) {
-  // Verificar el token CSRF
   verifyCsrfToken(req)
 
-  const authResponse = await verifyAndLimit(req) // Verificación centralizada de JWT y Rate Limiting
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  const authResponse = await verifyAndLimit(req)
+  if (authResponse) return authResponse
 
   try {
-    // Leer el cuerpo de la solicitud
-    const { orderId, workerId, date, endTime, description } = await req.json()
+    const { orderId, userId, date, endTime, description, clientId, isReviewed, evaluation } = await req.json()
 
-    // Validar endTime
+    if (!orderId || !userId || !date || !description || !endTime) {
+      return NextResponse.json({ error: 'Todos los campos son requeridos' }, { status: 400 })
+    }
+
+    if (!date || typeof date !== "string" || isNaN(Date.parse(date))) {
+      return NextResponse.json({ error: 'Fecha de inicio inválida' }, { status: 400 })
+    }
+
+    if (!endTime || typeof endTime !== "string" || isNaN(Date.parse(endTime))) {
+      return NextResponse.json({ error: 'Fecha de fin inválida' }, { status: 400 })
+    }
+
     const visitStart = new Date(date)
     const visitEnd = new Date(endTime)
 
@@ -43,231 +138,282 @@ export async function POST(req) {
       return NextResponse.json({ error: 'La hora de fin debe ser posterior a la de inicio' }, { status: 400 })
     }
 
-    const duration = Math.floor((visitEnd - visitStart) / 60000) // Duración en minutos
-
-    // Validaciones básicas
-    if (!orderId || !workerId || !date || !description) {
-      return NextResponse.json({ error: 'Todos los campos son requeridos' }, {
-        status: 400, // Bad request
-      }) // Usamos NextResponse
+    const now = new Date()
+    if (visitStart > now) {
+      return NextResponse.json({ error: 'La fecha de la visita no puede ser en el futuro' }, { status: 400 })
     }
 
-    // Validar el formato de la fecha
-    if (isNaN(visitStart.getTime())) {
-      return NextResponse.json({ error: 'Fecha inválida' }, { status: 400 }) // Usamos NextResponse
+    const order = await prisma.order.findUnique({ where: { id: orderId } })
+    if (!order || !order.clientId) {
+      return NextResponse.json({ error: 'Orden no encontrada o sin cliente asignado' }, { status: 400 })
     }
 
-    // Verificar que la fecha no sea en el futuro
-    const currentDate = new Date()
-    if (visitStart > currentDate) {
-      return NextResponse.json({ error: 'La fecha de la visita no puede ser en el futuro' }, {
-        status: 400,
-      }) // Usamos NextResponse
+    // Validar si la visita está dentro del rango de fechas de la orden
+    if (order.scheduledDate && visitStart < order.scheduledDate) {
+      return NextResponse.json({
+        error: 'La fecha de la visita no puede ser anterior a la fecha programada de la orden',
+      }, { status: 400 })
     }
 
-    // Verificar si la orden existe
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-    })
-    if (!order) {
-      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 400 }) // Usamos NextResponse
+    if (order.endDate && visitEnd > order.endDate) {
+      return NextResponse.json({
+        error: 'La fecha de fin de la visita no puede ser posterior a la fecha de fin de la orden',
+      }, { status: 400 })
     }
 
-    // Verificar el estado de la orden (la visita solo se puede registrar si la orden está "PENDING" o "IN_PROGRESS")
     if (!["PENDING", "IN_PROGRESS"].includes(order.status)) {
-      return NextResponse.json({ error: 'La orden no está en un estado válido para registrar una visita' }, {
-        status: 400,
-      }) // Usamos NextResponse
+      return NextResponse.json({ error: 'La orden no está en un estado válido' }, { status: 400 })
     }
 
-    // Verificar si el trabajador está asignado a la orden
-    if (order.workerId && order.workerId !== workerId) {
-      return NextResponse.json(
-        { error: 'El trabajador no está asignado a esta orden' },
-        { status: 400 }
-      ) // Usamos NextResponse
-    }
-
-    // Verificar si el trabajador existe
-    const worker = await prisma.worker.findUnique({
-      where: { dni: workerId },
+    const isAssigned = await prisma.orderWorker.findUnique({
+      where: { orderId_userId: { orderId, userId } }
     })
-    if (!worker) {
-      return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 400 }) // Usamos NextResponse
+
+    if (!isAssigned) {
+      return NextResponse.json({ error: 'El trabajador no está asignado a esta orden' }, { status: 400 })
     }
 
-    // Verificar la disponibilidad del trabajador en la fecha de la visita
-    // const workerAvailability = await prisma.availability.findFirst({
+    const user = await prisma.user.findUnique({ where: { dni: userId } })
+    if (!user) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 400 })
+    }
+
+    // const availability = await prisma.availability.findFirst({
     //   where: {
-    //     dni: workerId,
+    //     userId: userId,
     //     startDate: { lte: visitStart },
     //     endDate: { gte: visitStart },
     //   },
     // })
-    // if (!workerAvailability) {
-    //   return new Response(
-    //     JSON.stringify({ error: 'El trabajador no está disponible en esta fecha' }),
-    //     { status: 400 }
-    //   )
+
+    // if (!availability) {
+    //   return NextResponse.json({ error: 'El usuario no está disponible en esta fecha' }, { status: 400 })
     // }
 
-    // Crear la nueva visita
+    if (evaluation !== undefined && (isNaN(evaluation) || evaluation < 0 || evaluation > 5)) {
+      return NextResponse.json({ error: 'La evaluación debe ser un número entre 0 y 5' }, { status: 400 })
+    }
+
+    if (isReviewed && (evaluation === null || evaluation === undefined)) {
+      return NextResponse.json({ error: 'Debe proporcionar una evaluación si la visita ha sido revisada' }, { status: 400 })
+    }
+
+    const decoded = await verifyJWT(req)
+    const createdBy = decoded?.dni || "system"
+
     const newVisit = await prisma.visit.create({
       data: {
         orderId,
-        workerId,
+        userId,
+        clientId: order.clientId,
         date: visitStart,
         endTime: visitEnd,
-        duration,
         description,
-        clientId: order.clientId, // Asociar al cliente de la orden
+        evaluation: evaluation ?? null,
+        isReviewed: typeof isReviewed === 'boolean' ? isReviewed : false,
+        createdBy,
       },
       include: {
         order: true,
-        worker: true,
+        user: true,
         client: true,
       },
     })
 
-    // Responder con la visita creada
-    return NextResponse.json(newVisit, {
-      status: 201, // Creado con éxito
-    }) // Usamos NextResponse
+    // Revisar si esta es la primera visita
+    const existingVisits = await prisma.visit.count({
+      where: { orderId }
+    })
+
+    if (order.status === "PENDING" && existingVisits === 1) {
+      await prisma.$transaction([
+        // Actualizar estado de la orden
+        prisma.order.update({
+          where: { id: orderId },
+          data: { status: "IN_PROGRESS" }
+        }),
+
+        // Actualizar estado de técnicos que estén ASSIGNED
+        prisma.orderWorker.updateMany({
+          where: {
+            orderId,
+            status: "ASSIGNED"
+          },
+          data: {
+            status: "IN_PROGRESS"
+          }
+        })
+      ])
+    }
+
+    return NextResponse.json(newVisit, { status: 201 })
   } catch (error) {
     console.error('Error al crear la visita:', error)
     return NextResponse.json({ error: 'Error al crear la visita' }, { status: 500 }) // Usamos NextResponse
   }
 }
 
-// Actualizar una visita existente
 export async function PUT(req) {
-  // Verificar el token CSRF
   verifyCsrfToken(req)
 
   const authResponse = await verifyAndLimit(req)
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  if (authResponse) return authResponse
 
   try {
-    // Leer el cuerpo de la solicitud
-    const { id, orderId, workerId, date, endTime, description } = await req.json()
+    const { id, orderId, clientId, userId, date, endTime, description, evaluation, isReviewed } = await req.json()
+
+    if (!id || !orderId || !userId || !date || !endTime || !description) {
+      return NextResponse.json({ error: 'Todos los campos son requeridos' }, { status: 400 })
+    }
+
+    if (typeof orderId !== 'number' || orderId < 1) {
+      return NextResponse.json({ error: 'orderId inválido' }, { status: 400 })
+    }
 
     const visitStart = new Date(date)
     const visitEnd = new Date(endTime)
 
     if (isNaN(visitStart.getTime()) || isNaN(visitEnd.getTime()) || visitEnd <= visitStart) {
-      return NextResponse.json({ error: 'Fecha de inicio o fin inválida' }, { status: 400 })
+      return NextResponse.json({ error: 'Fechas inválidas' }, { status: 400 })
     }
 
-    const duration = Math.floor((visitEnd - visitStart) / 60000) // minutos
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID es requerido' }, {
-        status: 400, // Bad request
-      }) // Usamos NextResponse
-    }
-
-    // Verificar si la visita existe
-    const existingVisit = await prisma.visit.findUnique({
-      where: { id },
-    })
-    if (!existingVisit) {
-      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 }) // Usamos NextResponse
-    }
-
-    // Validaciones
-    if (!orderId || !workerId || !date || !description) {
-      return NextResponse.json({ error: 'Todos los campos son requeridos' }, {
-        status: 400, // Bad request
-      }) // Usamos NextResponse
-    }
-
-    if (isNaN(visitStart.getTime())) {
-      return NextResponse.json({ error: 'Fecha inválida' }, { status: 400 }) // Usamos NextResponse
-    }
-
-    // Verificar que la fecha no sea en el futuro
     const currentDate = new Date()
     if (visitStart > currentDate) {
-      return NextResponse.json({ error: 'La fecha de la visita no puede ser en el futuro' }, {
-        status: 400,
-      }) // Usamos NextResponse
+      return NextResponse.json({ error: 'La fecha de la visita no puede ser en el futuro' }, { status: 400 })
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-    })
+    const existingVisit = await prisma.visit.findUnique({ where: { id } })
+    if (!existingVisit) {
+      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 })
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } })
     if (!order) {
-      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 400 }) // Usamos NextResponse
+      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 400 })
     }
 
-    const worker = await prisma.worker.findUnique({
-      where: { dni: workerId },
+    // Validar si la visita está dentro del rango de fechas de la orden
+    if (order.scheduledDate && visitStart < order.scheduledDate) {
+      return NextResponse.json({
+        error: 'La fecha de la visita no puede ser anterior a la fecha programada de la orden',
+      }, { status: 400 })
+    }
+
+    if (order.endDate && visitEnd > order.endDate) {
+      return NextResponse.json({
+        error: 'La fecha de fin de la visita no puede ser posterior a la fecha de fin de la orden',
+      }, { status: 400 })
+    }
+
+    const user = await prisma.user.findUnique({ where: { dni: userId } })
+    if (!user) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 400 })
+    }
+
+    const availability = await prisma.availability.findFirst({
+      where: {
+        userId: userId,
+        startDate: { lte: visitStart },
+        endDate: { gte: visitEnd }, // Asegura que la disponibilidad cubre todo el rango
+      },
     })
-    if (!worker) {
-      return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 400 }) // Usamos NextResponse
+
+    if (!availability) {
+      return NextResponse.json({ error: 'El usuario no está disponible en este horario' }, { status: 400 })
     }
 
-    // Actualizar la visita
+    if (evaluation !== undefined && (isNaN(evaluation) || evaluation < 0 || evaluation > 5)) {
+      return NextResponse.json({ error: 'La evaluación debe ser un número entre 0 y 5' }, { status: 400 })
+    }
+
+    if (isReviewed && (evaluation === null || evaluation === undefined)) {
+      return NextResponse.json({ error: 'Debe proporcionar una evaluación si la visita ha sido revisada' }, { status: 400 })
+    }
+
+    const decoded = await verifyJWT(req)
+    if (!decoded || decoded?.error) return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+
+    const updatedBy = decoded.dni
+
     const updatedVisit = await prisma.visit.update({
       where: { id },
       data: {
         orderId,
-        workerId,
+        userId,
         date: visitStart,
         endTime: visitEnd,
-        duration,
         description,
+        clientId: order.clientId,
+        evaluation: evaluation ?? null,
+        isReviewed: typeof isReviewed === 'boolean' ? isReviewed : false,
+        updatedBy,
       },
     })
 
-    return NextResponse.json(updatedVisit, {
-      status: 200, // OK
-    }) // Usamos NextResponse
+    return NextResponse.json(updatedVisit, { status: 200 })
   } catch (error) {
     console.error('Error al actualizar la visita:', error)
-    return NextResponse.json({ error: 'Error al actualizar la visita' }, { status: 500 }) // Usamos NextResponse
+    return NextResponse.json({ error: 'Error al actualizar la visita' }, { status: 500 })
   }
 }
 
-// Eliminar una visita
 export async function DELETE(req) {
-  // Verificar el token CSRF
   verifyCsrfToken(req)
 
   const authResponse = await verifyAndLimit(req)
-  if (authResponse) {
-    return authResponse // Si hay un error de autenticación o rate limit, devolver respuesta correspondiente
-  }
+  if (authResponse) return authResponse
 
   try {
     const { id } = await req.json()
 
     if (!id) {
-      return NextResponse.json({ error: 'ID es requerido' }, {
-        status: 400, // Bad request
-      }) // Usamos NextResponse
+      return NextResponse.json({ error: 'ID es requerido' }, { status: 400 })
     }
 
-    // Verificar si la visita existe
-    const existingVisit = await prisma.visit.findUnique({
-      where: { id },
-    })
-    if (!existingVisit) {
-      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 }) // Usamos NextResponse
+    const visit = await prisma.visit.findUnique({ where: { id } })
+    if (!visit) {
+      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 })
     }
 
-    // Eliminar la visita
-    await prisma.visit.delete({
-      where: { id },
+    await prisma.$transaction(async (tx) => {
+      // Eliminar la visita
+      await tx.visit.delete({ where: { id } })
+
+      // Verificar si quedan visitas en la orden
+      const remainingVisits = await tx.visit.count({
+        where: { orderId: visit.orderId }
+      })
+
+      if (remainingVisits === 0) {
+        // Revertir estado de la orden si era IN_PROGRESS
+        const currentOrder = await tx.order.findUnique({
+          where: { id: visit.orderId },
+          select: { status: true }
+        })
+
+        if (currentOrder?.status === 'IN_PROGRESS') {
+          await tx.order.update({
+            where: { id: visit.orderId },
+            data: { status: 'PENDING' }
+          })
+
+          // Revertir estado de los técnicos que estaban en IN_PROGRESS a ASSIGNED
+          await tx.orderWorker.updateMany({
+            where: {
+              orderId: visit.orderId,
+              status: 'IN_PROGRESS'
+            },
+            data: {
+              status: 'ASSIGNED'
+            }
+          })
+        }
+      }
     })
 
-    return NextResponse.json({ message: 'Visita eliminada' }, {
-      status: 200, // OK
-    }) // Usamos NextResponse
+    return NextResponse.json({ message: 'Visita eliminada' }, { status: 200 })
   } catch (error) {
     console.error('Error al eliminar la visita:', error)
-    return NextResponse.json({ error: 'Error al eliminar la visita' }, { status: 500 }) // Usamos NextResponse
+    return NextResponse.json({ error: 'Error al eliminar la visita' }, { status: 500 })
   }
 }

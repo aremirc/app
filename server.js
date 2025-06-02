@@ -82,14 +82,16 @@ app.prepare().then(() => {
     })
   })
 
+  const PORT = process.env.PORT || 3000
+
   // Iniciar servidor en el puerto 3000
-  server.listen(3000, async (err) => {
+  server.listen(PORT, async (err) => {
     if (err) throw err
-    console.log('> Ready on port 3000')
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
 
     // Desconectar la base de datos cuando el servidor se cierre
     process.on('SIGINT', async () => {
-      console.log('Desconectando Prisma...')
+      console.log('🛑 Desconectando Prisma...')
       await prisma.$disconnect()
       process.exit(0)
     })

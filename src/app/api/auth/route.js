@@ -2,14 +2,12 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import prisma from '@/lib/prisma'
 import { setAuthCookies, setRefreshTokenCookies, removeAuthCookies } from '@/lib/cookies'
-import { NextResponse } from 'next/server' // Importamos NextResponse
+import { NextResponse } from 'next/server'
 
-// Función para manejar el login
 export async function POST(req) {
   try {
     const { usernameOrEmail, password } = await req.json()
 
-    // Validar que ambos campos están presentes
     if (!usernameOrEmail || !password) {
       return NextResponse.json(
         { error: 'Nombre de usuario o correo electrónico y contraseña son requeridos' },
@@ -17,7 +15,6 @@ export async function POST(req) {
       )
     }
 
-    // Buscar el usuario por nombre de usuario o correo electrónico
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -25,6 +22,25 @@ export async function POST(req) {
           { username: usernameOrEmail },
         ],
       },
+      select: {
+        avatar: true,
+        dni: true,
+        firstName: true,
+        gender: true,
+        birthDate: true,
+        isVerified: true,
+        lastName: true,
+        notifications: true,
+        password: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
+        status: true,
+        roleId: true,
+        username: true,
+      }
     })
 
     if (!user) {
@@ -34,8 +50,7 @@ export async function POST(req) {
       )
     }
 
-    // Verificar la contraseña usando bcrypt
-    const isPasswordValid = await (password === user.password || bcrypt.compare(password, user.password))
+    const isPasswordValid = await bcrypt.compare(password, user.password)
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Credenciales incorrectas' },
@@ -43,7 +58,37 @@ export async function POST(req) {
       )
     }
 
-    // Verificar las variables de entorno necesarias
+    if (!user.isVerified) {
+      return NextResponse.json(
+        { error: 'El usuario no está verificado' },
+        { status: 401 }
+      )
+    }
+
+    if (user.status !== 'ACTIVE') {
+      let mensaje = 'Tu cuenta no está activa.'
+
+      if (user.status === 'PENDING_VERIFICATION') {
+        mensaje = 'Debes verificar tu cuenta antes de iniciar sesión.'
+      } else if (user.status === 'SUSPENDED') {
+        mensaje = 'Tu cuenta ha sido suspendida. Contacta al soporte.'
+      } else if (user.status === 'INACTIVE') {
+        mensaje = 'Tu cuenta está inactiva. Solicita reactivación.'
+      }
+
+      return NextResponse.json({ error: mensaje }, { status: 403 })
+    }
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "User" SET "lastLogin" = $1 WHERE "dni" = $2`,
+      new Date(),
+      user.dni
+    )
+
+    delete user.isVerified
+    delete user.password
+    delete user.status
+
     const requiredEnvVars = ['JWT_SECRET', 'JWT_EXPIRATION', 'REFRESH_TOKEN_SECRET', 'REFRESH_TOKEN_EXPIRATION']
     for (const varName of requiredEnvVars) {
       if (!process.env[varName]) {
@@ -54,41 +99,28 @@ export async function POST(req) {
       }
     }
 
-    // Generar un JWT (Access Token)
     const accessToken = jwt.sign(
-      { dni: user.dni, username: user.username, roleId: user.roleId },
+      { dni: user.dni, username: user.username, role: user.role.name },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION }
     )
 
-    // Generar un Refresh Token (para obtener un nuevo JWT)
     const refreshToken = jwt.sign(
-      { dni: user.dni, username: user.username, roleId: user.roleId },
+      { dni: user.dni, username: user.username, role: user.role.name },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: process.env.REFRESH_TOKEN_EXPIRATION }
     )
 
-    // Obtener el rol del usuario
-    const role = await prisma.role.findUnique({ where: { id: user.roleId } })
-
     const res = NextResponse.json(
       {
         message: 'Inicio de sesión exitoso',
-        userData: {
-          id: user.dni,
-          name: user.username,
-          roleId: user.roleId,
-          role: role.name,
-          avatar: 'https://cdn.pixabay.com/photo/2024/07/22/17/11/elegance-in-profile-8913207_640.png',
-          notifications: 3,
-        },
+        userData: user,
       },
       { status: 200 }
     )
 
-    // Establecemos las cookies con el token y el refresh token
-    setAuthCookies(res, accessToken, user.roleId) // Setea el JWT en cookie HttpOnly
-    setRefreshTokenCookies(res, refreshToken) // Setea el refresh token en cookie HttpOnly
+    setAuthCookies(res, accessToken, user.roleId)
+    setRefreshTokenCookies(res, refreshToken)
 
     return res
   } catch (error) {
@@ -100,16 +132,13 @@ export async function POST(req) {
   }
 }
 
-// Función para manejar el logout
 export async function DELETE(req) {
   try {
-    // Eliminar cookies de sesión
     const res = NextResponse.json(
       { message: 'Sesión cerrada correctamente' },
       { status: 200 }
     )
 
-    // Eliminar cookies de JWT y refresh token
     removeAuthCookies(res)
 
     return res

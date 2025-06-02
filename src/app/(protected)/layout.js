@@ -20,7 +20,8 @@ export default function ProtectedLayout({ children }) {
     if (!loading && !user) {
       // Si el usuario no está autenticado, redirigir al login con el parámetro 'next'
       const redirectTo = encodeURIComponent(pathname)  // Codificar la URL actual para el parámetro 'next'
-      router.replace(`/login?next=${redirectTo}`)
+      // router.replace(`/login?next=${redirectTo}`)
+      router.replace(`/login`)
     }
   }, [loading, user])
 
@@ -32,7 +33,7 @@ export default function ProtectedLayout({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen-dvh">
         <Header />
         <div className="flex-1 grid sm:grid-cols-[250px_1fr] grid-cols-1 sm:gap-4 bg-border-light dark:bg-background-dark">
           <Sidebar />

@@ -10,8 +10,8 @@ import SearchBar from "../molecules/SearchBar"
 import { useAuth } from "@/context/AuthContext"
 
 const headers = [
-  { key: "dni", label: "DNI" },
-  { key: "name", label: "Nombre" },
+  { key: "id", label: "RUC/DNI" },
+  { key: "name", label: "Nombre de Cliente" },
   { key: "email", label: "Correo Electrónico" },
   { key: "phone", label: "Teléfono" },
   { key: "address", label: "Dirección" }
@@ -23,20 +23,20 @@ const ClientPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)  // Control del modal para agregar/editar cliente
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)  // Control del modal de confirmación de eliminación
   const [selectedClient, setSelectedClient] = useState(null)  // Cliente seleccionado
-  const { clients, error, isLoading, deleteClientMutation } = useClients()
+  const { clients, error, isLoading, deleteClientMutation } = useClients()  
 
   // Llamamos al hook de WebSocket para recibir actualizaciones en tiempo real
   useRealTimeUpdates()
 
   // Funciones para manejo de eliminación de cliente
-  const handleDelete = (dni) => {
-    const clientToDelete = clients.find((client) => client.dni === dni)
+  const handleDelete = (id) => {
+    const clientToDelete = clients.find((client) => client.id === id)
     setSelectedClient(clientToDelete)  // Guardar el cliente seleccionado
     setIsDeleteConfirmationOpen(true)  // Abrir el modal de confirmación
   }
 
   const confirmDelete = () => {
-    deleteClientMutation.mutate(selectedClient.dni)  // Llamamos a la mutación para eliminar el cliente
+    deleteClientMutation.mutate(selectedClient.id)  // Llamamos a la mutación para eliminar el cliente
     setSelectedClient(null)
     setIsDeleteConfirmationOpen(false)  // Cerrar el modal de confirmación
   }
@@ -47,8 +47,8 @@ const ClientPanel = () => {
   }
 
   // Función para editar un cliente
-  const handleEdit = (dni) => {
-    const clientToEdit = clients.find((client) => client.dni === dni)
+  const handleEdit = (id) => {
+    const clientToEdit = clients.find((client) => client.id === id)
     setSelectedClient(clientToEdit)
     setIsModalOpen(true)  // Abrir el modal para editar cliente
   }
@@ -70,7 +70,7 @@ const ClientPanel = () => {
         <div className="flex flex-col gap-4 mb-3">
           <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Clientes</h2>
-            {user.role === 'ADMIN' &&
+            {user.role.name === 'ADMIN' &&
               <Button
                 onClick={() => setIsModalOpen(true)}
                 className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
@@ -95,7 +95,7 @@ const ClientPanel = () => {
             data={filteredClients}  // Datos filtrados
             onEdit={handleEdit}  // Función para editar
             onDelete={handleDelete}  // Función para eliminar
-            showActions={user.role === 'ADMIN'}
+            showActions={user.role.name === 'ADMIN'}
           />
         )}
       </Card>

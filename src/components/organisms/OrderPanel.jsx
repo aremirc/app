@@ -10,9 +10,9 @@ import SearchBar from "../molecules/SearchBar"
 import { useAuth } from "@/context/AuthContext"
 
 const headers = [
-  { key: "id", label: "ID" },
+  { key: "id", label: "ID de Orden" },
   { key: "description", label: "Descripción" },
-  { key: "clientId", label: "ID del Cliente" },
+  { key: "client", label: "Cliente" },
   { key: "status", label: "Estado" },
   { key: "createdAt", label: "Fecha de Creación" }
 ]
@@ -67,7 +67,7 @@ const OrderPanel = () => {
         <div className="flex flex-col gap-4 mb-3">
           <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Órdenes</h2>
-            {user.role === 'ADMIN' &&
+            {user.role.name === 'ADMIN' &&
               <Button
                 onClick={() => setIsModalOpen(true)}
                 className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
@@ -89,10 +89,13 @@ const OrderPanel = () => {
         ) : (
           <Table
             headers={headers}
-            data={filteredOrders}
+            data={filteredOrders.map(order => ({
+              ...order,
+              client: order.client?.name
+            }))}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            showActions={user.role === 'ADMIN'}
+            showActions={user.role.name === 'ADMIN'}
           />
         )}
       </Card>

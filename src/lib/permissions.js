@@ -10,8 +10,8 @@ export async function verifyAndLimit(req, requiredRole = null, requiredPermissio
     return user 
   }
 
-  // Verificar si el usuario tiene un roleId
-  if (!user.roleId) {
+  // Verificar si el usuario tiene un rol
+  if (!user.role) {
     return NextResponse.json(
       { error: 'Usuario sin rol asignado' },
       { status: 400 }
@@ -27,7 +27,7 @@ export async function verifyAndLimit(req, requiredRole = null, requiredPermissio
   // Verificar rol y permisos si es necesario
   if (requiredRole) {
     const userRole = await prisma.role.findUnique({
-      where: { id: user.roleId },
+      where: { name: user.role },
       include: { permissions: true }, // Incluir permisos del rol
     })
 

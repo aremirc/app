@@ -9,11 +9,12 @@ import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"  // Hook para WebSoc
 import SearchBar from "../molecules/SearchBar"
 
 const headers = [
-  { key: "id", label: "ID" },
-  { key: "date", label: "Fecha" },
+  { key: "id", label: "ID de Visita" },
+  { key: "date", label: "Fecha de Visita" },
   { key: "description", label: "Descripción" },
   { key: "orderId", label: "ID de Orden" },
-  { key: "userId", label: "ID de Trabajador" }
+  { key: "client", label: "Cliente" },
+  { key: "user", label: "Trabajador" }
 ]
 
 const VisitPanel = () => {
@@ -85,7 +86,11 @@ const VisitPanel = () => {
         ) : (
           <Table
             headers={headers}
-            data={filteredVisits}
+            data={filteredVisits.map(visit => ({
+              ...visit,
+              client: visit.client?.name,
+              user: visit.user?.firstName + ' ' + visit.user?.lastName
+            }))}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />

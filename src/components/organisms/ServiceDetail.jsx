@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import api from "@/lib/axios"
+import { Pencil } from "lucide-react"
 import LoadingSpinner from "../atoms/LoadingSpinner"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
@@ -50,12 +51,13 @@ const ServiceDetail = ({ serviceId }) => {
           <p className="text-sm">N° Servicio: {service.id}</p>
           <div>
             <h2 className="text-2xl font-semibold">{service.name}</h2>
-            <p className="text-sm mt-2">PRECIO</p>
-            <p className="text-sm">{service.price}</p>
+            <p className="text-sm mt-2">{service.description}</p>
+            <p className="text-sm mt-2">S/ {service.price}</p>
           </div>
         </div>
 
         <Card title="Detalles" className="rounded-lg p-6">
+          <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4" /></Button>
           <div className="flex justify-between items-center">
             <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Estado:</p>
             <p className={`text-lg font-semibold ${service.status === 'ACTIVE' ? 'text-green-500' : 'text-red-500'} dark:text-gray-200`}>
@@ -69,10 +71,6 @@ const ServiceDetail = ({ serviceId }) => {
           </div>
         </Card>
       </DashboardGrid>
-
-      <div className="flex justify-end pt-4">
-        <Button className="bg-primary hover:bg-primary/75 text-white px-6 py-2 rounded-xl transition duration-200 ease-in-out" onClick={() => window.history.back()}>Volver</Button>
-      </div>
     </div>
   )
 }

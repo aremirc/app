@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { motion } from 'framer-motion' // Usaremos framer-motion para animaciones
+import Icon from '../atoms/Icon'
+import Link from 'next/link'
 
 export default function WelcomePage() {
   const [isMounted, setIsMounted] = useState(false)
+
+  const socialLinks = {
+    facebook: "https://facebook.com/usuario",
+    twitter: "https://twitter.com/usuario",
+    linkedin: "https://linkedin.com/in/usuario",
+    instagram: "https://instagram.com/usuario"
+  }
 
   useEffect(() => {
     // Este efecto garantiza que las animaciones no se ejecuten en el servidor
@@ -20,6 +28,29 @@ export default function WelcomePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
         >
+          {/* Redes Sociales */}
+          <div className="mb-2 flex justify-center gap-4">
+            {socialLinks?.facebook && (
+              <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
+                <Icon name="facebook" size={32} color="bg-transparent dark:hover:bg-shadow-light" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 transition" />
+              </a>
+            )}
+            {socialLinks?.twitter && (
+              <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer">
+                <Icon name="twitter" size={32} color="bg-transparent dark:hover:bg-shadow-light" className="text-blue-400 dark:text-blue-300 hover:text-blue-500 transition" />
+              </a>
+            )}
+            {socialLinks?.linkedin && (
+              <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer">
+                <Icon name="linkedin" size={32} color="bg-transparent dark:hover:bg-shadow-light" className="text-blue-700 dark:text-blue-500 hover:text-blue-800 transition" />
+              </a>
+            )}
+            {socialLinks?.instagram && (
+              <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
+                <Icon name="instagram" size={32} color="bg-transparent dark:hover:bg-shadow-light" className="text-pink-500 dark:text-pink-400 hover:text-pink-600 transition" />
+              </a>
+            )}
+          </div>
           ¡Bienvenido a <span className="text-primary">TECNIPAC</span>!
         </motion.h1>
 
