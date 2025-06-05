@@ -22,6 +22,14 @@ module.exports = {
       minHeight: {
         'screen-dvh': '100dvh',
       },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.5s infinite',
+      },
       colors: {
         // Colores derivados del color base #4FD1C5 (Verde agua)
         primary: {

@@ -1,6 +1,6 @@
 import prisma from "./prisma" // Asegúrate de importar la instancia de prisma
 import { verifyJWT } from "./auth" // O donde sea que tengas la lógica de verificación de JWT
-import { rateLimit } from "./rateLimit" // O donde sea que tengas la lógica de rate limiting
+import { rateLimit } from "./rate-limit" // O donde sea que tengas la lógica de rate limiting
 import { NextResponse } from 'next/server' // Importar NextResponse
 
 // Obtener permisos del rol y verificar si el usuario tiene el permiso requerido

@@ -4,6 +4,75 @@ import { verifyAndLimit } from '@/lib/permissions'
 import { verifyJWT } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+function getDateRange(query) {
+  const isoDate = /^\d{4}-\d{2}-\d{2}$/        // 2025-05-20
+  const monthOnly = /^\d{4}-\d{2}$/            // 2025-05
+  const yearOnly = /^\d{4}$/                   // 2025
+  const dayMonthYear = /^(\d{2})[/-](\d{2})[/-](\d{4})$/  // 20-05-2025 o 20/05/2025
+  const range = /^(.+)\s+(to|a)\s+(.+)$/i      // rango: "2025-05-01 to 2025-05-20"
+
+  if (range.test(query)) {
+    const [, startStr, , endStr] = query.match(range)
+    const start = parseFlexibleDate(startStr)
+    const end = parseFlexibleDate(endStr)
+    if (start && end) {
+      end.setHours(23, 59, 59, 999)
+      return { start, end }
+    }
+    return null
+  }
+
+  if (isoDate.test(query)) {
+    const date = new Date(query)
+    const start = new Date(date.setHours(0, 0, 0, 0))
+    const end = new Date(date.setHours(23, 59, 59, 999))
+    return { start, end }
+  }
+
+  if (dayMonthYear.test(query)) {
+    const [, dd, mm, yyyy] = query.match(dayMonthYear)
+    const date = new Date(`${yyyy}-${mm}-${dd}`)
+    if (!isNaN(date)) {
+      const start = new Date(date.setHours(0, 0, 0, 0))
+      const end = new Date(date.setHours(23, 59, 59, 999))
+      return { start, end }
+    }
+    return null
+  }
+
+  if (monthOnly.test(query)) {
+    const start = new Date(`${query}-01T00:00:00`)
+    const end = new Date(start)
+    end.setMonth(end.getMonth() + 1)
+    return { start, end }
+  }
+
+  if (yearOnly.test(query)) {
+    const start = new Date(`${query}-01-01T00:00:00`)
+    const end = new Date(`${Number(query) + 1}-01-01T00:00:00`)
+    return { start, end }
+  }
+
+  return null
+}
+
+function parseFlexibleDate(input) {
+  const isoDate = /^\d{4}-\d{2}-\d{2}$/
+  const dmy = /^(\d{2})[/-](\d{2})[/-](\d{4})$/
+
+  if (isoDate.test(input)) {
+    return new Date(input)
+  }
+
+  if (dmy.test(input)) {
+    const [, dd, mm, yyyy] = input.match(dmy)
+    return new Date(`${yyyy}-${mm}-${dd}`)
+  }
+
+  const parsed = new Date(input)
+  return isNaN(parsed) ? null : parsed
+}
+
 export async function GET(req) {
   const authResponse = await verifyAndLimit(req)
   if (authResponse) return authResponse
@@ -16,13 +85,90 @@ export async function GET(req) {
 
     const userRole = decoded.role
     const userDni = decoded.dni
-    const searchParams = req.nextUrl.searchParams
+    const { searchParams } = req.nextUrl
 
+    const query = searchParams.get('q')?.trim()
     const status = searchParams.get('status')?.toUpperCase()
     const clientId = searchParams.get('clientId')
     const workerDni = searchParams.get('workerDni')
 
     const isTechnician = userRole === 'TECHNICIAN'
+    const dateRange = getDateRange(query)
+
+    const VALID_STATUSES = [
+      'PENDING',
+      'AWAITING_APPROVAL',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED',
+      'ON_HOLD',
+      'FAILED',
+      'DELETED',
+    ]
+
+    const orConditions = []
+
+    if (query) {
+      const upperQuery = query.toUpperCase()
+
+      if (!isNaN(Number(query))) {
+        orConditions.push({ id: Number(query) })
+      }
+
+      if (VALID_STATUSES.includes(upperQuery)) {
+        orConditions.push({ status: upperQuery })
+      }
+
+      orConditions.push(
+        { clientId: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        {
+          client: {
+            OR: [
+              { id: { contains: query, mode: 'insensitive' } },
+              { name: { contains: query, mode: 'insensitive' } },
+            ]
+          }
+        },
+        {
+          workers: {
+            some: {
+              user: {
+                OR: [
+                  { dni: { contains: query, mode: 'insensitive' } },
+                  { firstName: { contains: query, mode: 'insensitive' } },
+                  { lastName: { contains: query, mode: 'insensitive' } },
+                ]
+              }
+            }
+          }
+        },
+        {
+          services: {
+            some: {
+              name: { contains: query, mode: 'insensitive' }
+            }
+          }
+        }
+      )
+
+      if (dateRange) {
+        orConditions.push(
+          {
+            scheduledDate: {
+              gte: dateRange.start,
+              lt: dateRange.end,
+            }
+          },
+          {
+            endDate: {
+              gte: dateRange.start,
+              lt: dateRange.end,
+            }
+          }
+        )
+      }
+    }
 
     const whereClause = {
       ...(status && { status }),
@@ -36,12 +182,11 @@ export async function GET(req) {
         workers: {
           some: {
             userId: userDni,
-            status: {
-              in: ['ASSIGNED', 'IN_PROGRESS']
-            }
+            status: { in: ['ASSIGNED', 'IN_PROGRESS'] }
           }
         }
-      })
+      }),
+      ...(orConditions.length > 0 && { OR: orConditions })
     }
 
     const orders = await prisma.order.findMany({
@@ -59,7 +204,10 @@ export async function GET(req) {
         statusDetails: true,
         createdAt: true,
         client: {
-          select: { name: true }
+          select: {
+            id: true,
+            name: true
+          }
         },
         workers: {
           select: {
@@ -67,6 +215,7 @@ export async function GET(req) {
             isResponsible: true,
             user: {
               select: {
+                dni: true,
                 firstName: true,
                 lastName: true
               }
@@ -74,7 +223,10 @@ export async function GET(req) {
           }
         },
         services: {
-          select: { id: true }
+          select: {
+            id: true,
+            name: true
+          }
         }
       }
     })
@@ -87,12 +239,12 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) return authResponse
+
     const { clientId, description, status, scheduledDate, endDate, alternateContactName, alternateContactPhone, workers = [], services = [], responsibleId } = await req.json()
 
     if (!clientId || !description || !status) {
@@ -209,18 +361,22 @@ export async function POST(req) {
 
     return NextResponse.json(fullOrder, { status: 201 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al crear la orden:', error)
     return NextResponse.json({ error: 'Error al crear la orden' }, { status: 500 })
   }
 }
 
 export async function PUT(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req, ["ADMIN", "SUPERVISOR"])
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req, ["ADMIN", "SUPERVISOR"])
+    if (authResponse) return authResponse
+
     const { id, description, status, clientId, workers = [], services = [], scheduledDate, endDate, alternateContactName, alternateContactPhone, responsibleId } = await req.json()
 
     if (!id || !description || !status || !clientId) {
@@ -379,18 +535,22 @@ export async function PUT(req) {
 
     return NextResponse.json(fullOrder, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al actualizar la orden:', error)
     return NextResponse.json({ error: 'Error al actualizar la orden' }, { status: 500 })
   }
 }
 
 export async function DELETE(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) return authResponse
+
     const { id } = await req.json()
 
     const order = await prisma.order.findUnique({ where: { id } })
@@ -404,6 +564,10 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Orden eliminada con éxito', deletedOrder }, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al eliminar la orden:', error)
     return NextResponse.json({ error: 'Error al eliminar la orden' }, { status: 500 })
   }

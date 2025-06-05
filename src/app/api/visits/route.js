@@ -111,12 +111,12 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req)
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req)
+    if (authResponse) return authResponse
+
     const { orderId, userId, date, endTime, description, clientId, isReviewed, evaluation } = await req.json()
 
     if (!orderId || !userId || !date || !description || !endTime) {
@@ -248,18 +248,22 @@ export async function POST(req) {
 
     return NextResponse.json(newVisit, { status: 201 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al crear la visita:', error)
     return NextResponse.json({ error: 'Error al crear la visita' }, { status: 500 }) // Usamos NextResponse
   }
 }
 
 export async function PUT(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req)
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req)
+    if (authResponse) return authResponse
+
     const { id, orderId, clientId, userId, date, endTime, description, evaluation, isReviewed } = await req.json()
 
     if (!id || !orderId || !userId || !date || !endTime || !description) {
@@ -352,18 +356,22 @@ export async function PUT(req) {
 
     return NextResponse.json(updatedVisit, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al actualizar la visita:', error)
     return NextResponse.json({ error: 'Error al actualizar la visita' }, { status: 500 })
   }
 }
 
 export async function DELETE(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req)
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req)
+    if (authResponse) return authResponse
+
     const { id } = await req.json()
 
     if (!id) {
@@ -413,6 +421,10 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Visita eliminada' }, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al eliminar la visita:', error)
     return NextResponse.json({ error: 'Error al eliminar la visita' }, { status: 500 })
   }

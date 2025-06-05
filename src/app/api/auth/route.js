@@ -33,36 +33,59 @@ export async function POST(req) {
         notifications: true,
         password: true,
         role: {
-          select: {
-            name: true,
-          },
+          select: { name: true },
         },
         status: true,
         roleId: true,
         username: true,
+        failedLoginAttempts: true,
+        lockedUntil: true,
       }
     })
 
     if (!user) {
+      return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+    }
+
+    if (user.lockedUntil && new Date() < new Date(user.lockedUntil)) {
       return NextResponse.json(
-        { error: 'Credenciales incorrectas' },
-        { status: 401 }
+        { error: 'Cuenta temporalmente bloqueada. Intenta más tarde.' },
+        { status: 403 }
       )
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
+
     if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: 'Credenciales incorrectas' },
-        { status: 401 }
-      )
+      const attempts = user.failedLoginAttempts + 1
+      const MAX_ATTEMPTS = 5
+      const LOCK_MINUTES = 15
+
+      if (attempts >= MAX_ATTEMPTS) {
+        const lockUntil = new Date(Date.now() + LOCK_MINUTES * 60000)
+        await prisma.$executeRawUnsafe(
+          `UPDATE "User" SET "failedLoginAttempts" = $1, "lockedUntil" = $2 WHERE "dni" = $3`,
+          attempts,
+          lockUntil,
+          user.dni
+        )
+      } else {
+        await prisma.$executeRawUnsafe(
+          `UPDATE "User" SET "failedLoginAttempts" = $1 WHERE "dni" = $2`,
+          attempts,
+          user.dni
+        )
+      }
+
+      const errorMessage = attempts >= MAX_ATTEMPTS
+        ? 'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.'
+        : 'Credenciales incorrectas'
+
+      return NextResponse.json({ error: errorMessage }, { status: 401 })
     }
 
     if (!user.isVerified) {
-      return NextResponse.json(
-        { error: 'El usuario no está verificado' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'El usuario no está verificado' }, { status: 401 })
     }
 
     if (user.status !== 'ACTIVE') {
@@ -79,8 +102,9 @@ export async function POST(req) {
       return NextResponse.json({ error: mensaje }, { status: 403 })
     }
 
+    // Password correcto → resetear fallos y actualizar login
     await prisma.$executeRawUnsafe(
-      `UPDATE "User" SET "lastLogin" = $1 WHERE "dni" = $2`,
+      `UPDATE "User" SET "failedLoginAttempts" = 0, "lockedUntil" = NULL, "lastLogin" = $1 WHERE "dni" = $2`,
       new Date(),
       user.dni
     )
@@ -88,6 +112,8 @@ export async function POST(req) {
     delete user.isVerified
     delete user.password
     delete user.status
+    delete user.failedLoginAttempts
+    delete user.lockedUntil
 
     const requiredEnvVars = ['JWT_SECRET', 'JWT_EXPIRATION', 'REFRESH_TOKEN_SECRET', 'REFRESH_TOKEN_EXPIRATION']
     for (const varName of requiredEnvVars) {

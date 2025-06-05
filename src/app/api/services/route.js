@@ -45,11 +45,11 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  verifyCsrfToken(req)
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) return authResponse
+
     const { name, description, price, estimatedTime, status } = await req.json()
 
     if (!name || !price || !status) {
@@ -97,17 +97,21 @@ export async function POST(req) {
 
     return NextResponse.json(newService, { status: 201 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al crear el servicio:', error)
     return NextResponse.json({ error: 'Error al crear el servicio' }, { status: 500 })
   }
 }
 
 export async function PUT(req) {
-  verifyCsrfToken(req)
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) return authResponse
+
     const { id, name, description, price, estimatedTime, status } = await req.json()
 
     if (!id || !name || !price || !status) {
@@ -160,17 +164,21 @@ export async function PUT(req) {
 
     return NextResponse.json(updatedService, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al actualizar el servicio:', error)
     return NextResponse.json({ error: 'Error al actualizar el servicio' }, { status: 500 })
   }
 }
 
 export async function DELETE(req) {
-  verifyCsrfToken(req)
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) return authResponse
+
     const { id } = await req.json()
 
     if (!id) {
@@ -186,6 +194,10 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Servicio eliminado con éxito' }, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al eliminar el servicio:', error)
     return NextResponse.json({ error: 'Error al eliminar el servicio' }, { status: 500 })
   }

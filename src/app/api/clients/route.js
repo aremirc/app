@@ -46,14 +46,14 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) {
-    return authResponse
-  }
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) {
+      return authResponse
+    }
+
     const { id, name, email, phone, address, type, password, contactPersonName, contactPersonPhone, notes } = await req.json()
 
     if (!id || !name || !email || !type) {
@@ -124,20 +124,24 @@ export async function POST(req) {
     // const { dni: _, ...newClient } = newClient
     return NextResponse.json(newClient, { status: 201 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al crear el cliente:', error)
     return NextResponse.json({ error: 'Error al crear el cliente' }, { status: 500 })
   }
 }
 
 export async function PUT(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) {
-    return authResponse
-  }
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) {
+      return authResponse
+    }
+
     const { id, name, email, phone, address, password, contactPersonName, contactPersonPhone, notes, isActive } = await req.json()
 
     if (!id) {
@@ -159,22 +163,31 @@ export async function PUT(req) {
       }
     }
 
-    const existingClientEmail = await prisma.client.findUnique({ where: { email } })
-    if (existingClientEmail) {
-      return NextResponse.json({ error: 'El correo electrónico ya está registrado' }, { status: 400 })
-    }
-
-    const existingClientName = await prisma.client.findFirst({
+    const duplicateClient = await prisma.client.findFirst({
       where: {
-        name: {
-          equals: name,
-          mode: 'insensitive', // ignora mayúsculas/minúsculas
-        }
-      }
+        AND: [
+          { id: { not: id } },
+          {
+            OR: [
+              { email },
+              {
+                name: {
+                  equals: name,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          },
+        ],
+      },
     })
 
-    if (existingClientName) {
-      return NextResponse.json({ error: 'Ya existe un cliente con el mismo nombre' }, { status: 400 })
+    if (duplicateClient) {
+      const errorMessage = duplicateClient.email === email
+        ? 'El correo electrónico ya está registrado'
+        : 'Ya existe un cliente con el mismo nombre'
+
+      return NextResponse.json({ error: errorMessage }, { status: 400 })
     }
 
     let hashedPassword
@@ -200,6 +213,10 @@ export async function PUT(req) {
     const { password: _, ...clientWithoutPassword } = updatedClient
     return NextResponse.json(clientWithoutPassword, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al actualizar el cliente:', error)
     return NextResponse.json({ error: 'Error al actualizar el cliente' }, {
       status: 500,
@@ -208,14 +225,14 @@ export async function PUT(req) {
 }
 
 export async function DELETE(req) {
-  verifyCsrfToken(req)
-
-  const authResponse = await verifyAndLimit(req, "ADMIN")
-  if (authResponse) {
-    return authResponse
-  }
-
   try {
+    verifyCsrfToken(req)
+
+    const authResponse = await verifyAndLimit(req, "ADMIN")
+    if (authResponse) {
+      return authResponse
+    }
+
     const { id } = await req.json()
 
     if (!id) {
@@ -239,6 +256,10 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Cliente eliminado con éxito' }, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al eliminar el cliente:', error)
     return NextResponse.json({ error: 'Error al eliminar el cliente' }, {
       status: 500,

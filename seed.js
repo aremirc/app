@@ -296,6 +296,7 @@ async function main() {
             latitude: 40.7128,
             longitude: -74.006,
             label: "ACME HQ",
+            createdBy: adminUser.dni,
           },
         ],
       }
@@ -323,8 +324,8 @@ async function main() {
   // 11. Asignación de herramientas
   await prisma.toolAssignment.createMany({
     data: [
-      { toolId: drill.id, orderId: testOrder.id },
-      { toolId: tester.id, orderId: testOrder.id }
+      { toolId: drill.id, orderId: testOrder.id, usedAt: new Date('2025-05-21T09:00:00Z'), createdBy: adminUser.dni },
+      { toolId: tester.id, orderId: testOrder.id, usedAt: new Date('2025-05-21T09:00:00Z'), createdBy: adminUser.dni }
     ]
   })
 
@@ -334,7 +335,8 @@ async function main() {
       latitude: -34.6037,
       longitude: -58.3816,
       label: 'Tech Solutions HQ',
-      orderId: testOrder.id
+      orderId: testOrder.id,
+      createdBy: adminUser.dni
     }
   })
 
@@ -359,13 +361,15 @@ async function main() {
         visitId: visit.id,
         type: 'PHOTO',
         url: 'https://example.com/foto1.jpg',
-        comment: 'Rack de red instalado'
+        comment: 'Rack de red instalado',
+        createdBy: adminUser.dni
       },
       {
         visitId: visit.id,
         type: 'PHOTO',
         url: 'https://example.com/foto2.jpg',
-        comment: 'Cámara en entrada principal'
+        comment: 'Cámara en entrada principal',
+        createdBy: adminUser.dni
       }
     ]
   })
@@ -379,7 +383,8 @@ async function main() {
       accepted: true,
       rating: 4.5,
       feedback: '',
-      conformityDate: new Date("2025-06-02T15:00:00Z")
+      conformityDate: new Date("2025-06-02T15:00:00Z"),
+      createdBy: adminUser.dni
     }
   })
 

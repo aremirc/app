@@ -13,7 +13,8 @@ const headers = [
   { key: "fullName", label: "Nombre de Usuario" },
   { key: "email", label: "Correo Electrónico" },
   { key: "roleName", label: "Rol de Usuario" },
-  { key: "createdAt", label: "Fecha de Creación" }
+  { key: "createdAt", label: "Fecha de Creación" },
+  { key: "status", label: "Estado" }
 ]
 
 const UserPanel = () => {

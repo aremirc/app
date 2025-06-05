@@ -10,10 +10,10 @@ import SearchBar from "../molecules/SearchBar"
 import { useAuth } from "@/context/AuthContext"
 
 const headers = [
-  { key: "id", label: "ID de Orden" },
-  { key: "description", label: "Descripción" },
   { key: "client", label: "Cliente" },
+  { key: "id", label: "ID de Orden" },
   { key: "status", label: "Estado" },
+  { key: "description", label: "Descripción" },
   { key: "createdAt", label: "Fecha de Creación" }
 ]
 

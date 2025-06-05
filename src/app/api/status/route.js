@@ -37,11 +37,15 @@ export async function GET(req) {
   try {
     const cookies = parse(req.headers.get('cookie') || '')
     const token = cookies.token
+    const refresh_token = cookies.refresh_token
 
     if (!token) {
+      const hasRefreshToken = Boolean(refresh_token)
+
       return NextResponse.json({
         status: 'success',
         message: '¡Todo está en orden!',
+        code: hasRefreshToken ? 1027 : 1000,
         timestamp: new Date().toISOString(),
       }, { status: 200 })
     }
@@ -76,6 +80,7 @@ export async function GET(req) {
         username: true,
       }
     })
+
     if (!user) {
       return errorResponse('Usuario no encontrado', 'No se pudo encontrar el usuario asociado al token', 404)
     }

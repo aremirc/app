@@ -16,15 +16,24 @@ const api = axios.create({
   withCredentials: true, // Asegúrate de que las cookies HttpOnly se envíen con las solicitudes
 })
 
+let csrfTokenCache = null
+
 // Función para obtener el token CSRF desde el backend
 const getCsrfToken = async () => {
+  if (csrfTokenCache) return csrfTokenCache
+
   try {
     const response = await axios.get("/api/csrf-token")
-    return response.data.csrfToken  // Debería devolver el token CSRF
+    csrfTokenCache = response.data.csrfToken
+    return csrfTokenCache
   } catch (error) {
     console.error("Error al obtener el token CSRF", error)
     return null
   }
+}
+
+const invalidateCsrfToken = () => {
+  csrfTokenCache = null
 }
 
 // Interceptor para agregar el token CSRF a las solicitudes
@@ -47,8 +56,27 @@ api.interceptors.request.use(
 // Interceptor de respuesta para manejar errores globalmente
 api.interceptors.response.use(
   (response) => response, // Pasa la respuesta tal cual si todo está bien
-  (error) => {
-    // Manejo de errores global
+  async (error) => {
+    const originalRequest = error.config
+
+    // Si el backend responde con 403 (token CSRF inválido o expirado)
+    if (
+      error.response?.status === 403 &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true
+
+      // Invalidamos el token cacheado
+      invalidateCsrfToken()
+
+      // Volvemos a obtener un nuevo token CSRF
+      const newToken = await getCsrfToken()
+      if (newToken) {
+        originalRequest.headers['csrf-token'] = newToken
+        return api(originalRequest) // Reintentar la petición original
+      }
+    }
+
     return Promise.reject(error)  // Propaga el error para que pueda ser manejado por el bloque onError
   }
 )

@@ -3,17 +3,17 @@ import { serialize, parse } from 'cookie'
 export function setAuthCookies(response, token, role) {
   const cookies = [
     serialize('token', token, {
-      maxAge: 30 * 24 * 60 * 60,  // 30 días
+      maxAge: 60 * 60,  // 1 hora
       path: '/',
       secure: process.env.NODE_ENV === 'production',  // Solo en producción
-      sameSite: 'lax',  // O 'strict' si no necesitas compartir entre sitios
+      sameSite: 'Strict',  // O 'strict' si no necesitas compartir entre sitios
       httpOnly: true,   // No accesible desde JavaScript
     }),
     serialize('user_role', role, {
-      maxAge: 30 * 24 * 60 * 60,  // 30 días
+      maxAge: 60 * 60,  // 1 hora
       path: '/',
       secure: process.env.NODE_ENV === 'production',  // Solo en producción
-      sameSite: 'lax',
+      sameSite: 'Strict',  // Evita el envío de la cookie en solicitudes de terceros
       httpOnly: true,
     })
   ]
@@ -44,10 +44,10 @@ export function removeAuthCookies(response) {
 
 export function setRefreshTokenCookies(response, refreshToken) {
   const refreshTokenCookie = serialize('refresh_token', refreshToken, {
-    maxAge: 60 * 60 * 24 * 30,  // 30 días
+    maxAge: 60 * 60 * 24 * 7,  // 7 días
     path: '/',
     secure: process.env.NODE_ENV === 'production', // Solo en producción
-    sameSite: 'lax',  // O 'strict' si no necesitas compartir entre sitios
+    sameSite: 'Strict',  // O 'strict' si no necesitas compartir entre sitios
     httpOnly: true,   // No accesible desde JavaScript
   })
 

@@ -43,7 +43,7 @@ const CardForm = ({ onAdd }) => {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Input name="title" value={formData.title} onChange={handleChange} placeholder="Título" />
         <Input name="description" value={formData.description} onChange={handleChange} placeholder="Descripción" />
-        <Input name="href" value={formData.href} onChange={handleChange} placeholder="Enlace (URL)" />
+        <Input name="href" value={formData.href} onChange={handleChange} placeholder="Enlace (https://ejemplo.com)" />
         <Select name="bgColor" value={formData.bgColor} onChange={handleChange} options={colorOptions} />
         {/* <ColorInput
           name="bgColor"

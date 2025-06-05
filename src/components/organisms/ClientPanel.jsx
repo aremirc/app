@@ -14,7 +14,8 @@ const headers = [
   { key: "name", label: "Nombre de Cliente" },
   { key: "email", label: "Correo Electrónico" },
   { key: "phone", label: "Teléfono" },
-  { key: "address", label: "Dirección" }
+  { key: "address", label: "Dirección" },
+  { key: "isActive", label: "Estado" }
 ]
 
 const ClientPanel = () => {

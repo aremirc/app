@@ -30,13 +30,21 @@ enum ClientType {
   COMPANY
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 enum OrderStatus {
   PENDING
+  AWAITING_APPROVAL
   IN_PROGRESS
   COMPLETED
   CANCELLED
   ON_HOLD
   FAILED
+  DELETED
 }
 
 enum ServiceStatus {
@@ -85,27 +93,31 @@ enum NotificationType {
 }
 
 model User {
-  dni         String     @id
-  firstName   String
-  lastName    String
-  username    String     @unique
-  email       String     @unique
-  phone       String?
-  address     String?
-  password    String
-  gender      Gender
-  avatar      String?
-  country     String?
-  socialLinks Json?
-  birthDate   DateTime?
-  status      UserStatus @default(ACTIVE)
-  roleId      Int
-  role        Role       @relation("UsersWithRole", fields: [roleId], references: [id])
-  isVerified  Boolean    @default(false)
-  lastLogin   DateTime?
-  deletedAt   DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  dni                 String     @id
+  firstName           String
+  lastName            String
+  username            String     @unique
+  email               String     @unique
+  phone               String?
+  address             String?
+  password            String
+  gender              Gender
+  avatar              String?
+  country             String?
+  birthDate           DateTime?
+  hiredAt             DateTime?
+  status              UserStatus @default(ACTIVE)
+  roleId              Int
+  role                Role       @relation("UsersWithRole", fields: [roleId], references: [id])
+  isVerified          Boolean    @default(false)
+  socialLinks         Json?
+  failedLoginAttempts Int        @default(0)
+  lockedUntil         DateTime?
+  lastPasswordChange  DateTime?
+  lastLogin           DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  deletedAt           DateTime?
 
   // Relaciones
   managedOrders Order[]        @relation("ManagedByUser")
@@ -131,9 +143,11 @@ model Notification {
   type      NotificationType
   title     String
   message   String
+  actionUrl String?
+  priority  Priority         @default(MEDIUM)
   isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
   readAt    DateTime?
+  createdAt DateTime         @default(now())
 
   @@index([userId])
 }
@@ -163,11 +177,14 @@ model Client {
   type               ClientType
   contactPersonName  String?
   contactPersonPhone String?
+  website            String?
   notes              String?
+  logo               String?
   isActive           Boolean    @default(true)
-  deletedAt          DateTime?
+  lastActivity       DateTime?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
+  deletedAt          DateTime?
 
   orders Order[]
   visits Visit[]
@@ -175,9 +192,11 @@ model Client {
 
 model Order {
   id                    Int         @id @default(autoincrement())
+  priority              Priority    @default(MEDIUM)
   description           String
   scheduledDate         DateTime?
   endDate               DateTime?
+  contract              String?
   alternateContactName  String?
   alternateContactPhone String?
   status                OrderStatus
@@ -185,10 +204,12 @@ model Order {
   clientId              String
   client                Client      @relation(fields: [clientId], references: [id])
   conformity            Conformity?
+  completedAt           DateTime?
   createdBy             String
   updatedBy             String?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
+  deletedAt             DateTime?
 
   workers         OrderWorker[]
   visits          Visit[]
@@ -208,6 +229,8 @@ model OrderWorker {
   user          User              @relation(fields: [userId], references: [dni])
   status        OrderWorkerStatus
   isResponsible Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@id([orderId, userId])
 }
@@ -220,6 +243,7 @@ model Tool {
   status      ToolStatus @default(AVAILABLE)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
 
   assignments ToolAssignment[]
 }
@@ -230,23 +254,29 @@ model ToolAssignment {
   toolId     String
   order      Order     @relation(fields: [orderId], references: [id])
   orderId    Int
-  usedAt     DateTime  @default(now())
+  usedAt     DateTime
   returnedAt DateTime?
+  createdBy  String
+  createdAt  DateTime  @default(now())
 }
 
 model Location {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   latitude  Float
   longitude Float
   label     String?
-  order     Order?  @relation(fields: [orderId], references: [id])
+  order     Order?   @relation(fields: [orderId], references: [id])
   orderId   Int?
+  mapUrl    String?
+  createdBy String
+  createdAt DateTime @default(now())
 }
 
 model Visit {
   id          Int        @id @default(autoincrement())
   date        DateTime
   endTime     DateTime
+  duration    Int?
   description String
   orderId     Int
   order       Order      @relation(fields: [orderId], references: [id])
@@ -259,8 +289,10 @@ model Visit {
   evidences   Evidence[]
   createdBy   String
   updatedBy   String?
+  deletedBy   String?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
 
   @@index([userId])
 }
@@ -272,6 +304,7 @@ model Evidence {
   type      EvidenceType
   url       String
   comment   String?
+  createdBy String
   createdAt DateTime     @default(now())
 
   @@index([visitId])
@@ -286,6 +319,7 @@ model Service {
   status        ServiceStatus
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
   orders        Order[]
 }
 
@@ -314,6 +348,8 @@ model Conformity {
   rating          Float?
   feedback        String?
   conformityDate  DateTime?
+  createdBy       String
+  updatedBy       String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

@@ -91,11 +91,11 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  verifyCsrfToken(req)
-  const authResponse = await verifyAndLimit(req, 'ADMIN')
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+    const authResponse = await verifyAndLimit(req, 'ADMIN')
+    if (authResponse) return authResponse
+
     const { dni, status, username, email, password, roleId, firstName, lastName, gender, avatar, phone, address, country, birthDate, socialLinks } = await req.json()
 
     if (!dni || !username || !email || !password || !roleId || !firstName || !lastName || !gender) {
@@ -154,17 +154,21 @@ export async function POST(req) {
     const { password: _, ...userWithoutPassword } = user
     return NextResponse.json(userWithoutPassword, { status: 201 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al crear el usuario:', error)
     return NextResponse.json({ error: 'Error al crear el usuario' }, { status: 500 })
   }
 }
 
 export async function PUT(req) {
-  verifyCsrfToken(req)
-  const authResponse = await verifyAndLimit(req, 'ADMIN')
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+    const authResponse = await verifyAndLimit(req, 'ADMIN')
+    if (authResponse) return authResponse
+
     const { dni, status, isVerified, username, email, password, roleId, firstName, lastName, gender, avatar, phone, address, country, birthDate, socialLinks } = await req.json()
 
     if (!dni || !username || !email || !roleId || !firstName || !lastName || !gender || !status) {
@@ -237,17 +241,21 @@ export async function PUT(req) {
     const { password: _, ...userWithoutPassword } = updatedUser
     return NextResponse.json(userWithoutPassword, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al actualizar el usuario:', error)
     return NextResponse.json({ error: 'Error al actualizar el usuario' }, { status: 500 })
   }
 }
 
 export async function DELETE(req) {
-  verifyCsrfToken(req)
-  const authResponse = await verifyAndLimit(req, 'ADMIN')
-  if (authResponse) return authResponse
-
   try {
+    verifyCsrfToken(req)
+    const authResponse = await verifyAndLimit(req, 'ADMIN')
+    if (authResponse) return authResponse
+
     const { dni } = await req.json()
 
     if (!dni || typeof dni !== 'string') {
@@ -274,6 +282,10 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Usuario desactivado correctamente' }, { status: 200 })
   } catch (error) {
+    if (error.message?.includes('CSRF')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+
     console.error('Error al desactivar el usuario:', error)
     return NextResponse.json({ error: 'Error al eliminar el usuario' }, { status: 500 })
   }
