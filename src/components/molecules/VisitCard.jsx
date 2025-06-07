@@ -322,7 +322,7 @@ const VisitCard = ({ visit, handleCancel }) => {
                     checked={field.value}
                     onChange={(e) => field.onChange(e.target.checked)}
                   />
-                  <label htmlFor="isReviewed" className="text-sm text-gray-700 dark:text-gray-300">
+                  <label htmlFor="isReviewed" className="text-sm text-text-light">
                     ¿Revisada?
                   </label>
                 </div>

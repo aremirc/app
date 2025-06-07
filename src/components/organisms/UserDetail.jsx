@@ -6,6 +6,7 @@ import LoadingSpinner from "../atoms/LoadingSpinner"
 import { Pencil, Trash2, MessageSquare, Cake } from "lucide-react"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
+import VisitList from "./VisitList"
 
 const UserDetail = ({ userId }) => {
   const [user, setUser] = useState(null)  // Estado para el usuario
@@ -84,7 +85,7 @@ const UserDetail = ({ userId }) => {
           <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4 mr-1" /></Button>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {user.availability?.map((day, index) => (
-              <div key={index} className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center">
+              <div key={index} className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-sm bg-background-muted dark:bg-background-muted-dark text-center">
                 <p className="font-medium text-indigo-600 dark:text-indigo-400">{day.day}</p>
                 <p className="text-sm text-gray-700 dark:text-gray-300">{new Date(day.startDate).toLocaleDateString()} - {new Date(day.endDate).toLocaleDateString()}</p>
               </div>
@@ -94,25 +95,16 @@ const UserDetail = ({ userId }) => {
       </div>
 
       {/* Visitas realizadas */}
-      <Card title="Visitas Realizadas" className="col-span-1 p-6 rounded-2xl">
-        <Button size="sm" variant="outline" className="absolute top-2 right-2">CREAR NUEVA VISITA</Button>
-        <div className="space-y-4">
-          {user.visits?.map((visit, i) => (
-            <div key={visit.id} className="border p-4 rounded-lg shadow-sm bg-gray-50 dark:bg-gray-900">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold text-indigo-700 dark:text-indigo-400">Visita #{i + 1}</h4>
-                <div className="flex gap-2">
-                  <Button size="icon" variant="ghost"><MessageSquare className="w-4 h-4" /></Button>
-                  <Button size="icon" variant="ghost"><Pencil className="w-4 h-4" /></Button>
-                  <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
-                </div>
-              </div>
-              <p><strong>Fecha:</strong> {new Date(visit.date).toLocaleDateString()}</p>
-              <p><strong>Hora de Inicio:</strong> {new Date(visit.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-              <p><strong>Hora de Finalización:</strong> {new Date(visit.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-            </div>
-          ))}
-        </div>
+      <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
+        <Button
+          size="sm"
+          variant="outline"
+          className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light/10"
+        >
+          CREAR NUEVA VISITA
+        </Button>
+
+        <VisitList visits={user.visits} />
       </Card>
     </div >
   )

@@ -15,7 +15,6 @@ const headers = [
   { key: "orderId", label: "ID de Orden" },
   { key: "client", label: "Cliente" },
   { key: "user", label: "Trabajador" },
-  { key: "isReviewed", label: "Estado" }
 ]
 
 const VisitPanel = () => {

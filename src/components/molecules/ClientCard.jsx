@@ -377,7 +377,7 @@ const ClientCard = ({ client, handleCancel }) => {
                 <textarea
                   {...field}
                   placeholder="Notas (opcional)"
-                  className="mb-4 w-full p-2 border rounded dark:bg-text-dark dark:text-text-light resize-none"
+                  className="mb-4 w-full p-2 border rounded appearance-none dark:bg-background-dark dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary resize-none"
                   rows={3}
                 />
               )}

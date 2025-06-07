@@ -40,7 +40,7 @@ const Header = ({ title = "Dashboard" }) => {
         onClick={toggleDarkMode}
         type="button"
         title="toggleTheme"
-        className="fixed bottom-0 right-0 m-2 backdrop-brightness-90 w-7 h-7 dark:bg-background-dark rounded-full"
+        className="fixed bottom-2 right-2 m-2 backdrop-brightness-90 w-7 h-7 dark:bg-background-dark rounded-full"
       >
         {isDark ? '🌙' : '🌞'}
       </button>

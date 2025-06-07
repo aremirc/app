@@ -57,8 +57,8 @@ const VisitDetail = ({ visitId }) => {
           <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4" /></Button>
 
           <div className="grid grid-cols-2 gap-4">
-            <InfoItem label="ID de Visita" value={visit.id} />
-            <InfoItem label="ID de Orden" value={visit.orderId} />
+            <InfoItem label="ID de Visita" value={String(visit.id).padStart(3, '0')} />
+            <InfoItem label="ID de Orden" value={String(visit.orderId).padStart(3, '0')} />
             <InfoItem label="Trabajador" value={visit.user.firstName + ' ' + visit.user.lastName} />
             <InfoItem label="Fecha" value={new Date(visit.date).toLocaleString()} />
           </div>

@@ -34,6 +34,7 @@ const BarChart = ({ data, labelName = "Técnico", dataName = "Visitas" }) => {
   const options = {
     indexAxis: 'y', // 👉 barras horizontales
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       title: {
@@ -53,7 +54,7 @@ const BarChart = ({ data, labelName = "Técnico", dataName = "Visitas" }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+    <div className="bg-background-light dark:bg-background-dark/35 rounded-lg shadow-md mt-6 min-w-[100%] h-[250px]">
       <Bar data={chartData} options={options} />
     </div>
   )

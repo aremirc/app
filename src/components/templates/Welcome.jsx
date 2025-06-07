@@ -19,7 +19,7 @@ export default function WelcomePage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-600 to-blue-800 text-white px-6 py-12">
+    <div className="min-h-screen-dvh flex items-center justify-center bg-gradient-to-r from-indigo-600 to-blue-800 text-white px-6 py-12">
       <div className="text-center max-w-2xl mx-auto">
         {/* Animación del encabezado */}
         <motion.h1

@@ -101,7 +101,7 @@ const OrderCard = ({ order, handleCancel }) => {
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue, trigger } = useForm({
     resolver: zodResolver(orderSchema),
-    defaultValues: order ? { ...order, scheduledDate: order?.scheduledDate?.slice(0, 16) ?? "", endDate: order?.endDate?.slice(0, 16) ?? "", workers: order?.workers?.map((w) => w.userId) ?? [], responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? null, services: order?.services?.map((s) => s.id) ?? [] } : defaultValues,
+    defaultValues: order ? { ...order, clientName: order?.client?.name, scheduledDate: order?.scheduledDate?.slice(0, 16) ?? "", endDate: order?.endDate?.slice(0, 16) ?? "", workers: order?.workers?.map((w) => w.userId) ?? [], responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? null, services: order?.services?.map((s) => s.id) ?? [] } : defaultValues,
     mode: "onChange", // o "onSubmit" si prefieres validar solo al enviar
     shouldUnregister: false,
   })

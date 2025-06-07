@@ -32,6 +32,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAndLimit } from '@/lib/permissions'
 import { verifyCsrfToken } from '@/lib/csrf'
+import { verifyJWT } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcrypt'
 
@@ -256,20 +257,50 @@ export async function DELETE(req) {
     const authResponse = await verifyAndLimit(req, 'ADMIN')
     if (authResponse) return authResponse
 
+    const currentUser = await verifyJWT(req)
     const { dni } = await req.json()
 
     if (!dni || typeof dni !== 'string') {
       return NextResponse.json({ error: 'DNI es requerido y debe ser válido' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { dni } })
+    const userToDelete = await prisma.user.findUnique({
+      where: { dni },
+      include: { role: true },
+    })
 
-    if (!user) {
+    if (!userToDelete) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    if (user.status === 'INACTIVE') {
+    if (userToDelete.status === 'INACTIVE') {
       return NextResponse.json({ error: 'El usuario ya está desactivado' }, { status: 400 })
+    }
+
+    const isAdmin = userToDelete.role.name === 'ADMIN'
+
+    // ❌ Evitar que un admin se desactive a sí mismo
+    if (dni === currentUser?.dni) {
+      return NextResponse.json({ error: 'No puedes desactivarte a ti mismo' }, { status: 403 })
+    }
+
+    if (isAdmin) {
+      const activeAdminsCount = await prisma.user.count({
+        where: {
+          status: 'ACTIVE',
+          deletedAt: null,
+          role: {
+            name: 'ADMIN',
+          },
+        },
+      })
+
+      if (activeAdminsCount <= 1) {
+        return NextResponse.json(
+          { error: 'No se puede desactivar al único administrador activo' },
+          { status: 403 }
+        )
+      }
     }
 
     await prisma.user.update({

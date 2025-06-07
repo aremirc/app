@@ -7,7 +7,7 @@ const isValidDomain = (href) => {
   return domainRegex.test(href)
 }
 
-const ReusableCard = ({ card, children, link, bgColor }) => {
+const ReusableCard = ({ card }) => {
   if (!card) return null
 
   let rawHref = card.href?.trim() || ''
@@ -27,7 +27,7 @@ const ReusableCard = ({ card, children, link, bgColor }) => {
     isExternal = true
   }
 
-  const baseClasses = `p-6 rounded-lg cursor-pointer transition text-white ${card.bgColor || bgColor} dark:text-black`
+  const baseClasses = `block h-full rounded-lg overflow-hidden cursor-pointer transition text-white ${card.bgColor} dark:text-black`
 
   if (isExternal) {
     // Pasamos el href normalizado (https://...)
@@ -35,14 +35,13 @@ const ReusableCard = ({ card, children, link, bgColor }) => {
   }
 
   return (
-    <Link href={link || rawHref}>
+    <Link href={rawHref}>
       <div className={baseClasses}>
-        {children ? (children) : (
-          <>
-            <h3 className="text-lg font-semibold">{card.title}</h3>
-            <p className="text-sm">{card.description}</p>
-          </>
-        )}
+        <img src="/next.svg" alt="" className="w-full h-32 object-cover" />
+        <div className="p-4">
+          <h3 className="text-lg font-semibold">{card.title}</h3>
+          <p className="text-sm">{card.description}</p>
+        </div>
       </div>
     </Link>
   )

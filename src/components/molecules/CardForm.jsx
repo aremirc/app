@@ -51,7 +51,7 @@ const CardForm = ({ onAdd }) => {
           onChange={handleChange}
         /> */}
       </div>
-      <Button onClick={handleSubmit}>Agregar tarjeta</Button>
+      <Button className="bg-primary" onClick={handleSubmit}>Agregar tarjeta</Button>
     </div>
   )
 }

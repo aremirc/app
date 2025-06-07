@@ -42,6 +42,8 @@ module.exports = {
         background: {
           light: '#FFFFFF', // Fondo claro
           dark: '#121212', // Fondo oscuro para el modo oscuro
+          muted: '#F9FAFB', // claro
+          'muted-dark': '#1F1F1F', // oscuro
         },
 
         // Colores de texto

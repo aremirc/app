@@ -2,12 +2,13 @@
 
 import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { useAuth } from "@/context/AuthContext"
 import Header from "@/components/molecules/Header"
 import Sidebar from "@/components/organisms/Sidebar"
 import Footer from "@/components/molecules/Footer"
 import LoadingSpinner from "@/components/atoms/LoadingSpinner"
-import { useAuth } from "@/context/AuthContext"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import BirthdayCelebration from "@/components/atoms/BirthdayCelebration"
 
 const queryClient = new QueryClient()
 
@@ -25,6 +26,15 @@ export default function ProtectedLayout({ children }) {
     }
   }, [loading, user])
 
+  const isBirthday = (birthDateStr) => {
+    if (!birthDateStr) return false
+
+    const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
+    const today = new Date()
+
+    return today.getDate() === day && today.getMonth() === month - 1
+  }
+
   if (loading) {
     return <LoadingSpinner />
   }
@@ -40,6 +50,7 @@ export default function ProtectedLayout({ children }) {
           <main className="flex flex-col gap-4 p-4">{children}</main>
         </div>
         <Footer />
+        {isBirthday(user?.birthDate) && <BirthdayCelebration />}
       </div>
     </QueryClientProvider>
   )

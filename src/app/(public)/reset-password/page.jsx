@@ -46,8 +46,8 @@ const ResetPasswordPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background-light dark:bg-background-dark px-4">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 p-8 rounded-xl shadow-md border border-border-light dark:border-border-dark">
+    <div className="flex-1 flex items-center justify-center bg-background-light dark:bg-background-dark px-4">
+      <div className="w-full max-w-md bg-white dark:bg-shadow-dark/5 p-8 rounded-xl shadow-md border border-border-light dark:border-border-dark">
         <h1 className="text-2xl font-semibold text-center text-text-light dark:text-text-dark mb-6">
           Restablecer Contraseña
         </h1>
@@ -60,7 +60,7 @@ const ResetPasswordPage = () => {
             <input
               id="password"
               type="password"
-              className="mt-1 block w-full px-3 py-2 border border-border-light dark:border-border-dark rounded-md focus:outline-none bg-background-light dark:bg-zinc-800 text-text-light dark:text-text-dark"
+              className="mt-1 block w-full px-3 py-2 border border-border-light dark:border-border-dark rounded-md focus:outline-none bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
@@ -70,7 +70,7 @@ const ResetPasswordPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-2 px-4 rounded hover:bg-primary-dark transition"
+            className="w-full bg-primary dark:bg-primary-dark text-text-light dark:hover:text-text-dark py-2 px-4 rounded hover:bg-primary-dark transition"
           >
             {loading ? "Actualizando..." : "Actualizar contraseña"}
           </button>
@@ -78,7 +78,7 @@ const ResetPasswordPage = () => {
 
         <div className="flex justify-end pt-4">
           <Button
-            className="bg-primary hover:bg-primary/75 text-white px-6 py-2 rounded-xl transition duration-200 ease-in-out"
+            className="bg-primary hover:bg-primary/75 text-text-light px-6 py-2 rounded-xl shadow shadow-shadow-light dark:shadow-shadow-dark transition duration-200 ease-in-out"
             onClick={() => router.back()}
           >
             Volver

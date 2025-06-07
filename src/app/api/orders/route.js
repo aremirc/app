@@ -4,18 +4,22 @@ import { verifyAndLimit } from '@/lib/permissions'
 import { verifyJWT } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+function isValidDate(d) {
+  return d instanceof Date && !isNaN(d)
+}
+
 function getDateRange(query) {
   const isoDate = /^\d{4}-\d{2}-\d{2}$/        // 2025-05-20
   const monthOnly = /^\d{4}-\d{2}$/            // 2025-05
   const yearOnly = /^\d{4}$/                   // 2025
-  const dayMonthYear = /^(\d{2})[/-](\d{2})[/-](\d{4})$/  // 20-05-2025 o 20/05/2025
+  const dayMonthYear = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/  // 20-05-2025 o 20/05/2025
   const range = /^(.+)\s+(to|a)\s+(.+)$/i      // rango: "2025-05-01 to 2025-05-20"
 
   if (range.test(query)) {
     const [, startStr, , endStr] = query.match(range)
     const start = parseFlexibleDate(startStr)
     const end = parseFlexibleDate(endStr)
-    if (start && end) {
+    if (isValidDate(start) && isValidDate(end)) {
       end.setHours(23, 59, 59, 999)
       return { start, end }
     }
@@ -24,15 +28,18 @@ function getDateRange(query) {
 
   if (isoDate.test(query)) {
     const date = new Date(query)
-    const start = new Date(date.setHours(0, 0, 0, 0))
-    const end = new Date(date.setHours(23, 59, 59, 999))
-    return { start, end }
+    if (isValidDate(date)) {
+      const start = new Date(date.setHours(0, 0, 0, 0))
+      const end = new Date(date.setHours(23, 59, 59, 999))
+      return { start, end }
+    }
+    return null
   }
 
   if (dayMonthYear.test(query)) {
     const [, dd, mm, yyyy] = query.match(dayMonthYear)
     const date = new Date(`${yyyy}-${mm}-${dd}`)
-    if (!isNaN(date)) {
+    if (isValidDate(date)) {
       const start = new Date(date.setHours(0, 0, 0, 0))
       const end = new Date(date.setHours(23, 59, 59, 999))
       return { start, end }
@@ -42,6 +49,7 @@ function getDateRange(query) {
 
   if (monthOnly.test(query)) {
     const start = new Date(`${query}-01T00:00:00`)
+    if (!isValidDate(start)) return null
     const end = new Date(start)
     end.setMonth(end.getMonth() + 1)
     return { start, end }
@@ -50,7 +58,10 @@ function getDateRange(query) {
   if (yearOnly.test(query)) {
     const start = new Date(`${query}-01-01T00:00:00`)
     const end = new Date(`${Number(query) + 1}-01-01T00:00:00`)
-    return { start, end }
+    if (isValidDate(start) && isValidDate(end)) {
+      return { start, end }
+    }
+    return null
   }
 
   return null
@@ -58,19 +69,21 @@ function getDateRange(query) {
 
 function parseFlexibleDate(input) {
   const isoDate = /^\d{4}-\d{2}-\d{2}$/
-  const dmy = /^(\d{2})[/-](\d{2})[/-](\d{4})$/
+  const dmy = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
 
   if (isoDate.test(input)) {
-    return new Date(input)
+    const d = new Date(input)
+    return isValidDate(d) ? d : null
   }
 
   if (dmy.test(input)) {
     const [, dd, mm, yyyy] = input.match(dmy)
-    return new Date(`${yyyy}-${mm}-${dd}`)
+    const d = new Date(`${yyyy}-${mm}-${dd}`)
+    return isValidDate(d) ? d : null
   }
 
   const parsed = new Date(input)
-  return isNaN(parsed) ? null : parsed
+  return isValidDate(parsed) ? parsed : null
 }
 
 export async function GET(req) {
@@ -157,13 +170,13 @@ export async function GET(req) {
           {
             scheduledDate: {
               gte: dateRange.start,
-              lt: dateRange.end,
+              lte: dateRange.end,
             }
           },
           {
             endDate: {
               gte: dateRange.start,
-              lt: dateRange.end,
+              lte: dateRange.end,
             }
           }
         )

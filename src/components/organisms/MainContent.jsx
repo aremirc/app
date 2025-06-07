@@ -3,15 +3,16 @@ import { useQuery } from '@tanstack/react-query'
 import DashboardGrid from "./DashboardGrid"
 import Card from "../molecules/Card"
 import api from "@/lib/axios"
+import BarChart from "./Chart"
 import Icon from "../atoms/Icon"
+import Button from '../atoms/Button'
 import Table from "../molecules/Table"
-import LoadingSpinner from "../atoms/LoadingSpinner"
 import CardForm from '../molecules/CardForm'
 import CardGrid from '../organisms/CardGrid'
-import Button from '../atoms/Button'
-import ReusableCard from "../molecules/ReusableCard"
 import SearchBar from "../molecules/SearchBar"
-import BarChart from "./Chart"
+import ReusableCard from "../molecules/ReusableCard"
+import LoadingSpinner from "../atoms/LoadingSpinner"
+import LoadingOverlay from "../atoms/LoadingOverlay"
 
 const headers = [
   { key: "cliente", label: "Cliente" },
@@ -60,6 +61,11 @@ const MainContent = () => {
   ])
   const [searchTerm, setSearchTerm] = useState("")
 
+  const { data: allOrders = [], isLoading: loadingOrders } = useQuery({
+    queryKey: ['orders', searchTerm],
+    queryFn: () => fetchOrders(searchTerm),
+  })
+
   const { data: pendingOrders = [], isLoading: loadingPending } = useQuery({
     queryKey: ['pendingOrders'],
     queryFn: fetchPendingOrders
@@ -70,10 +76,7 @@ const MainContent = () => {
     queryFn: fetchMetrics,
   })
 
-  const { data: allOrders = [], isLoading: loadingOrders } = useQuery({
-    queryKey: ['orders', searchTerm],
-    queryFn: () => fetchOrders(searchTerm),
-  })
+  const isInitialLoading = loadingPending || loadingMetrics
 
   const chartData = metrics.map(user => ({
     label: `${user.firstName} ${user.lastName}`,
@@ -116,45 +119,29 @@ const MainContent = () => {
     setShowForm(false)
   }
 
+  if (isInitialLoading) {
+    return <LoadingSpinner />
+  }
+
   return (
     <>
       <DashboardGrid>
-        <Card>
-          <div className="h-full flex flex-col xl:flex-row justify-between gap-3 xl:gap-8">
-            <div>
-              <h3 className="text-primary dark:text-primary-dark text-xl font-semibold mb-3">Servicios</h3>
-              <p>Ve los servicios disponibles y realiza modificaciones en ellos si fuera necesario.</p>
-            </div>
-            <div className="w-full flex items-center">
-              <img className="object-cover rounded-md" src="https://images.pexels.com/photos/96612/pexels-photo-96612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Servicios" />
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <img className="w-full xl:h-48 object-cover rounded-md" src="https://images.pexels.com/photos/11139140/pexels-photo-11139140.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load" alt="Imagen de ejemplo" />
-        </Card>
-      </DashboardGrid>
-
-      <DashboardGrid>
-        <Card title="Órdenes" className="space-y-2">
-          <div className="w-full px-4">
+        <Card title="Órdenes">
+          <div className="w-full px-4 mb-2">
             <SearchBar
               placeholder="Buscar por cliente, servicio o fecha..."
               onSearch={setSearchTerm}
             />
           </div>
           {loadingOrders ? (
-            <LoadingSpinner />
+            <LoadingOverlay />
           ) : (
             <Table data={filteredOrders} headers={headers} showActions={false} />
           )}
         </Card>
 
         <Card title="Órdenes pendientes">
-          {loadingPending ? (
-            <LoadingSpinner />
-          ) : pendingOrders.length === 0 ? (
+          {pendingOrders.length === 0 ? (
             <p className="text-sm text-gray-500">No hay órdenes pendientes.</p>
           ) : (
             pendingOrders.map((order) => (
@@ -177,42 +164,70 @@ const MainContent = () => {
       </DashboardGrid>
 
       <DashboardGrid>
+        <Card>
+          <div className="h-full flex flex-col xl:flex-row justify-between gap-3 xl:gap-8">
+            <div className="flex-1">
+              <h3 className="text-primary dark:text-primary-dark text-xl font-semibold mb-3">Servicios</h3>
+              <p>Ve los servicios disponibles y realiza modificaciones en ellos si fuera necesario.</p>
+            </div>
+            <div className="w-full xl:w-64 flex items-center">
+              <img className="object-cover rounded-md w-full h-auto" src="https://images.pexels.com/photos/96612/pexels-photo-96612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Servicios" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="aspect-[16/9] w-full h-full xl:max-h-48">
+            <img
+              className="w-full h-full object-cover rounded-md"
+              src="https://images.pexels.com/photos/11139140/pexels-photo-11139140.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load"
+              alt="Imagen de ejemplo"
+            />
+          </div>
+        </Card>
+      </DashboardGrid>
+
+      <DashboardGrid>
         <Card title="Visitas por técnico">
-          {loadingMetrics ? (
-            <LoadingSpinner />
-          ) : (
-            <BarChart data={chartData} />
-          )}
+          <BarChart data={chartData} />
         </Card>
 
         <Card title="Métricas">
-          {loadingMetrics ? (
-            <LoadingSpinner />
+          {metrics.length > 0 ? (
+            <div className="grid gap-2">
+              {metrics.map((item) => (
+                <a
+                  key={item.dni}
+                  href={`/users/${item.dni}`}
+                  className="block p-4 rounded-lg bg-primary-dark dark:hover:bg-primary transition-colors duration-200"
+                >
+                  <h3 className="text-lg font-bold text-text-dark dark:text-text-light">
+                    {item.firstName} {item.lastName}
+                  </h3>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <div>
+                      <h4 className="text-sm text-text-dark dark:text-text-light">Visitas Totales</h4>
+                      <p className="text-text-light font-semibold text-base">
+                        {item.totalVisits}
+                      </p>
+                    </div>
+                    {item.icon && <Icon name={item.icon} size={28} active />}
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <div>
+                      <h4 className="text-sm text-text-dark dark:text-text-light">Tiempo Total</h4>
+                      <p className="text-text-light font-semibold text-base">
+                        {item.totalTime}
+                      </p>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
           ) : (
-            metrics.length > 0 ? (
-              <div className="grid gap-2">
-                {metrics.map((item) => (
-                  <ReusableCard key={item.dni} card={item} link={`/users/${item.dni}`} bgColor={'bg-secondary-dark'}>
-                    <h3>{item.firstName} {item.lastName}</h3>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4>Visitas Totales</h4>
-                        <p className="text-primary dark:text-primary-dark font-semibold">{item.totalVisits}</p>
-                      </div>
-                      {item.icon && <Icon name={item.icon} size={28} active />}
-                    </div>
-                    <div className="flex items-center justify-between mt-4">
-                      <div>
-                        <h4>Tiempo Total</h4>
-                        <p className="text-primary dark:text-primary-dark font-semibold">{item.totalTime}</p>
-                      </div>
-                    </div>
-                  </ReusableCard>
-                ))}
-              </div>
-            ) : (
-              <p>No se encontraron métricas para mostrar.</p>
-            )
+            <p>No se encontraron métricas para mostrar.</p>
           )}
         </Card>
       </DashboardGrid>

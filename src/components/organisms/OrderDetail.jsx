@@ -6,6 +6,7 @@ import { FileText, Pencil, Trash2, MessageSquare, MapPin, Plus, Tag, Cake, Shiel
 import LoadingSpinner from "../atoms/LoadingSpinner"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
+import VisitList from "./VisitList"
 
 const OrderDetail = ({ orderId }) => {
   const [order, setOrder] = useState(null)  // Estado para la orden
@@ -51,7 +52,7 @@ const OrderDetail = ({ orderId }) => {
     <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="col-span-1 xl:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-5">
         <div className="col-span-2 flex flex-col justify-between text-white bg-gradient-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
-          <p className="text-sm">N° Orden: {order.id}</p>
+          <p className="text-sm">N° Orden: {String(order.id).padStart(3, '0')}</p>
           <div>
             <h2 className="text-2xl font-semibold">{order.client?.name}</h2>
             {order.client?.contactPersonName && order.client?.contactPersonPhone ? (
@@ -116,7 +117,7 @@ const OrderDetail = ({ orderId }) => {
           )}
         </Card>
 
-        <Card title="Ubicación" className="p-8 col-span-2 md:col-span-4">
+        <Card title="Ubicación" className={`p-8 col-span-2 ${!order.conformity && 'md:col-span-4'}`}>
           <div className="grid gap-4 sm:grid-cols-2">
             {order.locations?.map((loc, i) => (
               <div key={i} className="border rounded-xl p-4 bg-muted flex flex-col gap-1">
@@ -145,10 +146,60 @@ const OrderDetail = ({ orderId }) => {
             </Button>
           </div>
         </Card>
+
+        {order.conformity && (
+          <Card title="Condormidad del Cliente" className="col-span-2 p-8 space-y-2 rounded-2xl">
+            <p><strong>Descripción:</strong> {order.conformity.description}</p>
+            <p>
+              <strong>Estado:</strong>{" "}
+              <span className={order.conformity.accepted ? "text-green-600" : "text-red-500"}>
+                {order.conformity.accepted ? "Aceptado" : "Rechazado"}
+              </span>
+            </p>
+
+            {!order.conformity.accepted && order.conformity.rejectionReason && (
+              <p><strong>Motivo del Rechazo:</strong> {order.conformity.rejectionReason}</p>
+            )}
+
+            {order.conformity.signature && (
+              <div>
+                <p className="font-medium">Firma:</p>
+                <img src={order.conformity.signature} alt="Firma del cliente" className="w-48 border rounded mt-1" />
+              </div>
+            )}
+
+            {order.conformity.files && Array.isArray(order.conformity.files) && order.conformity.files.length > 0 && (
+              <div>
+                <p className="font-medium">Archivos Adjuntos:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  {order.conformity.files.map((file, idx) => (
+                    <li key={idx}>
+                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {file.name || `Archivo ${idx + 1}`}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {order.conformity.rating && (
+              <p><strong>Calificación:</strong> {order.conformity.rating} / 5</p>
+            )}
+
+            {order.conformity.feedback && (
+              <p><strong>Comentario del Cliente:</strong> {order.conformity.feedback}</p>
+            )}
+
+            {order.conformity.conformityDate && (
+              <p><strong>Fecha de Conformidad:</strong> {new Date(order.conformity.conformityDate).toLocaleDateString()}</p>
+            )}
+          </Card>
+        )}
       </div>
 
       <Card title="Detalles" className="p-8 flex flex-col gap-3 text-sm text-gray-700">
-        <Button variant="outline" size="sm" className="absolute top-2 right-2 flex items-center gap-2">
+        <Button variant="outline" size="sm" className="absolute top-4 right-4 flex items-center gap-2">
           <FileText className="w-4 h-4" /> <span>Imprimir PDF</span>
         </Button>
         <p><strong>Fecha de creación:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
@@ -216,76 +267,17 @@ const OrderDetail = ({ orderId }) => {
         )}
       </Card>
 
-      {order.conformity && (
-        <Card title="Condormidad del Cliente" className="col-span-1 p-8 space-y-2 rounded-2xl">
-          <p><strong>Descripción:</strong> {order.conformity.description}</p>
-          <p>
-            <strong>Estado:</strong>{" "}
-            <span className={order.conformity.accepted ? "text-green-600" : "text-red-500"}>
-              {order.conformity.accepted ? "Aceptado" : "Rechazado"}
-            </span>
-          </p>
-
-          {!order.conformity.accepted && order.conformity.rejectionReason && (
-            <p><strong>Motivo del Rechazo:</strong> {order.conformity.rejectionReason}</p>
-          )}
-
-          {order.conformity.signature && (
-            <div>
-              <p className="font-medium">Firma:</p>
-              <img src={order.conformity.signature} alt="Firma del cliente" className="w-48 border rounded mt-1" />
-            </div>
-          )}
-
-          {order.conformity.files && Array.isArray(order.conformity.files) && order.conformity.files.length > 0 && (
-            <div>
-              <p className="font-medium">Archivos Adjuntos:</p>
-              <ul className="list-disc list-inside space-y-1">
-                {order.conformity.files.map((file, idx) => (
-                  <li key={idx}>
-                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {file.name || `Archivo ${idx + 1}`}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {order.conformity.rating && (
-            <p><strong>Calificación:</strong> {order.conformity.rating} / 5</p>
-          )}
-
-          {order.conformity.feedback && (
-            <p><strong>Comentario del Cliente:</strong> {order.conformity.feedback}</p>
-          )}
-
-          {order.conformity.conformityDate && (
-            <p><strong>Fecha de Conformidad:</strong> {new Date(order.conformity.conformityDate).toLocaleDateString()}</p>
-          )}
-        </Card>
-      )}
-
       {/* Visitas realizadas */}
-      <Card title="Visitas Realizadas" className="col-span-1 p-6 rounded-2xl">
-        <Button size="sm" variant="outline" className="absolute top-2 right-2">CREAR NUEVA VISITA</Button>
-        <div className="space-y-4">
-          {order.visits?.map((visit, i) => (
-            <div key={visit.id} className="border p-4 rounded-lg shadow-sm bg-gray-50 dark:bg-gray-800">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold text-indigo-700 dark:text-indigo-400">Visita #{i + 1}</h4>
-                <div className="flex gap-2">
-                  <Button size="icon" variant="ghost"><MessageSquare className="w-4 h-4" /></Button>
-                  <Button size="icon" variant="ghost"><Pencil className="w-4 h-4" /></Button>
-                  <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
-                </div>
-              </div>
-              <p><strong>Fecha:</strong> {new Date(visit.date).toLocaleDateString()}</p>
-              <p><strong>Hora de Inicio:</strong> {new Date(visit.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-              <p><strong>Hora de Finalización:</strong> {new Date(visit.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-            </div>
-          ))}
-        </div>
+      <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
+        <Button
+          size="sm"
+          variant="outline"
+          className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light/10"
+        >
+          CREAR NUEVA VISITA
+        </Button>
+
+        <VisitList visits={order.visits} />
       </Card>
     </div>
   )
