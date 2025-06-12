@@ -11,6 +11,7 @@ import Input from "../atoms/Input"
 import Button from "../atoms/Button"
 import Stepper from "../organisms/Stepper"
 import StepNavigation from "../organisms/StepNavigation"
+import LoadingOverlay from "../atoms/LoadingOverlay"
 
 // 4. React hooks (si no usaste arriba)
 import { useState } from "react"
@@ -101,39 +102,64 @@ const ClientCard = ({ client, handleCancel }) => {
     password: "", // no traerla
   }
 
-  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, reset, setValue } = useForm({
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, reset, setValue, trigger } = useForm({
     resolver: zodResolver(clientSchema),
     defaultValues: client ? cleanClient : defaultValues,
     mode: "onChange",
   })
+
+  const isSaving = isSubmitting || addClientMutation.isPending || updateClientMutation.isPending
 
   const typeValue = useWatch({
     control,
     name: "type",
   })
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     if (!data.id) {
       data.id = data.type === "INDIVIDUAL" ? data.dni : data.ruc
     }
 
-    if (client) {
-      updateClientMutation.mutateAsync(data)
-    } else {
-      addClientMutation.mutateAsync(data)
+    try {
+      if (client) {
+        await updateClientMutation.mutateAsync(data)
+      } else {
+        await addClientMutation.mutateAsync(data)
+      }
+      handleCancel() // Solo se ejecuta si la mutación fue exitosa
+    } catch (error) {
+      // Ya estás mostrando el toast de error dentro del hook
+      // Aquí podrías hacer algo adicional si quieres
+      console.error("Error al guardar el usuario", error)
     }
-    handleCancel()
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+      <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        {isSaving && <LoadingOverlay />}
+
         <h3 className="text-lg font-semibold mb-4">{client ? "Modificar Cliente" : "Agregar Nuevo Cliente"}</h3>
 
         <Stepper
           steps={steps}
           controlledStep={step}
-          onStepChange={(newStep) => setStep(newStep)}
+          onStepChange={async (newStep) => {
+            const fieldsToValidate = {
+              1: ["type", "dni", "ruc", "name"],
+              2: ["email", "phone", "address", "password"],
+              3: ["contactPersonName", "contactPersonPhone", "notes"],
+            }
+
+            const currentFields = fieldsToValidate[step]
+            const isValidStep = await trigger(currentFields)
+
+            if (isValidStep) {
+              setStep(newStep)
+            } else {
+              console.log("❌ Errores en el paso actual:", errors)
+            }
+          }}
         />
 
         {step === 1 && (
@@ -144,7 +170,7 @@ const ClientCard = ({ client, handleCancel }) => {
                 name="type"
                 control={control}
                 render={({ field }) => (
-                  <select {...field} className="mb-4 w-full p-2 border rounded dark:bg-text-dark dark:text-text-light">
+                  <select {...field} className="mb-4 w-full p-2 border rounded-sm dark:bg-text-dark dark:text-text-light" disabled={Boolean(client)}>
                     <option value="INDIVIDUAL">Individual</option>
                     <option value="COMPANY">Empresa</option>
                   </select>
@@ -377,7 +403,7 @@ const ClientCard = ({ client, handleCancel }) => {
                 <textarea
                   {...field}
                   placeholder="Notas (opcional)"
-                  className="mb-4 w-full p-2 border rounded appearance-none dark:bg-background-dark dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary resize-none"
+                  className="mb-4 w-full p-2 border rounded-sm appearance-none dark:bg-background-dark dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary resize-none"
                   rows={3}
                 />
               )}
@@ -394,14 +420,18 @@ const ClientCard = ({ client, handleCancel }) => {
           />
 
           <div className="space-x-2">
-            <Button onClick={handleCancel}>Cancelar</Button>
-            <Button
-              type="submit"
-              className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-              disabled={!isValid || isSubmitting} // Deshabilitar el botón si el formulario no es válido
-            >
-              {isSubmitting ? (client ? "Guardando..." : "Agregando...") : (client ? "Guardar" : "Agregar")}
-            </Button>
+            <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
+            {step === steps.length && (
+              <Button
+                type="submit"
+                className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
+                disabled={!isValid || isSaving} // Deshabilitar el botón si el formulario no es válido
+              >
+                {isSaving
+                  ? client ? "Guardando..." : "Agregando..."
+                  : client ? "Guardar" : "Agregar"}
+              </Button>
+            )}
           </div>
         </div>
       </form>

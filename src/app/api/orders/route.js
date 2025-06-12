@@ -183,7 +183,10 @@ export async function GET(req) {
       }
     }
 
+    const excludeDeleted = !(status === 'DELETED')
+
     const whereClause = {
+      ...(excludeDeleted && { deletedAt: null }),
       ...(status && { status }),
       ...(clientId && { clientId }),
       ...(workerDni && {
@@ -233,13 +236,21 @@ export async function GET(req) {
                 lastName: true
               }
             }
-          }
+          },
+          where: {
+            user: {
+              deletedAt: null,
+            },
+          },
         },
         services: {
           select: {
             id: true,
             name: true
-          }
+          },
+          where: {
+            deletedAt: null,
+          },
         }
       }
     })
@@ -285,7 +296,7 @@ export async function POST(req) {
       }
     }
 
-    const validStatuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'FAILED']
+    const validStatuses = ['PENDING', 'AWAITING_APPROVAL']
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: 'Estado de orden no válido' }, { status: 400 })
     }
@@ -357,7 +368,7 @@ export async function POST(req) {
         userId: dni,
         type: 'ASSIGNMENT_UPDATE',
         title: 'Nueva orden asignada',
-        message: `Has sido asignado a la orden #${newOrder.id}`,
+        message: `Has sido asignado a la orden N° ${newOrder.id}`,
       })),
     })
 
@@ -405,6 +416,21 @@ export async function PUT(req) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
     }
 
+    const validStatuses = [
+      'PENDING',
+      'AWAITING_APPROVAL',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED',
+      'ON_HOLD',
+      'FAILED',
+      'DELETED',
+    ]
+
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Estado de orden no válido' }, { status: 400 })
+    }
+
     const client = await prisma.client.findUnique({ where: { id: clientId } })
     if (!client) {
       return NextResponse.json({ error: 'Cliente no válido' }, { status: 400 })
@@ -419,10 +445,11 @@ export async function PUT(req) {
       where: {
         dni: { in: workers },
         role: { name: 'TECHNICIAN' },
+        status: 'ACTIVE',
       },
     })
     if (validWorkers.length !== workers.length) {
-      return NextResponse.json({ error: 'Uno o más técnicos no son válidos' }, { status: 400 })
+      return NextResponse.json({ error: 'Uno o más técnicos no son válidos o están inactivos' }, { status: 400 })
     }
 
     if (responsibleId) {
@@ -440,30 +467,42 @@ export async function PUT(req) {
       }
     }
 
-    let parsedScheduledDate, parsedEndDate
-    if (scheduledDate) {
-      parsedScheduledDate = new Date(scheduledDate)
-      if (isNaN(parsedScheduledDate)) {
-        return NextResponse.json({ error: 'scheduledDate inválida' }, { status: 400 })
-      }
+    const parsedScheduledDate = scheduledDate ? new Date(scheduledDate) : undefined
+    const parsedEndDate = endDate ? new Date(endDate) : undefined
+
+    if (parsedScheduledDate && isNaN(parsedScheduledDate.getTime())) {
+      return NextResponse.json({ error: 'scheduledDate inválida' }, { status: 400 })
     }
 
-    if (endDate) {
-      parsedEndDate = new Date(endDate)
-      if (isNaN(parsedEndDate)) {
-        return NextResponse.json({ error: 'endDate inválida' }, { status: 400 })
-      }
-      if (parsedScheduledDate && parsedEndDate <= parsedScheduledDate) {
-        return NextResponse.json({
-          error: 'endDate debe ser posterior a scheduledDate',
-        }, { status: 400 })
-      }
+    if (parsedEndDate && isNaN(parsedEndDate.getTime())) {
+      return NextResponse.json({ error: 'endDate inválida' }, { status: 400 })
+    }
+
+    if (parsedScheduledDate && parsedEndDate && parsedEndDate <= parsedScheduledDate) {
+      return NextResponse.json({ error: 'endDate debe ser posterior a scheduledDate' }, { status: 400 })
     }
 
     const decoded = await verifyJWT(req)
-    if (!decoded || decoded?.error) return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    if (!decoded || decoded?.error) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    }
 
     const updatedBy = decoded.dni
+
+    if (status === "PENDING") {
+      const visitCount = await prisma.visit.count({
+        where: {
+          orderId: id,
+          deletedAt: null, // solo visitas no eliminadas
+        },
+      })
+
+      if (visitCount > 0) {
+        return NextResponse.json({
+          error: 'No se puede volver a PENDING una orden con visitas registradas',
+        }, { status: 400 })
+      }
+    }
 
     const updatedOrder = await prisma.order.update({
       where: { id },
@@ -566,16 +605,35 @@ export async function DELETE(req) {
 
     const { id } = await req.json()
 
-    const order = await prisma.order.findUnique({ where: { id } })
-    if (!order) {
-      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
+    const existingOrder = await prisma.order.findUnique({ where: { id } })
+
+    if (!existingOrder || existingOrder.deletedAt !== null) {
+      return NextResponse.json({ error: 'Orden no encontrada o ya eliminada' }, {
+        status: 404,
+      })
     }
 
-    await prisma.orderWorker.deleteMany({ where: { orderId: id } })
+    const decoded = await verifyJWT(req)
+    if (!decoded || decoded?.error) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    }
 
-    const deletedOrder = await prisma.order.delete({ where: { id } })
+    await prisma.orderWorker.updateMany({
+      where: { orderId: id },
+      data: { status: 'REASSIGNED' }, // también podrías usar 'CANCELLED' o 'DECLINED'
+    })
 
-    return NextResponse.json({ message: 'Orden eliminada con éxito', deletedOrder }, { status: 200 })
+    // Soft delete: actualiza el estado y la fecha de eliminación
+    const deletedOrder = await prisma.order.update({
+      where: { id },
+      data: {
+        status: 'DELETED',
+        deletedAt: new Date(),
+        updatedBy: decoded.dni,
+      },
+    })
+
+    return NextResponse.json({ message: 'Orden eliminada correctamente', deletedOrder }, { status: 200 })
   } catch (error) {
     if (error.message?.includes('CSRF')) {
       return NextResponse.json({ error: error.message }, { status: 403 })

@@ -38,12 +38,12 @@ const BirthdayCelebration = () => {
   return (
     <div
       onClick={() => setIsVisible(false)}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 text-white cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 text-white cursor-pointer"
     >
       <Confetti width={windowSize.width} height={windowSize.height} />
       <div className="text-center px-6">
         <h1 className="text-5xl sm:text-6xl font-bold mb-4 animate-bounce">
-          🎂 ¡Feliz cumpleaños!
+          <span className='block sm:inline'>🎂</span> ¡Feliz cumpleaños!
         </h1>
         <p className="text-xl">Te deseamos un día lleno de alegría y confeti 🎉</p>
       </div>

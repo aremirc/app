@@ -12,9 +12,10 @@ export async function GET(req, { params }) {
 
   try {
     // Obtener los detalles del servicio por ID
-    const service = await prisma.service.findUnique({
+    const service = await prisma.service.findFirst({
       where: {
         id: parseInt(id),  // Asegúrate de convertir el `id` a entero si es necesario
+        deletedAt: null,
       },
     })
 

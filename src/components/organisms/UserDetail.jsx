@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import api from "@/lib/axios"
 import LoadingSpinner from "../atoms/LoadingSpinner"
-import { Pencil, Trash2, MessageSquare, Cake } from "lucide-react"
+import { Pencil, Cake } from "lucide-react"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 import VisitList from "./VisitList"
@@ -52,13 +52,18 @@ const UserDetail = ({ userId }) => {
       {/* Sección superior */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Perfil */}
-        <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row gap-12">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4" /></Button>
-          <div className="rounded-lg p-7 bg-primary">
+        <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row items-center gap-8 xl:gap-12">
+          <Button size="sm" variant="outline" className="absolute top-2 right-2">
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <div className="rounded-lg p-7 bg-primary aspect-square w-full max-w-[224px] flex-shrink-0">
             <img
-              src={user.avatarUrl || "/default-avatar.webp"}
+              src={user.avatar || "/default-avatar.webp"}
               alt={user.username}
-              className="w-full sm:w-56 h-56 rounded-lg object-cover border shadow"
+              className="w-full h-full rounded-lg object-cover border shadow-sm"
+              onError={(e) => {
+                e.target.src = "/default-avatar.webp"
+              }}
             />
           </div>
           <div className="flex-1 flex flex-col justify-center">
@@ -85,7 +90,7 @@ const UserDetail = ({ userId }) => {
           <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4 mr-1" /></Button>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {user.availability?.map((day, index) => (
-              <div key={index} className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-sm bg-background-muted dark:bg-background-muted-dark text-center">
+              <div key={index} className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-xs bg-background-muted dark:bg-background-muted-dark text-center">
                 <p className="font-medium text-indigo-600 dark:text-indigo-400">{day.day}</p>
                 <p className="text-sm text-gray-700 dark:text-gray-300">{new Date(day.startDate).toLocaleDateString()} - {new Date(day.endDate).toLocaleDateString()}</p>
               </div>

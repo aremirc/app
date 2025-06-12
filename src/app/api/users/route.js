@@ -47,6 +47,7 @@ export async function GET(req) {
     const statusParam = searchParams.get('status') // 'ACTIVE', 'INACTIVE', etc.
 
     const whereClause = {
+      deletedAt: null,
       ...(roleParam && {
         role: {
           name: roleParam.toUpperCase(),
@@ -269,20 +270,18 @@ export async function DELETE(req) {
       include: { role: true },
     })
 
-    if (!userToDelete) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    if (!userToDelete || userToDelete.deletedAt !== null) {
+      return NextResponse.json({ error: 'Usuario no encontrado o ya eliminado' }, {
+        status: 404,
+      })
     }
-
-    if (userToDelete.status === 'INACTIVE') {
-      return NextResponse.json({ error: 'El usuario ya está desactivado' }, { status: 400 })
-    }
-
-    const isAdmin = userToDelete.role.name === 'ADMIN'
 
     // ❌ Evitar que un admin se desactive a sí mismo
     if (dni === currentUser?.dni) {
       return NextResponse.json({ error: 'No puedes desactivarte a ti mismo' }, { status: 403 })
     }
+
+    const isAdmin = userToDelete.role.name === 'ADMIN'
 
     if (isAdmin) {
       const activeAdminsCount = await prisma.user.count({
@@ -311,7 +310,7 @@ export async function DELETE(req) {
       },
     })
 
-    return NextResponse.json({ message: 'Usuario desactivado correctamente' }, { status: 200 })
+    return NextResponse.json({ message: 'Usuario eliminado correctamente' }, { status: 200 })
   } catch (error) {
     if (error.message?.includes('CSRF')) {
       return NextResponse.json({ error: error.message }, { status: 403 })

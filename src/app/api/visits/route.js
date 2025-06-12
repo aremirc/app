@@ -26,9 +26,13 @@ export async function GET(req) {
     const userDni = decoded.dni
 
     const whereClause = {
+      deletedAt: null,
       user: {
         status: 'ACTIVE',
       },
+      order: {
+        deletedAt: null,
+      }
     }
 
     // Si el usuario es TECHNICIAN, ver solo sus propias visitas
@@ -220,6 +224,18 @@ export async function POST(req) {
       },
     })
 
+    if (order.status === "IN_PROGRESS") {
+      await prisma.orderWorker.updateMany({
+        where: {
+          orderId,
+          status: "ASSIGNED"
+        },
+        data: {
+          status: "IN_PROGRESS"
+        }
+      })
+    }
+
     // Revisar si esta es la primera visita
     const existingVisits = await prisma.visit.count({
       where: { orderId }
@@ -227,7 +243,6 @@ export async function POST(req) {
 
     if (order.status === "PENDING" && existingVisits === 1) {
       await prisma.$transaction([
-        // Actualizar estado de la orden
         prisma.order.update({
           where: { id: orderId },
           data: { status: "IN_PROGRESS" }
@@ -372,6 +387,7 @@ export async function DELETE(req) {
     const authResponse = await verifyAndLimit(req)
     if (authResponse) return authResponse
 
+    const currentUser = await verifyJWT(req)
     const { id } = await req.json()
 
     if (!id) {
@@ -379,17 +395,27 @@ export async function DELETE(req) {
     }
 
     const visit = await prisma.visit.findUnique({ where: { id } })
-    if (!visit) {
-      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 })
+
+    if (!visit || visit.deletedAt !== null) {
+      return NextResponse.json({ error: 'Visita no encontrada o ya eliminada' }, { status: 404 })
     }
 
     await prisma.$transaction(async (tx) => {
-      // Eliminar la visita
-      await tx.visit.delete({ where: { id } })
+      // Soft delete: marcar deletedAt y deletedBy
+      await tx.visit.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: currentUser?.dni || 'system',
+        },
+      })
 
-      // Verificar si quedan visitas en la orden
+      // Verificar si quedan visitas no eliminadas en la orden
       const remainingVisits = await tx.visit.count({
-        where: { orderId: visit.orderId }
+        where: {
+          orderId: visit.orderId,
+          deletedAt: null,
+        },
       })
 
       if (remainingVisits === 0) {
@@ -419,7 +445,7 @@ export async function DELETE(req) {
       }
     })
 
-    return NextResponse.json({ message: 'Visita eliminada' }, { status: 200 })
+    return NextResponse.json({ message: 'Visita eliminada correctamente' }, { status: 200 })
   } catch (error) {
     if (error.message?.includes('CSRF')) {
       return NextResponse.json({ error: error.message }, { status: 403 })

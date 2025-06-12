@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import api from "@/lib/axios"
 import LoadingSpinner from "../atoms/LoadingSpinner"
-import { Pencil, Trash2, MessageSquare } from "lucide-react"
+import { Pencil } from "lucide-react"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 import VisitList from "./VisitList"
@@ -49,23 +49,31 @@ const ClientDetail = ({ clientId }) => {
       {/* Sección superior */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Perfil */}
-        <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row gap-12">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4" /></Button>
-          <div className="rounded-lg p-7 bg-primary">
+        <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row items-center gap-8 xl:gap-12">
+          <Button size="sm" variant="outline" className="absolute top-2 right-2">
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <div className="rounded-lg p-7 bg-primary aspect-square w-full max-w-[224px] flex-shrink-0">
             <img
-              src={client.avatarUrl || "/default-avatar.webp"}
+              src={client.logo || "/globe.svg"}
               alt={client.name}
-              className="w-full sm:w-56 h-56 rounded-lg object-cover border shadow"
+              className="w-full h-full rounded-lg object-cover border shadow-sm"
+              onError={(e) => {
+                e.target.src = "/globe.svg"
+              }}
             />
           </div>
           <div className="flex-1 flex flex-col justify-center">
-            <div className="flex flex-col justify-center items-center mb-10">
+            <div className="flex flex-col justify-center items-center mb-5 xl:mb-10">
               <h2 className="text-2xl font-semibold text-primary dark:text-white ">{client.name}</h2>
               <p>Cliente</p>
             </div>
-            <div className="grid sm:grid-cols-2 gap-5 gap-x-20">
+            <div className="grid sm:grid-cols-2 gap-5 md:gap-x-12 xl:gap-x-20">
               <p className="text-primary dark:text-primary-dark">Nombre completo <br /> <span className="text-gray-600  dark:text-gray-300">{client.name}</span></p>
-              <p className="text-primary dark:text-primary-dark">N° DNI <br /> <span className="text-gray-600  dark:text-gray-300">{client.dni}</span></p>
+              <p className="text-primary dark:text-primary-dark">
+                {client.type === "COMPANY" ? "N° RUC" : "N° DNI"} <br />
+                <span className="text-gray-600 dark:text-gray-300">{client.id}</span>
+              </p>
               <p className="text-primary dark:text-primary-dark">Teléfono <br /> <span className="text-gray-600  dark:text-gray-300">{client.phone}</span></p>
               <p className="text-primary dark:text-primary-dark">Dirección <br /> <span className="text-gray-600  dark:text-gray-300">{client.address}</span></p>
               <p className="text-primary dark:text-primary-dark">Correo <br /> <span className="text-gray-600  dark:text-gray-300">{client.email}</span></p>
@@ -79,7 +87,7 @@ const ClientDetail = ({ clientId }) => {
           <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4 mr-1" /></Button>
           <div className="grid grid-cols-2 gap-4">
             {client.orders?.map((order, index) => (
-              <div key={index} className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-sm bg-background-muted dark:bg-background-muted-dark text-center">
+              <div key={index} className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-xs bg-background-muted dark:bg-background-muted-dark text-center">
                 <p className="font-medium text-primary dark:text-primary-dark">N° {String(order.id).padStart(3, '0')}</p>
                 <p className="text-sm text-gray-700 dark:text-gray-300">{order.status}</p>
               </div>

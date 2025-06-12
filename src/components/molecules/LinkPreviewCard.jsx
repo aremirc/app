@@ -13,9 +13,9 @@ const LinkPreviewCard = ({ card }) => {
       {isLoading ? (
         <div className="relative overflow-hidden rounded-md p-4">
           <div className="h-32 bg-gray-300 dark:bg-gray-600 mb-2 rounded-md" />
-          <div className="h-4 bg-gray-300 dark:bg-gray-600 w-3/4 mb-1 rounded" />
-          <div className="h-4 bg-gray-300 dark:bg-gray-600 w-1/2 rounded" />
-          <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-white/20" style={{ transform: 'translateX(-100%)' }} />
+          <div className="h-4 bg-gray-300 dark:bg-gray-600 w-3/4 mb-1 rounded-sm" />
+          <div className="h-4 bg-gray-300 dark:bg-gray-600 w-1/2 rounded-sm" />
+          <div className="absolute inset-0 animate-shimmer bg-linear-to-r from-transparent via-white/60 to-transparent dark:via-white/20" style={{ transform: 'translateX(-100%)' }} />
         </div>
       ) : (
         <>

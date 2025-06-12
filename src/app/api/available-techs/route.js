@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { verifyAndLimit } from '@/lib/permissions'
 
 export async function GET(req) {
+  const authResponse = await verifyAndLimit(req, 'ADMIN')
+  if (authResponse) return authResponse
+
   const { searchParams } = new URL(req.url)
   const scheduledDate = searchParams.get("scheduledDate")
   const endDate = searchParams.get("endDate")
@@ -22,6 +26,7 @@ export async function GET(req) {
     const technicians = await prisma.user.findMany({
       where: {
         status: "ACTIVE",
+        deletedAt: null,
         role: {
           name: "TECHNICIAN",
         },
@@ -33,13 +38,14 @@ export async function GET(req) {
       },
     })
 
-    // Obtener órdenes que se solapan con rango y están activas o en progreso
+    // Obtener órdenes con solapamiento en el rango y estados válidos
     const orders = await prisma.order.findMany({
       where: {
         AND: [
           { scheduledDate: { lte: end } },
           { endDate: { gte: start } },
           { status: { in: ["PENDING", "IN_PROGRESS"] } },
+          { deletedAt: null },
         ],
       },
       include: {

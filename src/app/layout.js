@@ -1,10 +1,12 @@
 import localFont from "next/font/local"
 import "@/app/globals.css"
+import { metadata, viewport, themeColor } from './metadata'
 import { Inter } from "next/font/google"
 import { AuthProvider } from "@/context/AuthContext"
-import { SocketProvider } from "@/context/SocketContext"
 import AuthWrapper from "@/components/AuthWrapper"
 import { Toaster } from "sonner"
+
+export { metadata, viewport, themeColor }
 
 // Cargando las fuentes locales
 const geistSans = localFont({
@@ -22,26 +24,19 @@ const geistMono = localFont({
 // Cargando la fuente de Google
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "Next App",
-  description: "App protegida con rutas públicas y privadas",
-}
-
 export default function RootLayout({ children }) {
   return (
-    <SocketProvider>
-      <html lang="es">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} ${inter.className} antialiased`}
-        >
-          <AuthProvider>
-            <AuthWrapper>
-              <Toaster />
-              {children}
-            </AuthWrapper>
-          </AuthProvider>
-        </body>
-      </html>
-    </SocketProvider>
+    <html lang="es">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.className} antialiased`}
+      >
+        <AuthProvider>
+          <AuthWrapper>
+            <Toaster />
+            {children}
+          </AuthWrapper>
+        </AuthProvider>
+      </body>
+    </html>
   )
 }

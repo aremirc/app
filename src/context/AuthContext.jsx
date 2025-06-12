@@ -1,9 +1,10 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import api from '@/lib/axios' // Instancia personalizada de Axios
 import { useRouter } from 'next/navigation'
+import queryClient from '@/lib/queryClient'
 import { toast } from 'sonner'
+import api from '@/lib/axios' // Instancia personalizada de Axios
 
 const AuthContext = createContext()
 
@@ -148,6 +149,9 @@ export const AuthProvider = ({ children }) => {
     // Elimina los datos almacenados en localStorage
     localStorage.removeItem('startTime') // Si solo quieres eliminar un ítem específico
     // localStorage.clear() // Si quieres eliminar todo el contenido del localStorage
+
+    // 🧹 Limpia todos los datos cacheados por React Query
+    queryClient.clear()
 
     setUser(null)
     setIsAuthenticated(false)

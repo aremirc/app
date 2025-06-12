@@ -56,12 +56,21 @@ const VisitPanel = () => {
   }
 
   // Filtrar las visitas por la fecha con el debounce
-  const filteredVisits = visits.filter((visit) =>
-    visit.date.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredVisits = visits.filter(visit =>
+    [
+      visit.id,
+      visit.date,
+      visit.description,
+      visit.orderId,
+      visit.client?.name,
+      `${visit.user?.firstName} ${visit.user?.lastName}`
+    ].some(value =>
+      String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    )
   )
 
   return (
-    <DashboardGrid>
+    <DashboardGrid className="flex-1">
       <Card>
         <div className="flex flex-col gap-4 mb-3">
           <div className="flex items-center gap-6">
@@ -83,6 +92,8 @@ const VisitPanel = () => {
           <p>Cargando...</p>
         ) : error ? (
           <p>{error.message}</p>
+        ) : filteredVisits.length === 0 ? (
+          <p className="text-center text-text-light dark:text-text-dark">No hay visitas registradas.</p>
         ) : (
           <Table
             headers={headers}
@@ -93,6 +104,7 @@ const VisitPanel = () => {
             }))}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            searchTerm={searchTerm}
           />
         )}
       </Card>
@@ -105,7 +117,7 @@ const VisitPanel = () => {
       )}
 
       {isDeleteConfirmationOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
           <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow-lg max-w-sm w-full">
             <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
               ¿Estás seguro de que deseas eliminar esta visita: <strong>{selectedVisit.description}</strong>?

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -8,7 +9,7 @@ import Input from "../atoms/Input"
 import Button from "../atoms/Button"
 import Stepper from "../organisms/Stepper"
 import StepNavigation from "../organisms/StepNavigation"
-import { useState } from "react"
+import LoadingOverlay from "../atoms/LoadingOverlay"
 
 const steps = [
   { id: 1, title: "Datos" },
@@ -43,7 +44,7 @@ const userSchema = z.object({
   country: z.string().optional(),
   address: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_VERIFICATION"]).default("ACTIVE"),
-  username: z.string().min(3, "El nombre de usuario es obligatorio"),
+  username: z.string().min(3, "Por favor, ingresa al menos 3 caracteres."),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres")
     .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
     .regex(/\d/, "Debe contener al menos un número")
@@ -119,35 +120,71 @@ const UserCard = ({ user, handleCancel }) => {
   const [step, setStep] = useState(1)
   const { addUserMutation, updateUserMutation } = useUsers()
 
-  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset } = useForm({
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset, trigger } = useForm({
     resolver: zodResolver(!!user ? editUserSchema : createUserSchema),
     defaultValues: user ? { ...user, birthDate: user?.birthDate ? new Date(user.birthDate).toISOString().split("T")[0] : "", password: '' } : defaultValues,
     mode: "onChange",
   })
+
+  const isSaving = addUserMutation.isPending || updateUserMutation.isPending || isSubmitting
+
+  const emailValue = watch("email")
+
+  useEffect(() => {
+    if (!user && emailValue) {
+      const [localPart] = emailValue.split("@")
+      if (localPart && /^[a-zA-Z0-9._-]+$/.test(localPart)) {
+        setValue("username", localPart)
+      }
+    }
+  }, [emailValue, user, setValue])
 
   const { data: roles = [], isLoading: rolesLoading, isError: rolesError } = useQuery({
     queryKey: ["roles"],
     queryFn: fetchRoles
   })
 
-  const onSubmit = (data) => {
-    if (user) {
-      updateUserMutation.mutateAsync(data)
-    } else {
-      addUserMutation.mutateAsync(data)
+  const onSubmit = async (data) => {
+    try {
+      if (user) {
+        await updateUserMutation.mutateAsync(data)
+      } else {
+        await addUserMutation.mutateAsync(data)
+      }
+      handleCancel() // Solo se ejecuta si la mutación fue exitosa
+    } catch (error) {
+      // Ya estás mostrando el toast de error dentro del hook
+      // Aquí podrías hacer algo adicional si quieres
+      console.error("Error al guardar el usuario", error)
     }
-    handleCancel()
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+      <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        {isSaving && <LoadingOverlay />}
+
         <h3 className="text-lg font-semibold mb-4">{user ? 'Modificar Usuario' : 'Agregar Nuevo Usuario'}</h3>
 
         <Stepper
           steps={steps}
           controlledStep={step}
-          onStepChange={(newStep) => setStep(newStep)}
+          onStepChange={async (newStep) => {
+            const fieldsToValidate = {
+              1: ["dni", "firstName", "lastName", "gender", "birthDate"],
+              2: ["phone", "email", "country", "address"],
+              3: ["username", "password", "roleId"],
+            }
+
+            const currentFields = fieldsToValidate[step]
+            const isValidStep = await trigger(currentFields)
+
+            if (isValidStep) {
+              setStep(newStep)
+            } else {
+              console.log("❌ Errores en el paso actual:", errors)
+            }
+          }}
         />
 
         {step === 1 && (
@@ -219,7 +256,7 @@ const UserCard = ({ user, handleCancel }) => {
                   <select
                     {...field}
                     id="gender"
-                    className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.gender ? "border-red-500" : ""}`}
+                    className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.gender ? "border-red-500" : ""}`}
                   >
                     <option value="" disabled>Seleccione</option>
                     <option value="MALE">Masculino</option>
@@ -234,7 +271,12 @@ const UserCard = ({ user, handleCancel }) => {
               name="birthDate"
               control={control}
               render={({ field }) => {
-                const today = new Date().toISOString().split("T")[0] // YYYY-MM-DD
+                const today = new Date();
+                const maxDate = today.toISOString().split("T")[0]; // Fecha actual: YYYY-MM-DD
+                const minDate = new Date(today.getFullYear() - 75, today.getMonth(), today.getDate())
+                  .toISOString()
+                  .split("T")[0]; // Fecha mínima permitida: hoy - 75 años
+
                 return (
                   <div className="mb-4">
                     <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">Fecha de nacimiento</label>
@@ -243,9 +285,10 @@ const UserCard = ({ user, handleCancel }) => {
                       {...field}
                       type="date"
                       id="birthDate"
-                      max={today}
+                      min={minDate} // <-- aquí limitas a que tenga máximo 75 años
+                      max={maxDate}
                       placeholder="Fecha de nacimiento"
-                      className={`shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark dark:text-text-dark ${errors.birthDate ? "border-red-500" : ""
+                      className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark dark:text-text-dark ${errors.birthDate ? "border-red-500" : ""
                         }`}
                     />
                   </div>
@@ -288,6 +331,7 @@ const UserCard = ({ user, handleCancel }) => {
                   {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
                   <Input
                     {...field}
+                    type="email"
                     placeholder="Correo electrónico"
                     className={`mb-4 ${errors.email ? "border-red-500" : ""}`}
                   />
@@ -386,7 +430,7 @@ const UserCard = ({ user, handleCancel }) => {
                   <select
                     id="roleId"
                     {...field}
-                    className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.roleId ? "border-red-500" : ""}`}
+                    className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.roleId ? "border-red-500" : ""}`}
                     disabled={rolesLoading || rolesError} // Deshabilitar solo si hay error o carga
                     onChange={(e) => {
                       // Convertir el valor seleccionado a número
@@ -430,7 +474,7 @@ const UserCard = ({ user, handleCancel }) => {
                             setValue("isVerified", false)
                           }
                         }}
-                        className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.status ? 'border-red-500' : ''}`}
+                        className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.status ? 'border-red-500' : ''}`}
                         disabled={!user}
                       >
                         <option value="ACTIVE">Activo</option>
@@ -493,7 +537,7 @@ const UserCard = ({ user, handleCancel }) => {
                             const file = e.target.files?.[0]
                             field.onChange(file)
                           }}
-                          className={`mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark dark:text-text-dark dark:bg-background-dark ${errors.avatar ? "border-red-500" : ""}`}
+                          className={`mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark dark:text-text-dark dark:bg-background-dark ${errors.avatar ? "border-red-500" : ""}`}
                           required={false}
                         />
 
@@ -560,14 +604,18 @@ const UserCard = ({ user, handleCancel }) => {
           />
 
           <div className="space-x-2">
-            <Button onClick={handleCancel}>Cancelar</Button>
-            <Button
-              type="submit"
-              className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-              disabled={isSubmitting || !isValid}
-            >
-              {isSubmitting ? (user ? "Guardando..." : "Agregando...") : (user ? "Guardar" : "Agregar")}
-            </Button>
+            <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
+            {step === steps.length && (
+              <Button
+                type="submit"
+                className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
+                disabled={isSaving || !isValid}
+              >
+                {isSaving
+                  ? user ? "Guardando..." : "Agregando..."
+                  : user ? "Guardar" : "Agregar"}
+              </Button>
+            )}
           </div>
         </div>
       </form>

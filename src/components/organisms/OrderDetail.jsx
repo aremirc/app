@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { FileText, MapPin, Plus, Tag } from "lucide-react"
 import api from "@/lib/axios"
-import { FileText, Pencil, Trash2, MessageSquare, MapPin, Plus, Tag, Cake, ShieldCheck } from "lucide-react"
-import LoadingSpinner from "../atoms/LoadingSpinner"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 import VisitList from "./VisitList"
+import WorkerCard from "../molecules/WorkerCard"
+import LoadingSpinner from "../atoms/LoadingSpinner"
 
 const OrderDetail = ({ orderId }) => {
   const [order, setOrder] = useState(null)  // Estado para la orden
@@ -30,15 +31,6 @@ const OrderDetail = ({ orderId }) => {
     fetchOrder()  // Llamamos a la función para obtener la orden
   }, [orderId])  // Dependencia para que se ejecute cuando cambie el `orderId`
 
-  const isBirthday = (birthDateStr) => {
-    if (!birthDateStr) return false
-
-    const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
-    const today = new Date()
-
-    return today.getDate() === day && today.getMonth() === month - 1
-  }
-
   // Mostrar "loading" mientras se obtiene la orden
   if (loading) return <LoadingSpinner />
 
@@ -51,7 +43,7 @@ const OrderDetail = ({ orderId }) => {
   return (
     <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="col-span-1 xl:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="col-span-2 flex flex-col justify-between text-white bg-gradient-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
+        <div className="col-span-2 flex flex-col justify-between text-white bg-linear-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
           <p className="text-sm">N° Orden: {String(order.id).padStart(3, '0')}</p>
           <div>
             <h2 className="text-2xl font-semibold">{order.client?.name}</h2>
@@ -64,58 +56,8 @@ const OrderDetail = ({ orderId }) => {
           </div>
         </div>
 
-        {/* Aquí podrías incluir los empleados asignados si los tienes en order */}
-        <Card className="relative flex items-center justify-center">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4" /></Button>
-          {order.workers?.[0] ? (
-            <>
-              {isBirthday(order.workers[0].user.birthDate) && (
-                <Cake className="absolute top-2 left-2 w-5 h-5 text-pink-500 animate-bounce" title="¡Feliz cumpleaños!" />
-              )}
-
-              {order.workers[0].isResponsible && (
-                <ShieldCheck
-                  className="absolute bottom-2 left-2 w-5 h-5 text-green-600"
-                  title="Responsable asignado"
-                />
-              )}
-
-              <div className="flex flex-col items-center">
-                <img src={order.workers[0].user.avatar || '/default-avatar.webp'} className="w-16 h-16 object-cover rounded-full border" alt={order.workers[0].user.firstName} onError={(e) => { e.target.src = "/default-avatar.webp" }} />
-                <p className="text-teal-700 font-medium">{order.workers[0].user.firstName} {order.workers[0].user.lastName}</p>
-                <p className="text-sm text-gray-500">Empleado</p>
-              </div>
-            </>
-          ) : (
-            <div className="w-16 h-16 rounded-full border bg-gray-100" />
-          )}
-        </Card>
-
-        <Card className="relative flex items-center justify-center">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4" /></Button>
-          {order.workers?.[1] ? (
-            <>
-              {isBirthday(order.workers[1].user.birthDate) && (
-                <Cake className="absolute top-2 left-2 w-5 h-5 text-pink-500 animate-bounce" title="¡Feliz cumpleaños!" />
-              )}
-
-              {order.workers[1].isResponsible && (
-                <ShieldCheck
-                  className="absolute bottom-2 left-2 w-5 h-5 text-green-600"
-                  title="Responsable asignado"
-                />
-              )}
-
-              <div className="flex flex-col items-center">
-                <img src={order.workers[1].user.avatar || '/default-avatar.webp'} className="w-16 h-16 object-cover rounded-full border" alt={order.workers[1].user.firstName} onError={(e) => { e.target.src = "/default-avatar.webp" }} />
-                <p className="text-teal-700 font-medium">{order.workers[1].user.firstName} {order.workers[1].user.lastName}</p>
-                <p className="text-sm text-gray-500">Empleado</p>
-              </div>
-            </>
-          ) : (
-            <div className="w-16 h-16 rounded-full border bg-gray-100" />
-          )}
-        </Card>
+        <WorkerCard worker={order.workers?.[0]} />
+        <WorkerCard worker={order.workers?.[1]} />
 
         <Card title="Ubicación" className={`p-8 col-span-2 ${!order.conformity && 'md:col-span-4'}`}>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -164,7 +106,7 @@ const OrderDetail = ({ orderId }) => {
             {order.conformity.signature && (
               <div>
                 <p className="font-medium">Firma:</p>
-                <img src={order.conformity.signature} alt="Firma del cliente" className="w-48 border rounded mt-1" />
+                <img src={order.conformity.signature} alt="Firma del cliente" className="w-48 border rounded-sm mt-1" />
               </div>
             )}
 
@@ -267,7 +209,6 @@ const OrderDetail = ({ orderId }) => {
         )}
       </Card>
 
-      {/* Visitas realizadas */}
       <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
         <Button
           size="sm"

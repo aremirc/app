@@ -58,7 +58,9 @@ const UserList = () => {
         <Badge count={user.notifications.length} />
       </div>
       <div className="flex flex-col justify-center">
-        <h4 className="text-md">{user.firstName} {user.lastName}</h4>
+        <h4 className="text-md">
+          {user.firstName?.split(" ")[0]} {user.lastName?.split(" ")[0]}
+        </h4>
         <p className="text-xs text-text-dark">{user.role.name}</p>
       </div>
 

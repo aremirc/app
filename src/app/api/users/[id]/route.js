@@ -12,15 +12,20 @@ export async function GET(req, { params }) {
 
   try {
     // Obtener los detalles del usuario por dni
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: {
         dni: id,  // Buscamos por el DNI
+        deletedAt: null,
       },
       include: {
         role: true,  // Incluir el rol asociado
-        visits: true,
+        visits: {
+          where: { deletedAt: null }, // solo visitas activas
+        },
         availability: true,
-        managedOrders: true,
+        managedOrders: {
+          where: { deletedAt: null }, // solo órdenes activas
+        },
         orderWorkers: true,
         notifications: true,
       },

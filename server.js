@@ -35,14 +35,26 @@ app.prepare().then(() => {
   // Crear instancia de Socket.io
   const io = new Server(server, {
     cors: {
-      origin: (dev ? '*' : (origin, callback) => {
-        // Validación de CORS para WebSocket
-        if (origin === undefined || origin === req.headers.origin || dev) {
-          callback(null, true)
-        } else {
-          callback(new Error('Origen no permitido'), false)
+      // Validación de CORS para WebSocket
+      origin: (origin, callback) => {
+        // Permitir sin origin (algunas apps como Postman, curl, etc.)
+        if (!origin) return callback(null, true)
+
+        // En desarrollo, permitir todo
+        if (dev) return callback(null, true)
+
+        try {
+          const originClean = new URL(origin).origin
+
+          if (originClean) {
+            return callback(null, true) // ✅ Origen permitido
+          } else {
+            return callback(new Error('🌐 Origen no permitido'))
+          }
+        } catch (err) {
+          return callback(new Error('🌐 Origen inválido'))
         }
-      }),
+      },
       methods: ['GET', 'POST'],
       credentials: true,  // Permite el envío de cookies si `withCredentials` está habilitado en el cliente
     },

@@ -55,12 +55,23 @@ const UserPanel = () => {
     setIsModalOpen(false)
   }
 
-  const filteredUsers = users.filter((user) =>
-    user.firstName.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter(user =>
+    [
+      user.dni,
+      user.firstName,
+      user.lastName,
+      `${user.firstName} ${user.lastName}`,
+      user.email,
+      user.role?.name,
+      user.createdAt,
+      user.status ? "activo" : "inactivo"
+    ].some(value =>
+      String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    )
   )
 
   return (
-    <DashboardGrid>
+    <DashboardGrid className="flex-1">
       <Card>
         <div className="flex flex-col gap-4 mb-3">
           <div className="flex items-center gap-6">
@@ -82,6 +93,8 @@ const UserPanel = () => {
           <p>Cargando...</p>
         ) : error ? (
           <p>{error.message}</p>
+        ) : filteredUsers.length === 0 ? (
+          <p className="text-center text-text-light dark:text-text-dark">No hay usuarios registrados.</p>
         ) : (
           <Table
             headers={headers}
@@ -92,6 +105,7 @@ const UserPanel = () => {
             }))}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            searchTerm={searchTerm}
           />
         )}
       </Card>
@@ -104,7 +118,7 @@ const UserPanel = () => {
       )}
 
       {isDeleteConfirmationOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
           <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow-lg max-w-sm w-full">
             <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
               ¿Estás seguro de que deseas eliminar este usuario: <strong>{selectedUser.username}</strong>?

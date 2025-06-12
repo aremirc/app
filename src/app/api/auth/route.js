@@ -17,6 +17,7 @@ export async function POST(req) {
 
     const user = await prisma.user.findFirst({
       where: {
+        deletedAt: null,
         OR: [
           { email: usernameOrEmail },
           { username: usernameOrEmail },

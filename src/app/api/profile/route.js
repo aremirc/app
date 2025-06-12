@@ -29,7 +29,11 @@ export async function GET(req) {
         createdAt: true,
         updatedAt: true,
         socialLinks: true,
-        notifications: true,
+        notifications: {
+          where: { isRead: false },
+          orderBy: { createdAt: 'desc' },
+          take: 5, // solo las últimas 5
+        },
         role: {
           select: { name: true },
         },

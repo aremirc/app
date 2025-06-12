@@ -7,6 +7,10 @@ const EditProfileForm = ({ user }) => {
     password: '',
   })
 
+  const [errors, setErrors] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+
   useEffect(() => {
     setFormData({
       username: user.username || '',
@@ -21,29 +25,35 @@ const EditProfileForm = ({ user }) => {
 
   const validateForm = () => {
     const { username, email, password } = formData
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+    const newErrors = {}
+
+    // Expresión regular más flexible
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    // const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+
     if (!username && !email && !password) {
-      alert('Debes modificar al menos un campo.')
-      return false
+      newErrors.form = 'Debes modificar al menos un campo.'
     }
 
     if (email && !emailRegex.test(email)) {
-      alert('Correo electrónico no válido.')
-      return false
+      newErrors.email = 'Correo electrónico no válido.'
     }
 
     if (password && password.length < 8) {
-      alert('La contraseña debe tener al menos 8 caracteres.')
-      return false
+      newErrors.password = 'La contraseña debe tener al menos 8 caracteres.'
     }
 
-    return true
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!validateForm()) return
+
+    setIsSubmitting(true)
+    setSuccessMessage('')
 
     // Realiza la petición al API para actualizar el perfil
     try {
@@ -52,21 +62,45 @@ const EditProfileForm = ({ user }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
+
       const result = await response.json()
+
       if (response.ok) {
-        alert('Perfil actualizado correctamente')
+        // En caso de éxito
+        setSuccessMessage('Perfil actualizado correctamente')
+        setErrors({})
       } else {
-        alert(result.error || 'Error al actualizar el perfil')
+        setErrors({ form: result.error || 'Error al actualizar el perfil' })
       }
     } catch (error) {
-      alert('Error en la comunicación con el servidor')
+      setErrors({ form: 'Error en la comunicación con el servidor' })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
+      {Object.keys(errors).length > 0 && (
+        <div className="mb-4 rounded-md bg-red-100 p-2 text-sm text-danger-light dark:text-danger-dark border border-red-300">
+          Por favor corrige los errores antes de continuar.
+        </div>
+      )}
+
+      {errors.form && (
+        <div className="mb-4 rounded-md bg-red-100 p-2 text-sm text-danger-light dark:text-danger-dark border border-red-300">
+          {errors.form}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 rounded-md bg-green-100 p-2 text-sm text-green-700 border border-green-300">
+          {successMessage}
+        </div>
+      )}
+
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700" htmlFor="username">
+        <label className="block text-sm font-medium text-text-light dark:text-text-dark" htmlFor="username">
           Nombre de Usuario
         </label>
         <input
@@ -81,9 +115,10 @@ const EditProfileForm = ({ user }) => {
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700" htmlFor="email">
+        <label className="block text-sm font-medium text-text-light dark:text-text-dark" htmlFor="email">
           Correo Electrónico
         </label>
+        {errors.email && <p className="text-danger-light dark:text-danger-dark text-sm">{errors.email}</p>}
         <input
           type="email"
           id="email"
@@ -96,9 +131,10 @@ const EditProfileForm = ({ user }) => {
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700" htmlFor="password">
+        <label className="block text-sm font-medium text-text-light dark:text-text-dark" htmlFor="password">
           Contraseña Nueva
         </label>
+        {errors.password && <p className="text-danger-light dark:text-danger-dark text-sm">{errors.password}</p>}
         <input
           type="password"
           id="password"
@@ -111,8 +147,12 @@ const EditProfileForm = ({ user }) => {
       </div>
 
       <div className="flex justify-center">
-        <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded-lg">
-          Actualizar Perfil
+        <button
+          type="submit"
+          className="bg-blue-500 text-white py-2 px-4 rounded-lg"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Actualizando...' : 'Actualizar Perfil'}
         </button>
       </div>
     </form>

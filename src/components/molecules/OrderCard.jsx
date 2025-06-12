@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -8,7 +9,7 @@ import Input from "../atoms/Input"
 import Button from "../atoms/Button"
 import Stepper from "../organisms/Stepper"
 import StepNavigation from "../organisms/StepNavigation"
-import { useEffect, useState } from "react"
+import LoadingOverlay from "../atoms/LoadingOverlay"
 
 const steps = [
   { id: 1, title: "Datos" },
@@ -106,6 +107,8 @@ const OrderCard = ({ order, handleCancel }) => {
     shouldUnregister: false,
   })
 
+  const isSaving = isSubmitting || addOrderMutation.isPending || updateOrderMutation.isPending
+
   const scheduledDate = watch("scheduledDate")
   const endDate = watch("endDate")
 
@@ -151,18 +154,26 @@ const OrderCard = ({ order, handleCancel }) => {
     checkAvailability(scheduledDate, endDate)
   }, [scheduledDate, endDate])
 
-  const onSubmit = (data) => {
-    if (order) {
-      updateOrderMutation.mutateAsync(data)
-    } else {
-      addOrderMutation.mutateAsync(data)
+  const onSubmit = async (data) => {
+    try {
+      if (order) {
+        await updateOrderMutation.mutateAsync(data)
+      } else {
+        await addOrderMutation.mutateAsync(data)
+      }
+      handleCancel() // Solo se ejecuta si la mutación fue exitosa
+    } catch (error) {
+      // Ya estás mostrando el toast de error dentro del hook
+      // Aquí podrías hacer algo adicional si quieres
+      console.error("Error al guardar el usuario", error)
     }
-    handleCancel()
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+      <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        {isSaving && <LoadingOverlay />}
+
         <h3 className="text-lg font-semibold mb-4">{order ? "Modificar Orden" : "Agregar Nueva Orden"}</h3>
 
         <Stepper
@@ -181,7 +192,7 @@ const OrderCard = ({ order, handleCancel }) => {
             if (isValidStep) {
               setStep(newStep)
             } else {
-              console.log("Errores en el paso actual:", errors)
+              console.log("❌ Errores en el paso actual:", errors)
             }
           }}
         />
@@ -231,7 +242,7 @@ const OrderCard = ({ order, handleCancel }) => {
                       Estado de la Orden
                     </label>
                     {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
-                    <select {...field} id="status" className="shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark" disabled={!order}>
+                    <select {...field} id="status" className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={!order}>
                       {orderStatuses.map((status) => (
                         <option key={status} value={status}>
                           {status}
@@ -323,7 +334,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     id="clientName"
                     placeholder="Selecciona un cliente"
                     disabled={loading}
-                    className="shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark"
+                    className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark"
                     onChange={(e) => {
                       const name = e.target.value;
                       field.onChange(name);
@@ -374,7 +385,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     Selecciona un Cliente
                   </label>
                   {errors.clientId && <p className="text-red-500 text-sm">{errors.clientId.message}</p>}
-                  <select {...field} id="clientId" className="shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark" disabled={loading}>
+                  <select {...field} id="clientId" className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={loading}>
                     <option value="" disabled>Selecciona un cliente</option>
                     {loadingClients ? (
                       <option value="" disabled>Cargando clientes...</option>
@@ -610,14 +621,18 @@ const OrderCard = ({ order, handleCancel }) => {
           />
 
           <div className="space-x-2">
-            <Button onClick={handleCancel}>Cancelar</Button>
-            <Button
-              type="submit"
-              className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-              disabled={isSubmitting || !isValid || loading}
-            >
-              {order ? (isSubmitting ? "Guardando..." : "Guardar") : (isSubmitting ? "Agregando..." : "Agregar")}
-            </Button>
+            <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
+            {step === steps.length && (
+              <Button
+                type="submit"
+                className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
+                disabled={isSaving || !isValid || loading}
+              >
+                {order
+                  ? isSaving ? "Guardando..." : "Guardar"
+                  : isSaving ? "Agregando..." : "Agregar"}
+              </Button>
+            )}
           </div>
         </div>
       </form>

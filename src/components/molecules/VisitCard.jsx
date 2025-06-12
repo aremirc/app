@@ -1,14 +1,15 @@
+import { useEffect, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
-import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import api from "@/lib/axios"
 import { useQuery } from "@tanstack/react-query"
 import { useVisits } from "@/hooks/useVisits"
+import { z } from "zod"
+import api from "@/lib/axios"
 import Input from "../atoms/Input"
 import Button from "../atoms/Button"
 import Stepper from "../organisms/Stepper"
 import StepNavigation from "../organisms/StepNavigation"
-import { useEffect, useState } from "react"
+import LoadingOverlay from "../atoms/LoadingOverlay"
 
 const steps = [
   { id: 1, title: "Fecha" },
@@ -62,7 +63,7 @@ const VisitCard = ({ visit, handleCancel }) => {
     new Date(new Date(dateStr).getTime() - new Date().getTimezoneOffset() * 60000)
       .toISOString().slice(0, 16)
 
-  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset } = useForm({
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset, trigger } = useForm({
     resolver: zodResolver(visitSchema),
     defaultValues: visit ? {
       ...visit,
@@ -71,6 +72,8 @@ const VisitCard = ({ visit, handleCancel }) => {
     } : defaultValues,
     mode: "onChange",
   })
+
+  const isSaving = addVisitMutation.isPending || updateVisitMutation.isPending || isSubmitting
 
   // Usamos useQuery para obtener órdenes, clientes y trabajadores
   const { data: orders = [], isLoading: loading } = useQuery({
@@ -94,30 +97,53 @@ const VisitCard = ({ visit, handleCancel }) => {
     }
   }, [orderId, orders, setValue])
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     const payload = {
       ...data,
       date: new Date(data.date),
       endTime: new Date(data.endTime),
     }
 
-    if (visit) {
-      updateVisitMutation.mutateAsync(payload)
-    } else {
-      addVisitMutation.mutateAsync(payload)
+    try {
+      if (visit) {
+        await updateVisitMutation.mutateAsync(payload)
+      } else {
+        await addVisitMutation.mutateAsync(payload)
+      }
+      handleCancel() // Solo se ejecuta si la mutación fue exitosa
+    } catch (error) {
+      // Ya estás mostrando el toast de error dentro del hook
+      // Aquí podrías hacer algo adicional si quieres
+      console.error("Error al guardar la visita", error)
     }
-    handleCancel()
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+      <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        {isSaving && <LoadingOverlay />}
+
         <h3 className="text-lg font-semibold mb-4">{visit ? "Modificar Visita" : "Agregar Nueva Visita"}</h3>
 
         <Stepper
           steps={steps}
           controlledStep={step}
-          onStepChange={(newStep) => setStep(newStep)}
+          onStepChange={async (newStep) => {
+            const fieldsToValidate = {
+              1: ["date", "endTime"],
+              2: ["description", "orderId"],
+              3: ["clientId", "userId", "evaluation", "isReviewed"],
+            }
+
+            const currentFields = fieldsToValidate[step]
+            const isValidStep = await trigger(currentFields)
+
+            if (isValidStep) {
+              setStep(newStep)
+            } else {
+              console.log("❌ Errores en el paso actual:", errors)
+            }
+          }}
         />
 
         {step === 1 && (
@@ -217,7 +243,7 @@ const VisitCard = ({ visit, handleCancel }) => {
                   <select
                     {...field}
                     id="orderId"
-                    className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.orderId ? 'border-red-500' : ''}`}
+                    className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.orderId ? 'border-red-500' : ''}`}
                     disabled={loading || visit}
                     onChange={(e) => {
                       // Convertir el valor seleccionado a número
@@ -304,6 +330,7 @@ const VisitCard = ({ visit, handleCancel }) => {
                     step={0.1}
                     placeholder="Ej. 4.5"
                     className={`${errors.evaluation ? 'border-red-500' : ''}`}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
                   />
                 </div>
               )}
@@ -331,7 +358,7 @@ const VisitCard = ({ visit, handleCancel }) => {
           </>
         )}
 
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-between">
           <StepNavigation
             step={step}
             steps={steps}
@@ -339,15 +366,19 @@ const VisitCard = ({ visit, handleCancel }) => {
             nextStep={() => setStep((prev) => Math.min(prev + 1, steps.length))}
           />
 
-          <div>
-            <Button onClick={handleCancel}>Cancelar</Button>
-            <Button
-              type="submit"
-              className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-              disabled={!isValid || loading || isSubmitting}
-            >
-              {visit ? (isSubmitting ? "Guardando..." : "Guardar") : (isSubmitting ? "Agregando..." : "Agregar")}
-            </Button>
+          <div className="space-x-2">
+            <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
+            {step === steps.length && (
+              <Button
+                type="submit"
+                className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
+                disabled={!isValid || loading || isSaving}
+              >
+                {visit
+                  ? isSaving ? "Guardando..." : "Guardar"
+                  : isSaving ? "Agregando..." : "Agregar"}
+              </Button>
+            )}
           </div>
         </div>
       </form>

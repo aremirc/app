@@ -133,7 +133,7 @@ const UserProfile = () => {
                   <li><strong>Correo:</strong> {user.email || ''}</li>
                   <li><strong>Celular:</strong> {user.phone || ''}</li>
                   <li><strong>Ubicación:</strong> {user.country || 'Perú'}</li>
-                  <li><strong>Miembro desde:</strong> {new Date(user.createdAt).toLocaleDateString()}</li>
+                  <li><strong>Miembro desde:</strong> {new Date(user.hiredAt || user.createdAt).toLocaleDateString()}</li>
                 </ul>
               </div>
               <div className="">
@@ -141,7 +141,35 @@ const UserProfile = () => {
                 <ul className="text-gray-600 dark:text-gray-300">
                   <li><strong>Último inicio de sesión:</strong> {new Date(user.lastLogin || '').toLocaleDateString()}</li>
                   <li><strong>Última actualización de perfil:</strong> {new Date(user.updatedAt).toLocaleDateString()}</li>
-                  <li><strong>Tarea pendiente:</strong> {user.pendingTask || "No hay tareas pendientes."}</li>
+                  <li>
+                    <strong>Tareas pendientes:</strong>
+                    {user.notifications.length > 0 ? (
+                      <ul className="mt-2 space-y-2 text-sm">
+                        {user.notifications.map((n) => (
+                          <li key={n.id} className="border p-2 rounded bg-white dark:bg-gray-700 shadow-sm">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold">{n.title}</span>
+                              <span className={`text-xs rounded px-2 py-0.5
+                                ${n.priority === 'HIGH' ? 'bg-red-200 text-red-700' :
+                                  n.priority === 'MEDIUM' ? 'bg-yellow-200 text-yellow-700' :
+                                    'bg-green-200 text-green-700'}
+                              `}>
+                                {n.priority}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 dark:text-gray-300">{n.message}</p>
+                            {n.actionUrl && (
+                              <a href={n.actionUrl} className="text-blue-500 hover:underline text-sm">
+                                Ver más
+                              </a>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-500 mt-1">No hay tareas pendientes.</p>
+                    )}
+                  </li>
                 </ul>
               </div>
             </DashboardGrid>
@@ -163,7 +191,7 @@ const UserProfile = () => {
                 onClick={toggleEditMode}
                 className="text-sm text-blue-500 hover:underline"
               >
-                ← Cancelar edición
+                CANCELAR
               </button>
             </div>
             <EditProfileForm user={user} />

@@ -24,7 +24,7 @@ const ClientPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)  // Control del modal para agregar/editar cliente
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)  // Control del modal de confirmación de eliminación
   const [selectedClient, setSelectedClient] = useState(null)  // Cliente seleccionado
-  const { clients, error, isLoading, deleteClientMutation } = useClients()  
+  const { clients, error, isLoading, deleteClientMutation } = useClients()
 
   // Llamamos al hook de WebSocket para recibir actualizaciones en tiempo real
   useRealTimeUpdates()
@@ -61,12 +61,21 @@ const ClientPanel = () => {
   }
 
   // Filtrar los clientes según la búsqueda con debounce
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClients = clients.filter(client =>
+    [
+      client.id,
+      client.name,
+      client.email,
+      client.phone,
+      client.address,
+      client.isActive ? "activo" : "inactivo" // Si quieres traducirlo para la búsqueda
+    ].some(value =>
+      String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    )
   )
 
   return (
-    <DashboardGrid>
+    <DashboardGrid className="flex-1">
       <Card>
         <div className="flex flex-col gap-4 mb-3">
           <div className="flex items-center gap-6">
@@ -90,6 +99,8 @@ const ClientPanel = () => {
           <p>Cargando...</p>  // Si está cargando, mostramos este mensaje
         ) : error ? (
           <p>{error.message}</p>  // Si hay un error, mostramos el mensaje de error
+        ) : filteredClients.length === 0 ? (
+          <p className="text-center text-text-light dark:text-text-dark">No hay clientes registrados.</p>
         ) : (
           <Table
             headers={headers}  // Encabezados de la tabla
@@ -97,6 +108,7 @@ const ClientPanel = () => {
             onEdit={handleEdit}  // Función para editar
             onDelete={handleDelete}  // Función para eliminar
             showActions={user.role.name === 'ADMIN'}
+            searchTerm={searchTerm}
           />
         )}
       </Card>
@@ -111,7 +123,7 @@ const ClientPanel = () => {
 
       {/* Modal de confirmación de eliminación */}
       {isDeleteConfirmationOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
           <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow-lg max-w-sm w-full">
             <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
               ¿Estás seguro de que deseas eliminar este cliente: <strong>{selectedClient.name}</strong>?

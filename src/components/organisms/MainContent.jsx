@@ -10,14 +10,14 @@ import Table from "../molecules/Table"
 import CardForm from '../molecules/CardForm'
 import CardGrid from '../organisms/CardGrid'
 import SearchBar from "../molecules/SearchBar"
-import ReusableCard from "../molecules/ReusableCard"
 import LoadingSpinner from "../atoms/LoadingSpinner"
 import LoadingOverlay from "../atoms/LoadingOverlay"
+import Link from "next/link"
 
 const headers = [
   { key: "cliente", label: "Cliente" },
-  { key: "responsable", label: "Responsable" },
-  { key: "tecnicos", label: "Técnicos" },
+  { key: "responsable", label: "T. Responsable" },
+  // { key: "tecnicos", label: "Técnicos" },
   { key: "fecha", label: "Fecha programada" },
   { key: "estado", label: "Estado" },
   { key: "hide", label: "" }
@@ -126,6 +126,33 @@ const MainContent = () => {
   return (
     <>
       <DashboardGrid>
+        <Card title="Órdenes pendientes">
+          {pendingOrders.length === 0 ? (
+            <p className="text-sm text-gray-500">No hay órdenes pendientes.</p>
+          ) : (
+            pendingOrders.map((order) => (
+              <Link
+                key={order.id}
+                href={`/orders/${order.id}`}
+              >
+                <div className="flex items-center gap-5 p-3">
+                  <Icon name={order.client?.name.includes('Hospital') ? 'hospital' : 'building'} size={20} color="hover:text-primary dark:hover:text-primary-dark" />
+                  <div className="flex flex-col gap-2">
+                    <h5 className="font-semibold">{order.client?.name ?? '(Sin cliente)'}</h5>
+                    <p className="text-xs">Agendado: {order.scheduledDate
+                      ? new Date(order.scheduledDate).toLocaleDateString('es-PE', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                      : '(Sin fecha)'}</p>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </Card>
+
         <Card title="Órdenes">
           <div className="w-full px-4 mb-2">
             <SearchBar
@@ -136,54 +163,36 @@ const MainContent = () => {
           {loadingOrders ? (
             <LoadingOverlay />
           ) : (
-            <Table data={filteredOrders} headers={headers} showActions={false} />
-          )}
-        </Card>
-
-        <Card title="Órdenes pendientes">
-          {pendingOrders.length === 0 ? (
-            <p className="text-sm text-gray-500">No hay órdenes pendientes.</p>
-          ) : (
-            pendingOrders.map((order) => (
-              <div key={order.id} className="flex items-center gap-5 p-3">
-                <div><Icon name={order.client?.name.includes('Hospital') ? 'hospital' : 'building'} size={20} /></div>
-                <div className="flex flex-col gap-2">
-                  <h5 className="font-semibold">{order.client?.name ?? '(Sin cliente)'}</h5>
-                  <p className="text-xs">Agendado: {order.scheduledDate
-                    ? new Date(order.scheduledDate).toLocaleDateString('es-PE', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                    : '(Sin fecha)'}</p>
-                </div>
-              </div>
-            ))
+            <Table data={filteredOrders} headers={headers} showActions={false} searchTerm={searchTerm} />
           )}
         </Card>
       </DashboardGrid>
 
       <DashboardGrid>
         <Card>
-          <div className="h-full flex flex-col xl:flex-row justify-between gap-3 xl:gap-8">
-            <div className="flex-1">
-              <h3 className="text-primary dark:text-primary-dark text-xl font-semibold mb-3">Servicios</h3>
-              <p>Ve los servicios disponibles y realiza modificaciones en ellos si fuera necesario.</p>
+          <Link href={`/services`}>
+            <div className="h-full flex flex-col xl:flex-row justify-between gap-3 xl:gap-8">
+              <div className="flex-1">
+                <h3 className="text-primary dark:text-primary-dark text-xl font-semibold mb-3">Servicios</h3>
+                <p>Ve los servicios disponibles y realiza modificaciones en ellos si fuera necesario.</p>
+              </div>
+              <div className="w-full xl:w-64 flex items-center">
+                <img className="object-cover rounded-md w-full h-auto" src="https://images.pexels.com/photos/96612/pexels-photo-96612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Servicios" />
+              </div>
             </div>
-            <div className="w-full xl:w-64 flex items-center">
-              <img className="object-cover rounded-md w-full h-auto" src="https://images.pexels.com/photos/96612/pexels-photo-96612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Servicios" />
-            </div>
-          </div>
+          </Link>
         </Card>
 
         <Card>
-          <div className="aspect-[16/9] w-full h-full xl:max-h-48">
-            <img
-              className="w-full h-full object-cover rounded-md"
-              src="https://images.pexels.com/photos/11139140/pexels-photo-11139140.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load"
-              alt="Imagen de ejemplo"
-            />
-          </div>
+          <Link href={`/users`}>
+            <div className="aspect-video w-full h-full xl:max-h-48">
+              <img
+                className="w-full h-full object-cover rounded-md"
+                src="https://images.pexels.com/photos/11139140/pexels-photo-11139140.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load"
+                alt="Imagen de ejemplo"
+              />
+            </div>
+          </Link>
         </Card>
       </DashboardGrid>
 
@@ -196,7 +205,7 @@ const MainContent = () => {
           {metrics.length > 0 ? (
             <div className="grid gap-2">
               {metrics.map((item) => (
-                <a
+                <Link
                   key={item.dni}
                   href={`/users/${item.dni}`}
                   className="block p-4 rounded-lg bg-primary-dark dark:hover:bg-primary transition-colors duration-200"
@@ -223,7 +232,7 @@ const MainContent = () => {
                       </p>
                     </div>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
           ) : (

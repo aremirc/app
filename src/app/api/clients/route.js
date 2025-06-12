@@ -15,6 +15,7 @@ export async function GET(req) {
     const isActiveParam = searchParams.get('isActive') // 'true' | 'false'
 
     const whereClause = {
+      deletedAt: null,
       ...(typeParam && {
         type: typeParam.toUpperCase(), // debe coincidir con el enum ClientType
       }),
@@ -244,17 +245,22 @@ export async function DELETE(req) {
     const existingClient = await prisma.client.findUnique({
       where: { id },
     })
-    if (!existingClient) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, {
+
+    if (!existingClient || existingClient.deletedAt !== null) {
+      return NextResponse.json({ error: 'Cliente no encontrado o ya eliminado' }, {
         status: 404,
       })
     }
 
-    await prisma.client.delete({
+    await prisma.client.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false
+      }
     })
 
-    return NextResponse.json({ message: 'Cliente eliminado con éxito' }, { status: 200 })
+    return NextResponse.json({ message: 'Cliente eliminado correctamente' }, { status: 200 })
   } catch (error) {
     if (error.message?.includes('CSRF')) {
       return NextResponse.json({ error: error.message }, { status: 403 })

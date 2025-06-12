@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useServices } from "@/hooks/useServices"
 import Input from "../atoms/Input"
 import Button from "../atoms/Button"
+import LoadingOverlay from "../atoms/LoadingOverlay"
 
 // Zod schema para validación
 const serviceSchema = z.object({
@@ -46,18 +47,28 @@ const ServiceCard = ({ service, handleCancel }) => {
     mode: "onChange",
   })
 
-  const onSubmit = (data) => {
-    if (service) {
-      updateServiceMutation.mutateAsync(data)
-    } else {
-      addServiceMutation.mutateAsync(data)
+  const isSaving = addServiceMutation.isPending || updateServiceMutation.isPending || isSubmitting
+
+  const onSubmit = async (data) => {
+    try {
+      if (service) {
+        await updateServiceMutation.mutateAsync(data)
+      } else {
+        await addServiceMutation.mutateAsync(data)
+      }
+      handleCancel() // Solo se ejecuta si la mutación fue exitosa
+    } catch (error) {
+      // Ya estás mostrando el toast de error dentro del hook
+      // Aquí podrías hacer algo adicional si quieres
+      console.error("Error al guardar el usuario", error)
     }
-    handleCancel()
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-      <form onSubmit={handleSubmit(onSubmit)} className="min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+      <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
+        {isSaving && <LoadingOverlay />}
+
         <h3 className="text-lg font-semibold mb-4">{service ? "Modificar Servicio" : "Agregar Nuevo Servicio"}</h3>
 
         <Controller
@@ -166,7 +177,7 @@ const ServiceCard = ({ service, handleCancel }) => {
                 {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
                 <select
                   {...field}
-                  className={`shadow appearance-none border rounded w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-none focus:ring focus:ring-primary dark:bg-background-dark ${errors.status ? 'border-red-500' : ''}`}
+                  className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.status ? 'border-red-500' : ''}`}
                   disabled={!service}
                 >
                   <option value="ACTIVE">Activo</option>
@@ -178,13 +189,15 @@ const ServiceCard = ({ service, handleCancel }) => {
         )}
 
         <div className="flex justify-end space-x-2">
-          <Button onClick={handleCancel}>Cancelar</Button>
+          <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
           <Button
             type="submit"
             className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
-            disabled={!isValid || isSubmitting}
+            disabled={!isValid || isSaving}
           >
-            {service ? (isSubmitting ? "Guardando..." : "Guardar") : (isSubmitting ? "Agregando..." : "Agregar")}
+            {service
+              ? isSaving ? "Guardando..." : "Guardar"
+              : isSaving ? "Agregando..." : "Agregar"}
           </Button>
         </div>
       </form>

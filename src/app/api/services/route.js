@@ -15,6 +15,7 @@ export async function GET(req) {
     const maxPrice = parseFloat(searchParams.get('maxPrice'))
 
     const whereClause = {
+      deletedAt: null,
       ...(status && { status }),
       ...(Number.isFinite(minPrice) && { price: { gte: minPrice } }),
       ...(Number.isFinite(maxPrice) && {
@@ -186,13 +187,22 @@ export async function DELETE(req) {
     }
 
     const existingService = await prisma.service.findUnique({ where: { id } })
-    if (!existingService) {
-      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
+
+    if (!existingService || existingService.deletedAt !== null) {
+      return NextResponse.json({ error: 'Servicio no encontrado o ya eliminado' }, {
+        status: 404,
+      })
     }
 
-    await prisma.service.delete({ where: { id } })
+    await prisma.service.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        status: 'INACTIVE',
+      },
+    })
 
-    return NextResponse.json({ message: 'Servicio eliminado con éxito' }, { status: 200 })
+    return NextResponse.json({ message: 'Servicio eliminado correctamente' }, { status: 200 })
   } catch (error) {
     if (error.message?.includes('CSRF')) {
       return NextResponse.json({ error: error.message }, { status: 403 })

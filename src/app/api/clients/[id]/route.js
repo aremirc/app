@@ -11,12 +11,18 @@ export async function GET(req, { params }) {
   }
 
   try {
-    // Obtener los detalles del cliente por id
-    const client = await prisma.client.findUnique({
-      where: { id },  // Buscamos por el RUC/DNI (id del cliente)
+    const client = await prisma.client.findFirst({
+      where: {
+        id, // Buscamos por el RUC/DNI (id del cliente)
+        deletedAt: null, // Ignorar eliminados lógicamente
+      },
       include: {
-        orders: true,  // Incluir las órdenes del cliente (si es necesario)
-        visits: true,  // Incluir las visitas del cliente (si es necesario)
+        orders: {
+          where: { deletedAt: null }, // Opcional: incluir solo órdenes activas
+        },
+        visits: {
+          where: { deletedAt: null }, // Opcional: incluir solo visitas activas
+        },
       },
     })
 
@@ -25,7 +31,7 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 })
     }
 
-    // Devolver los detalles del cliente
+    // Excluir la contraseña antes de enviar la respuesta
     const { password: _, ...clientWithoutPassword } = client
     return NextResponse.json(clientWithoutPassword, { status: 200 })
   } catch (error) {

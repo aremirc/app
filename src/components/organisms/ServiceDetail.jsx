@@ -47,7 +47,7 @@ const ServiceDetail = ({ serviceId }) => {
   return (
     <div className="p-6 space-y-5 w-full mx-auto">
       <DashboardGrid>
-        <div className="col-span-2 flex flex-col justify-between text-white bg-gradient-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
+        <div className="col-span-2 flex flex-col justify-between text-white bg-linear-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
           <p className="text-sm">N° Servicio: {String(service.id).padStart(3, '0')}</p>
           <div>
             <h2 className="text-2xl font-semibold">{service.name}</h2>

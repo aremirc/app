@@ -60,12 +60,20 @@ const ServicePanel = () => {
   }
 
   // Filtrar los servicios con la búsqueda aplicada
-  const filteredServices = services.filter((service) =>
-    service.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredServices = services.filter(service =>
+    [
+      service.id,
+      service.name,
+      service.description,
+      service.price,
+      service.status ? "activo" : "inactivo"
+    ].some(value =>
+      String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    )
   )
 
   return (
-    <DashboardGrid>
+    <DashboardGrid className="flex-1">
       <Card>
         <div className="flex flex-col gap-4 mb-3">
           <div className="flex items-center gap-6">
@@ -87,12 +95,15 @@ const ServicePanel = () => {
           <p>Cargando...</p>  // Si está cargando, muestra este mensaje
         ) : error ? (
           <p>{error.message}</p>  // Si hay un error, muestra el mensaje de error
+        ) : filteredServices.length === 0 ? (
+          <p className="text-center text-text-light dark:text-text-dark">No hay servicios registrados.</p>
         ) : (
           <Table
             headers={headers}  // Encabezados de la tabla
             data={filteredServices}  // Datos de los servicios filtrados
             onEdit={handleEdit}  // Función para editar
             onDelete={handleDelete}  // Función para eliminar
+            searchTerm={searchTerm}
           />
         )}
       </Card>
@@ -107,7 +118,7 @@ const ServicePanel = () => {
 
       {/* Modal de confirmación de eliminación */}
       {isDeleteConfirmationOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
           <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow-lg max-w-sm w-full">
             <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
               ¿Estás seguro de que deseas eliminar este servicio: <strong>{selectedService.name}</strong>?

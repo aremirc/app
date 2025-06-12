@@ -29,7 +29,7 @@ const VisitList = ({ visits = [], onEdit, onDelete, onComment, emptyMessage = "N
             return (
               <div
                 key={visit.id}
-                className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-sm bg-background-muted dark:bg-background-muted-dark"
+                className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-xs bg-background-muted dark:bg-background-muted-dark"
               >
                 <div
                   className="flex justify-between items-center mb-2 cursor-pointer"

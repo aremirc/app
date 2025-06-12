@@ -25,22 +25,31 @@ const BarChart = ({ data, labelName = "Técnico", dataName = "Visitas" }) => {
       {
         label: dataName,
         data: data.map(item => item.value),
-        backgroundColor: '#4B89F1',
+        backgroundColor: '#4fd1c5',
         borderRadius: 4,
       },
     ],
   }
 
+  const neutralTextColor = '#333333' // gris claro (funciona bien sobre fondos oscuros y claros)
+  const neutralGridColor = '#e2e8f0' // gris oscuro sutil para las líneas del grid
+
   const options = {
-    indexAxis: 'y', // 👉 barras horizontales
+    indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: {
+        display: false,
+        labels: {
+          color: neutralTextColor, // leyenda
+        },
+      },
       title: {
         display: true,
         text: `${dataName} por ${labelName}`,
         font: { size: 18 },
+        color: neutralTextColor, // título
       },
     },
     scales: {
@@ -48,13 +57,25 @@ const BarChart = ({ data, labelName = "Técnico", dataName = "Visitas" }) => {
         beginAtZero: true,
         ticks: {
           precision: 0,
-        }
+          color: neutralTextColor, // texto del eje X
+        },
+        grid: {
+          color: neutralGridColor, // líneas de fondo eje X
+        },
+      },
+      y: {
+        ticks: {
+          color: neutralTextColor, // texto del eje Y
+        },
+        grid: {
+          color: neutralGridColor, // líneas de fondo eje Y
+        },
       },
     },
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark/35 rounded-lg shadow-md mt-6 min-w-[100%] h-[250px]">
+    <div className="bg-background-light dark:bg-background-dark/95 text-text-light dark:text-text-dark rounded-lg shadow-md mt-6 min-w-full h-[250px]">
       <Bar data={chartData} options={options} />
     </div>
   )

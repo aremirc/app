@@ -33,7 +33,7 @@ const ColorInput = ({ name = "bgColor", value, onChange }) => {
           type="color"
           value={hex}
           onChange={handleChange}
-          className="w-10 h-10 border rounded dark:border-gray-600 cursor-pointer bg-transparent"
+          className="w-10 h-10 border rounded-sm dark:border-gray-600 cursor-pointer bg-transparent"
           title="Elige un color"
         />
 
@@ -42,7 +42,7 @@ const ColorInput = ({ name = "bgColor", value, onChange }) => {
 
         {/* Vista previa */}
         <div
-          className={`w-32 h-12 flex items-center justify-center text-white rounded shadow ${makeColorClasses(hex)}`}
+          className={`w-32 h-12 flex items-center justify-center text-white rounded-sm shadow-sm ${makeColorClasses(hex)}`}
         >
           Preview
         </div>

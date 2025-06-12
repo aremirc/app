@@ -60,7 +60,7 @@ const ResetPasswordPage = () => {
             <input
               id="password"
               type="password"
-              className="mt-1 block w-full px-3 py-2 border border-border-light dark:border-border-dark rounded-md focus:outline-none bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark"
+              className="mt-1 block w-full px-3 py-2 border border-border-light dark:border-border-dark rounded-md focus:outline-hidden bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
@@ -70,7 +70,7 @@ const ResetPasswordPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary dark:bg-primary-dark text-text-light dark:hover:text-text-dark py-2 px-4 rounded hover:bg-primary-dark transition"
+            className="w-full bg-primary dark:bg-primary-dark text-text-light dark:hover:text-text-dark py-2 px-4 rounded-sm hover:bg-primary-dark transition"
           >
             {loading ? "Actualizando..." : "Actualizar contraseña"}
           </button>
@@ -78,7 +78,7 @@ const ResetPasswordPage = () => {
 
         <div className="flex justify-end pt-4">
           <Button
-            className="bg-primary hover:bg-primary/75 text-text-light px-6 py-2 rounded-xl shadow shadow-shadow-light dark:shadow-shadow-dark transition duration-200 ease-in-out"
+            className="bg-primary hover:bg-primary/75 text-text-light px-6 py-2 rounded-xl shadow-sm shadow-shadow-light dark:shadow-shadow-dark transition duration-200 ease-in-out"
             onClick={() => router.back()}
           >
             Volver

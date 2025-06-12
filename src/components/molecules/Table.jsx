@@ -5,16 +5,73 @@ import { usePathname } from "next/navigation"
 import { ClipboardList } from 'lucide-react'
 
 const statusProgress = {
-  PENDING: { percent: 10, color: 'bg-yellow-400' },
-  IN_PROGRESS: { percent: 50, color: 'bg-blue-500' },
-  ON_HOLD: { percent: 60, color: 'bg-orange-400' },
-  COMPLETED: { percent: 100, color: 'bg-green-500' },
-  CANCELLED: { percent: 100, color: 'bg-gray-400' },
-  FAILED: { percent: 100, color: 'bg-red-500' },
+  PENDING: {
+    percent: 10,
+    color: 'bg-yellow-400',
+    label: 'Pendiente',
+  },
+  AWAITING_APPROVAL: {
+    percent: 25,
+    color: 'bg-purple-400',
+    label: 'Esperando aprobación',
+  },
+  IN_PROGRESS: {
+    percent: 50,
+    color: 'bg-blue-500',
+    label: 'En progreso',
+  },
+  ON_HOLD: {
+    percent: 60,
+    color: 'bg-orange-400',
+    label: 'En espera',
+  },
+  COMPLETED: {
+    percent: 100,
+    color: 'bg-green-500',
+    label: 'Completado',
+  },
+  CANCELLED: {
+    percent: 100,
+    color: 'bg-gray-400',
+    label: 'Cancelado',
+  },
+  FAILED: {
+    percent: 100,
+    color: 'bg-red-500',
+    label: 'Fallido',
+  },
+  DELETED: {
+    percent: 100,
+    color: 'bg-black',
+    label: 'Eliminado',
+  },
 }
 
-const Table = ({ headers, data, onEdit = () => { }, onDelete = () => { }, showActions = true }) => {
+const highlightMatch = (text, term) => {
+  if (!term || typeof text !== 'string') return text
+
+  const regex = new RegExp(`(${term})`, 'gi')
+  const parts = text.split(regex)
+
+  return parts.map((part, index) =>
+    regex.test(part) ? (
+      <span key={index} className="bg-yellow-200 dark:bg-yellow-500 text-black dark:text-white">{part}</span>
+    ) : (
+      part
+    )
+  )
+}
+
+const Table = ({ headers, data, onEdit = () => { }, onDelete = () => { }, showActions = true, searchTerm = '' }) => {
   const pathname = usePathname()
+
+  if (!data || data.length === 0) {
+    return (
+      <p className="text-center text-text-light dark:text-text-dark py-6">
+        No hay datos para mostrar.
+      </p>
+    )
+  }
 
   return (
     <table className="w-full max-w-full table-auto">
@@ -34,7 +91,7 @@ const Table = ({ headers, data, onEdit = () => { }, onDelete = () => { }, showAc
         {data.map((item) => (
           <tr
             key={item.id || item.dni}
-            className="block xl:table-row hover:bg-gray-50 dark:hover:bg-background-dark/25 border-b-0 xl:border-b-0 last:border-b-0 xl:border-t pb-2 xl:pb-0 mt-3 xl:mt-0 relative"
+            className="block xl:table-row hover:bg-gray-50 dark:hover:bg-background-dark/25 border-b border-border-light dark:border-border-dark xl:border-b-0 last:border-b-0 xl:border-t pb-2 xl:pb-0 mt-3 xl:mt-0 relative"
           >
             {headers.map((header) => (
               <td key={header.key} className="px-3 py-2 block xl:table-cell">
@@ -59,16 +116,21 @@ const Table = ({ headers, data, onEdit = () => { }, onDelete = () => { }, showAc
                       >
                         {String(item[header.key]).padStart(3, '0')}
                       </Link>
-                    ) : header.key === 'status' && pathname.includes('orders') ? (
+                    ) : (/^(status|estado)$/).test(header.key) && /(orders|dashboard)/.test(pathname) ? (
                       (() => {
-                        const statusInfo = statusProgress[item.status] || { percent: 0, color: 'bg-gray-200' }
+                        const currentStatus = item.status || item.estado
+                        const statusInfo = statusProgress[currentStatus] || {
+                          percent: 0,
+                          color: 'bg-gray-200',
+                          label: 'Desconocido',
+                        }
 
                         return (
-                          <div className="w-full flex items-center gap-2 min-w-[120px]">
-                            <span className="hidden md:inline xl:hidden text-xs text-gray-500">{item.status}</span>
-                            <div className="w-full h-2 bg-gray-200 rounded">
+                          <div className="w-full flex flex-col gap-1 min-w-[140px]">
+                            <span className="text-xs text-gray-700 dark:text-gray-300">{statusInfo.label}</span>
+                            <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-sm">
                               <div
-                                className={`h-full ${statusInfo.color} rounded`}
+                                className={`h-full ${statusInfo.color} rounded-sm`}
                                 style={{ width: `${statusInfo.percent}%` }}
                               />
                             </div>
@@ -87,7 +149,7 @@ const Table = ({ headers, data, onEdit = () => { }, onDelete = () => { }, showAc
                     ) : ['createdAt', 'date'].includes(header.key) ? (
                       new Date(item[header.key]).toLocaleDateString()
                     ) : (
-                      item[header.key]
+                      highlightMatch(String(item[header.key] || ''), searchTerm)
                     )}
                   </>
                 )}

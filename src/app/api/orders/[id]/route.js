@@ -1,21 +1,37 @@
 import { NextResponse } from 'next/server'
 import { verifyAndLimit } from '@/lib/permissions'  // Función para verificar permisos
+import { verifyJWT } from '@/lib/auth'
 import prisma from '@/lib/prisma'  // Instancia de Prisma
 
 export async function GET(req, { params }) {
   const { id } = await params // Extraemos el `id` de los parámetros de la URL
 
-  // Verificamos los permisos del usuario
   const authResponse = await verifyAndLimit(req)
   if (authResponse) {
     return authResponse  // Si no tiene permisos, devolvemos una respuesta con error 403
   }
 
   try {
-    // Obtener los detalles de la orden por `id`
-    const order = await prisma.order.findUnique({
+    const decoded = await verifyJWT(req)
+    if (!decoded || decoded?.error) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    }
+
+    const userRole = decoded.role
+    const userDni = decoded.dni
+
+    const order = await prisma.order.findFirst({
       where: {
         id: parseInt(id), // Asegúrate de que el `id` sea un número
+        deletedAt: null, // Soft delete aplicado
+        ...(userRole === 'TECHNICIAN' && {
+          workers: {
+            some: {
+              userId: userDni,
+              status: { in: ['ASSIGNED', 'IN_PROGRESS'] },
+            },
+          },
+        }),
       },
       include: {
         client: {
@@ -30,7 +46,7 @@ export async function GET(req, { params }) {
           },
         },
         workers: {
-          include: {
+          select: {
             user: {
               select: {
                 dni: true,
@@ -43,12 +59,19 @@ export async function GET(req, { params }) {
               },
             },
           },
+          where: {
+            user: {
+              status: 'ACTIVE',
+              deletedAt: null,
+            }
+          },
         },
         visits: {
-          include: {
-            // user: true,
-            // evidences: true,
-          },
+          where: { deletedAt: null }, // Opcional: solo visitas activas
+          // select: {
+          //   user: true,
+          //   evidences: true,
+          // },
         },
         // services: true,
         // managedBy: true,
@@ -59,13 +82,13 @@ export async function GET(req, { params }) {
 
     // Si no se encuentra la orden, devolver un 404
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Orden no encontrada o acceso denegado' }, { status: 404 })
     }
 
     // Devolver los detalles de la orden
     return NextResponse.json(order, { status: 200 })
   } catch (error) {
-    console.error('Error fetching order details:', error)
-    return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    console.error('Error al obtener orden:', error)
+    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 })
   }
 }

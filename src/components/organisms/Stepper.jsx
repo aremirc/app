@@ -23,7 +23,7 @@ export default function Stepper({
   }
 
   return (
-    <section className="relative flex flex-col gap-2 p-1 focus:outline-none" role="list" tabIndex={0}>
+    <section className="relative flex flex-col gap-2 p-1 focus:outline-hidden" role="list" tabIndex={0}>
       <div className="flex justify-between gap-5">
         {steps.map((step) => {
           const isActive = step.id === activeStep
@@ -65,7 +65,7 @@ export default function Stepper({
         })}
       </div>
 
-      <div className="relative h-2 rounded bg-border-light dark:bg-border-dark overflow-hidden">
+      <div className="relative h-2 rounded-sm bg-border-light dark:bg-border-dark overflow-hidden">
         <div
           className="absolute top-0 left-0 h-full bg-primary transition-all duration-500"
           style={{ width: `${(activeStep / steps.length) * 100}%` }}

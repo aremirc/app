@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAndLimit } from '@/lib/permissions' // Función para verificar permisos
+import { verifyJWT } from '@/lib/auth'
 import prisma from '@/lib/prisma'  // Instancia de Prisma
 
 export async function GET(req, { params }) {
@@ -11,10 +12,30 @@ export async function GET(req, { params }) {
   }
 
   try {
-    // Obtener los detalles de la visita por ID
-    const visit = await prisma.visit.findUnique({
+    const decoded = await verifyJWT(req)
+    if (!decoded || decoded?.error) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    }
+
+    const userRole = decoded.role
+    const userDni = decoded.dni
+
+    const visit = await prisma.visit.findFirst({
       where: {
         id: parseInt(id),  // Asegúrate de convertir el `id` a entero si es necesario
+        deletedAt: null,
+        order: {
+          deletedAt: null,
+          ...(userRole === 'TECHNICIAN' && {
+            status: 'IN_PROGRESS',
+            workers: {
+              some: {
+                userId: userDni,
+                status: { in: ['ASSIGNED', 'IN_PROGRESS'] },
+              },
+            },
+          }),
+        },
       },
       include: {
         evidences: true,
@@ -26,7 +47,7 @@ export async function GET(req, { params }) {
 
     // Si no se encuentra la visita, devolver 404
     if (!visit) {
-      return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 })
+      return NextResponse.json({ error: 'Visita no encontrada o acceso denegado' }, { status: 404 })
     }
 
     // Devolver los detalles de la visita
