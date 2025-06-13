@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from "@/context/AuthContext"
 import { toast } from 'sonner'
 
-const Countdown = ({ className = '' }) => {
+const Countdown = ({ className = '', visible = true }) => {
   const { logout, refreshTokens } = useAuth() // Obtener la función logout y refreshTokens desde el contexto
   const initialTime = 3600 // 1 hora (en segundos)
 
@@ -93,7 +93,7 @@ const Countdown = ({ className = '' }) => {
   }
 
   // Si no hay startTime en localStorage, no renderizamos el componente
-  if (!startTimeRef.current) return null
+  if (!visible || !startTimeRef.current) return null
 
   return (
     <div className={`mt-1 text-sm text-center text-gray-500 dark:text-gray-300 ${className}`}>

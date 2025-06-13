@@ -34,9 +34,9 @@ const Header = ({ title: propTitle }) => {
   return (
     <header className="sticky top-0 bg-linear-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-10">
       <div className="container lg:max-w-full mx-auto flex justify-between items-center">
-        {/* {user?.role?.name && (
-          <Countdown className="fixed top-0 sm:top-auto text-red-500 font-bold" />
-        )} */}
+        {user?.role?.name && (
+          <Countdown className="fixed top-0 sm:top-auto text-red-500 font-bold" visible={false} />
+        )}
 
         <div className={`relative flex items-center justify-center gap-3 transform ${user?.role?.name ? "sm:translate-x-64" : ""}`}>
           <div className="col-span-full flex items-center justify-center">

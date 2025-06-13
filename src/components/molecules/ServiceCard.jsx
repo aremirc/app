@@ -154,7 +154,7 @@ const ServiceCard = ({ service, handleCancel }) => {
               <Input
                 {...field}
                 type="number"
-                placeholder="Tiempo estimado (min)"
+                placeholder="Tiempo estimado (opcional, minutos)"
                 className={`mb-4 ${errors.estimatedTime ? "border-red-500" : ""}`}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -192,7 +192,7 @@ const ServiceCard = ({ service, handleCancel }) => {
           <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
           <Button
             type="submit"
-            className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
+            className="bg-primary-light hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
             disabled={!isValid || isSaving}
           >
             {service

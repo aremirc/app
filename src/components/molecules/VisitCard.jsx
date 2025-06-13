@@ -118,6 +118,23 @@ const VisitCard = ({ visit, handleCancel }) => {
     }
   }
 
+  const validateStepAndSet = async (newStep) => {
+    const fieldsToValidate = {
+      1: ["date", "endTime"],
+      2: ["description", "orderId"],
+      3: ["clientId", "userId", "evaluation", "isReviewed"],
+    }
+
+    const currentFields = fieldsToValidate[step]
+    const isValidStep = await trigger(currentFields)
+
+    if (isValidStep) {
+      setStep(newStep)
+    } else {
+      console.log("❌ Errores en el paso actual:", errors)
+    }
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
       <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
@@ -128,22 +145,7 @@ const VisitCard = ({ visit, handleCancel }) => {
         <Stepper
           steps={steps}
           controlledStep={step}
-          onStepChange={async (newStep) => {
-            const fieldsToValidate = {
-              1: ["date", "endTime"],
-              2: ["description", "orderId"],
-              3: ["clientId", "userId", "evaluation", "isReviewed"],
-            }
-
-            const currentFields = fieldsToValidate[step]
-            const isValidStep = await trigger(currentFields)
-
-            if (isValidStep) {
-              setStep(newStep)
-            } else {
-              console.log("❌ Errores en el paso actual:", errors)
-            }
-          }}
+          onStepChange={validateStepAndSet}
         />
 
         {step === 1 && (
@@ -363,15 +365,15 @@ const VisitCard = ({ visit, handleCancel }) => {
             step={step}
             steps={steps}
             prevStep={() => setStep((prev) => Math.max(prev - 1, 1))}
-            nextStep={() => setStep((prev) => Math.min(prev + 1, steps.length))}
+            nextStep={() => validateStepAndSet(Math.min(step + 1, steps.length))}
           />
 
           <div className="space-x-2">
             <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
-            {step === steps.length && (
+            {(step === steps.length || isValid) && (
               <Button
                 type="submit"
-                className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
+                className="bg-primary-light hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
                 disabled={!isValid || loading || isSaving}
               >
                 {visit

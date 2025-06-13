@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,7 +21,7 @@ const orderStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
 
 const orderSchema = z.object({
   id: z.number().optional(),
-  description: z.string().min(1, "La descripción es obligatoria"),
+  description: z.string().min(1, "El título es obligatorio"),
   clientId: z.string().min(1, "Selecciona un cliente"),
   workers: z.array(z.string()).min(1, "Selecciona al menos un trabajador").max(2, "Puedes asignar solo hasta dos trabajadores"),
   status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"], { message: "Selecciona un estado válido" }), // Uso de enum para validar el status
@@ -77,6 +77,7 @@ const defaultValues = {
   alternateContactName: "",
   alternateContactPhone: "",
   statusDetails: "",
+  responsibleId: "",
 }
 
 const fetchActiveClients = async () => {
@@ -100,17 +101,14 @@ const OrderCard = ({ order, handleCancel }) => {
   const [loadingTechs, setLoadingTechs] = useState(false)
   const { addOrderMutation, updateOrderMutation } = useOrders()
 
-  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue, trigger } = useForm({
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, getValues, setValue, trigger } = useForm({
     resolver: zodResolver(orderSchema),
-    defaultValues: order ? { ...order, clientName: order?.client?.name, scheduledDate: order?.scheduledDate?.slice(0, 16) ?? "", endDate: order?.endDate?.slice(0, 16) ?? "", workers: order?.workers?.map((w) => w.userId) ?? [], responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? null, services: order?.services?.map((s) => s.id) ?? [] } : defaultValues,
+    defaultValues: order ? { ...order, clientName: order?.client?.name, scheduledDate: order?.scheduledDate?.slice(0, 16) ?? "", endDate: order?.endDate?.slice(0, 16) ?? "", statusDetails: order.statusDetails ?? "", alternateContactName: order.alternateContactName ?? "", alternateContactPhone: order.alternateContactPhone ?? "", workers: order?.workers?.map((w) => w.userId) ?? [], responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? "", services: order?.services?.map((s) => s.id) ?? [] } : defaultValues,
     mode: "onChange", // o "onSubmit" si prefieres validar solo al enviar
     shouldUnregister: false,
   })
 
   const isSaving = isSubmitting || addOrderMutation.isPending || updateOrderMutation.isPending
-
-  const scheduledDate = watch("scheduledDate")
-  const endDate = watch("endDate")
 
   // Usando useQuery para obtener clientes, trabajadores y servicios
   const { data: clients = [], isLoading: loadingClients } = useQuery({
@@ -131,28 +129,34 @@ const OrderCard = ({ order, handleCancel }) => {
   // Combinamos todas las cargas en una sola variable
   const loading = loadingClients || loadingWorkers || loadingServices
 
-  useEffect(() => {
-    const checkAvailability = async (scheduledDate, endDate) => {
-      if (!scheduledDate || !endDate) return
+  const checkAvailability = async () => {
+    // Validar campos antes de continuar
+    const isValidDates = await trigger(["scheduledDate", "endDate"])
+    if (!isValidDates) return
 
-      setLoadingTechs(true)
+    const currentScheduledDate = getValues("scheduledDate")
+    const currentEndDate = getValues("endDate")
 
-      try {
-        const { data } = await api.get("/api/available-techs", {
-          params: { scheduledDate, endDate },
-        })
+    if (!currentScheduledDate || !currentEndDate) return
 
-        setAvailableTechs(data)
-      } catch (err) {
-        console.error("Error al cargar técnicos disponibles", err)
-        setAvailableTechs([])
-      } finally {
-        setLoadingTechs(false)
-      }
+    setLoadingTechs(true)
+
+    try {
+      const { data } = await api.get("/api/available-techs", {
+        params: {
+          scheduledDate: currentScheduledDate,
+          endDate: currentEndDate,
+        },
+      })
+
+      setAvailableTechs(data)
+    } catch (err) {
+      console.error("Error al cargar técnicos disponibles", err)
+      setAvailableTechs([])
+    } finally {
+      setLoadingTechs(false)
     }
-
-    checkAvailability(scheduledDate, endDate)
-  }, [scheduledDate, endDate])
+  }
 
   const onSubmit = async (data) => {
     try {
@@ -169,6 +173,23 @@ const OrderCard = ({ order, handleCancel }) => {
     }
   }
 
+  const validateStepAndSet = async (newStep) => {
+    const fieldsToValidate = {
+      1: ["description", "status", "scheduledDate", "endDate", "statusDetails"],
+      2: ["clientId", "alternateContactName", "alternateContactPhone"],
+      3: ["workers", "services"],
+    }
+
+    const currentFields = fieldsToValidate[step]
+    const isValidStep = await trigger(currentFields)
+
+    if (isValidStep) {
+      setStep(newStep)
+    } else {
+      console.log("❌ Errores en el paso actual:", errors)
+    }
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
       <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
@@ -179,22 +200,7 @@ const OrderCard = ({ order, handleCancel }) => {
         <Stepper
           steps={steps}
           controlledStep={step}
-          onStepChange={async (newStep) => {
-            const fieldsToValidate = {
-              1: ["description", "status", "scheduledDate", "endDate", "statusDetails"],
-              2: ["clientId", "alternateContactName", "alternateContactPhone"],
-              3: ["workers", "services"],
-            }
-
-            const currentFields = fieldsToValidate[step]
-            const isValidStep = await trigger(currentFields)
-
-            if (isValidStep) {
-              setStep(newStep)
-            } else {
-              console.log("❌ Errores en el paso actual:", errors)
-            }
-          }}
+          onStepChange={validateStepAndSet}
         />
 
         {step === 1 && (
@@ -221,11 +227,14 @@ const OrderCard = ({ order, handleCancel }) => {
               control={control}
               render={({ field }) => (
                 <>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                    Título de la orden
+                  </label>
                   {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
                   <Input
                     {...field}
                     type="text"
-                    placeholder="Descripción de la orden"
+                    placeholder="Ej. Orden para Empresa XYZ"
                     className={`mb-4 ${errors.description ? "border-red-500" : ""}`}
                   />
                 </>
@@ -270,6 +279,10 @@ const OrderCard = ({ order, handleCancel }) => {
                     className="mb-4"
                     label="Fecha Programada"
                     min={new Date().toISOString().slice(0, 16)} // formato "YYYY-MM-DDTHH:mm"
+                    onBlur={(e) => {
+                      field.onBlur?.(e)
+                      checkAvailability()
+                    }}
                   />
                 </>
               )}
@@ -291,6 +304,10 @@ const OrderCard = ({ order, handleCancel }) => {
                     className="mb-4"
                     label="Fecha de Finalización"
                     min={new Date().toISOString().slice(0, 16)}
+                    onBlur={(e) => {
+                      field.onBlur?.(e)
+                      checkAvailability()
+                    }}
                   />
                 </>
               )}
@@ -306,7 +323,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     {...field}
                     type="text"
                     className="mb-4"
-                    placeholder="Detalles del estado"
+                    placeholder="Detalles de la orden (opcional)"
                     required={false}
                   />
                 </>
@@ -411,7 +428,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     {...field}
                     type="text"
                     className="mb-4"
-                    placeholder="Nombre de contacto alternativo"
+                    placeholder="Nombre alternativo (contacto opcional)"
                     required={false}
                   />
                 </>
@@ -428,7 +445,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     {...field}
                     type="text"
                     className="mb-4"
-                    placeholder="Teléfono alternativo"
+                    placeholder="Teléfono alternativo (opcional)"
                     inputMode="numeric"
                     pattern="\d*"
                     onChange={(e) => {
@@ -617,15 +634,15 @@ const OrderCard = ({ order, handleCancel }) => {
             step={step}
             steps={steps}
             prevStep={() => setStep((prev) => Math.max(prev - 1, 1))}
-            nextStep={() => setStep((prev) => Math.min(prev + 1, steps.length))}
+            nextStep={() => validateStepAndSet(Math.min(step + 1, steps.length))}
           />
 
           <div className="space-x-2">
             <Button onClick={handleCancel} disabled={isSaving}>Cancelar</Button>
-            {step === steps.length && (
+            {(step === steps.length || isValid) && (
               <Button
                 type="submit"
-                className="hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
+                className="bg-primary-light hover:bg-primary dark:hover:bg-primary-dark dark:hover:text-background-dark"
                 disabled={isSaving || !isValid || loading}
               >
                 {order

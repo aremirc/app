@@ -73,18 +73,18 @@ export const SocketProvider = ({ children }) => {
     return () => {
       // Desconectar solo si la conexión no está siendo usada en otro lugar
       if (socketRef.current) {
-        if (socketRef.current.connected) {
+        // if (socketRef.current.connected) {
           socketRef.current.disconnect()
           console.log("🔒 Conexión WebSocket cerrada")
-        }
-        socketRef.current = null
+        // }
+        // socketRef.current = null
       }
     }
   }, [])
 
   return (
     <SocketContext.Provider value={socket}>
-      {socket ? children : <LoadingOverlay fullscreen />}
+      {socket ? children : <LoadingOverlay />}
     </SocketContext.Provider>
   )
 }
