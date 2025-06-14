@@ -27,8 +27,12 @@ export const useServices = () => {
         socket.emit('new-service', newService)
       }
     },
-    onError: () => {
-      handleToast("Error al agregar el servicio.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al agregar el servicio."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     },
   })
 
@@ -36,17 +40,19 @@ export const useServices = () => {
   const updateServiceMutation = useMutation({
     mutationFn: (updatedService) => api.put("/api/services", updatedService),
     onSuccess: (updatedService) => {
-      queryClient.setQueryData(['services'], (prevServices) =>
-        prevServices.map((service) => (service.id === updatedService.id ? updatedService : service))
-      )
+      queryClient.invalidateQueries({ queryKey: ["services"] })
       handleToast("¡Servicio actualizado correctamente!")  // Usamos la función utilitaria aquí
       if (socket) {
         // Emitir evento WebSocket cuando se actualiza un servicio
         socket.emit('service-updated', updatedService)
       }
     },
-    onError: () => {
-      handleToast("Error al actualizar el servicio.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al actualizar el servicio."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     },
   })
 
@@ -61,8 +67,12 @@ export const useServices = () => {
         socket.emit('service-deleted', id)
       }
     },
-    onError: () => {
-      handleToast("Error al eliminar el servicio.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al eliminar el servicio."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     },
   })
 

@@ -9,12 +9,12 @@ import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"  // Hook para WebSoc
 import SearchBar from "../molecules/SearchBar"
 
 const headers = [
-  { key: "dni", label: "DNI" },
   { key: "fullName", label: "Nombre de Usuario" },
-  { key: "email", label: "Correo Electrónico" },
+  { key: "dni", label: "DNI" },
   { key: "roleName", label: "Rol de Usuario" },
+  { key: "status", label: "Estado" },
+  { key: "email", label: "Correo Electrónico" },
   { key: "createdAt", label: "Fecha de Creación" },
-  { key: "status", label: "Estado" }
 ]
 
 const UserPanel = () => {

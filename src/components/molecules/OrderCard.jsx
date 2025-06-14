@@ -17,7 +17,7 @@ const steps = [
   { id: 3, title: "Servicios" },
 ]
 
-const orderStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+const orderStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED", 'ON_HOLD', 'FAILED']
 
 const orderSchema = z.object({
   id: z.number().optional(),
@@ -48,6 +48,7 @@ const orderSchema = z.object({
     ),
   statusDetails: z.string().optional(),
   responsibleId: z.string().optional(),
+  updatedAt: z.string().optional(), // ISO date string
 })
   .refine((data) => data.endDate >= data.scheduledDate, {
     message: "La fecha de finalización debe ser posterior a la programada",
@@ -78,6 +79,7 @@ const defaultValues = {
   alternateContactPhone: "",
   statusDetails: "",
   responsibleId: "",
+  updatedAt: "",
 }
 
 const fetchActiveClients = async () => {
@@ -103,7 +105,19 @@ const OrderCard = ({ order, handleCancel }) => {
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, getValues, setValue, trigger } = useForm({
     resolver: zodResolver(orderSchema),
-    defaultValues: order ? { ...order, clientName: order?.client?.name, scheduledDate: order?.scheduledDate?.slice(0, 16) ?? "", endDate: order?.endDate?.slice(0, 16) ?? "", statusDetails: order.statusDetails ?? "", alternateContactName: order.alternateContactName ?? "", alternateContactPhone: order.alternateContactPhone ?? "", workers: order?.workers?.map((w) => w.userId) ?? [], responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? "", services: order?.services?.map((s) => s.id) ?? [] } : defaultValues,
+    defaultValues: order ? {
+      ...order,
+      updatedAt: order.updatedAt ?? "",
+      clientName: order?.client?.name,
+      scheduledDate: order?.scheduledDate?.slice(0, 16) ?? "",
+      endDate: order?.endDate?.slice(0, 16) ?? "",
+      statusDetails: order.statusDetails ?? "",
+      alternateContactName: order.alternateContactName ?? "",
+      alternateContactPhone: order.alternateContactPhone ?? "",
+      workers: order?.workers?.map((w) => w.userId) ?? [],
+      responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? "",
+      services: order?.services?.map((s) => s.id) ?? []
+    } : defaultValues,
     mode: "onChange", // o "onSubmit" si prefieres validar solo al enviar
     shouldUnregister: false,
   })
@@ -159,11 +173,16 @@ const OrderCard = ({ order, handleCancel }) => {
   }
 
   const onSubmit = async (data) => {
+    const payload = {
+      ...data,
+      updatedAt: data.updatedAt,
+    }
+
     try {
       if (order) {
-        await updateOrderMutation.mutateAsync(data)
+        await updateOrderMutation.mutateAsync(payload)
       } else {
-        await addOrderMutation.mutateAsync(data)
+        await addOrderMutation.mutateAsync(payload)
       }
       handleCancel() // Solo se ejecuta si la mutación fue exitosa
     } catch (error) {
@@ -176,8 +195,8 @@ const OrderCard = ({ order, handleCancel }) => {
   const validateStepAndSet = async (newStep) => {
     const fieldsToValidate = {
       1: ["description", "status", "scheduledDate", "endDate", "statusDetails"],
-      2: ["clientId", "alternateContactName", "alternateContactPhone"],
-      3: ["workers", "services"],
+      2: ["clientId", "alternateContactName", "alternateContactPhone", "workers"],
+      3: ["services"],
     }
 
     const currentFields = fieldsToValidate[step]

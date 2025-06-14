@@ -22,22 +22,28 @@ export const useUsers = () => {
       handleToast("¡Usuario agregado con éxito!")
       if (socket) socket.emit('new-user', newUser)
     },
-    onError: () => {
-      handleToast("Error al agregar el usuario.", "error")
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al agregar el usuario."
+      handleToast(message, "error")
     }
   })
 
   const updateUserMutation = useMutation({
     mutationFn: (updatedUser) => api.put("/api/users", updatedUser),
     onSuccess: (updatedUser) => {
-      queryClient.setQueryData(["users"], (prevUsers) =>
-        prevUsers.map((user) => (user.dni === updatedUser.dni ? updatedUser : user))
-      )
+      queryClient.invalidateQueries(["users"])
       handleToast("¡Usuario actualizado correctamente!")
       if (socket) socket.emit('user-updated', updatedUser)
     },
-    onError: () => {
-      handleToast("Error al actualizar el usuario.", "error")
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al actualizar el usuario."
+      handleToast(message, "error")
     }
   })
 
@@ -48,8 +54,12 @@ export const useUsers = () => {
       handleToast("¡Usuario eliminado correctamente!")
       if (socket) socket.emit('user-deleted', dni)
     },
-    onError: () => {
-      handleToast("Error al eliminar el usuario.", "error")
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al eliminar el usuario."
+      handleToast(message, "error")
     }
   })
 

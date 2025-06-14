@@ -24,8 +24,12 @@ export const useOrders = () => {
       handleToast('¡Orden agregada con éxito!')  // Usamos la función utilitaria aquí
       if (socket) socket.emit('new-order', newOrder)
     },
-    onError: () => {
-      handleToast('Error al agregar la orden.', 'error')  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        'Error al agregar la orden.'
+      handleToast(message, 'error')  // Usamos la función utilitaria con tipo "error"
     },
   })
 
@@ -33,14 +37,16 @@ export const useOrders = () => {
   const updateOrderMutation = useMutation({
     mutationFn: (updatedOrder) => api.put('/api/orders', updatedOrder),
     onSuccess: (updatedOrder) => {
-      queryClient.setQueryData(['orders'], (prevOrders) =>
-        prevOrders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order))
-      )
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
       handleToast('¡Orden actualizada correctamente!')  // Usamos la función utilitaria aquí
       if (socket) socket.emit('order-updated', updatedOrder)
     },
-    onError: () => {
-      handleToast('Error al actualizar la orden.', 'error')  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        'Error al actualizar la orden.'
+      handleToast(message, 'error')  // Usamos la función utilitaria con tipo "error"
     },
   })
 
@@ -52,8 +58,12 @@ export const useOrders = () => {
       handleToast('¡Eliminado correctamente!')  // Usamos la función utilitaria aquí
       if (socket) socket.emit('order-deleted', id)
     },
-    onError: () => {
-      handleToast('Error al eliminar la orden.', 'error')  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        'Error al eliminar la orden.'
+      handleToast(message, 'error')  // Usamos la función utilitaria con tipo "error"
     },
   })
 

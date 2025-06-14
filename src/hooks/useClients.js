@@ -27,8 +27,12 @@ export const useClients = () => {
         socket.emit('new-client', newClient)
       }
     },
-    onError: () => {
-      handleToast("Error al agregar el cliente.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al agregar el cliente."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     }
   })
 
@@ -36,17 +40,19 @@ export const useClients = () => {
   const updateClientMutation = useMutation({
     mutationFn: (updatedClient) => api.put("/api/clients", updatedClient),
     onSuccess: (updatedClient) => {
-      queryClient.setQueryData(['clients'], (prevClients) =>
-        prevClients.map((client) => (client.id === updatedClient.id ? updatedClient : client))
-      )
+      queryClient.invalidateQueries({ queryKey: ["clients"] })
       handleToast("¡Cliente actualizado correctamente!")  // Usamos la función utilitaria aquí
       if (socket) {
         // Emitir evento WebSocket cuando se actualiza un cliente
         socket.emit('client-updated', updatedClient)
       }
     },
-    onError: () => {
-      handleToast("Error al actualizar el cliente.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al actualizar el cliente."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     }
   })
 
@@ -61,8 +67,12 @@ export const useClients = () => {
         socket.emit('client-deleted', id)
       }
     },
-    onError: () => {
-      handleToast("Error al eliminar el cliente.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al eliminar el cliente."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     }
   })
 

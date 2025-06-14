@@ -6,7 +6,7 @@ import {
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 } from 'chart.js'
 
 ChartJS.register(
@@ -18,64 +18,79 @@ ChartJS.register(
   Legend
 )
 
-const BarChart = ({ data, labelName = "Técnico", dataName = "Visitas" }) => {
+const BarChart = ({ data = [], labelName = "Técnico", dataName = "Visitas" }) => {
   const chartData = {
-    labels: data.map(item => item.label),
+    labels: data.map((item) => item.label),
     datasets: [
       {
         label: dataName,
-        data: data.map(item => item.value),
-        backgroundColor: '#4fd1c5',
-        borderRadius: 4,
+        data: data.map((item) => item.value),
+        backgroundColor: '#4fd1c5', // Puedes cambiar por un array para múltiples colores
+        borderRadius: 6,
+        barThickness: 20,
+        maxBarThickness: 25,
       },
     ],
   }
 
-  const neutralTextColor = '#333333' // gris claro (funciona bien sobre fondos oscuros y claros)
-  const neutralGridColor = '#e2e8f0' // gris oscuro sutil para las líneas del grid
+  const textColor = '#2d3748'        // Gris oscuro: buen contraste
+  const gridColor = '#e2e8f0'        // Gris claro para líneas sutiles
 
   const options = {
-    indexAxis: 'y',
+    indexAxis: 'y', // Horizontal bar
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: 10,
+    },
     plugins: {
       legend: {
         display: false,
-        labels: {
-          color: neutralTextColor, // leyenda
-        },
+        labels: { color: textColor },
       },
       title: {
         display: true,
         text: `${dataName} por ${labelName}`,
-        font: { size: 18 },
-        color: neutralTextColor, // título
+        font: {
+          size: 16,
+          weight: 'bold',
+        },
+        color: textColor,
+        padding: { top: 10, bottom: 10 },
+      },
+      tooltip: {
+        mode: 'nearest',
+        intersect: false,
+        backgroundColor: '#1a202c',
+        titleColor: '#ffffff',
+        bodyColor: '#cbd5e0',
       },
     },
     scales: {
       x: {
         beginAtZero: true,
         ticks: {
+          color: textColor,
           precision: 0,
-          color: neutralTextColor, // texto del eje X
+          stepSize: 1,
         },
         grid: {
-          color: neutralGridColor, // líneas de fondo eje X
+          color: gridColor,
         },
       },
       y: {
         ticks: {
-          color: neutralTextColor, // texto del eje Y
+          color: textColor,
         },
         grid: {
-          color: neutralGridColor, // líneas de fondo eje Y
+          color: gridColor,
         },
       },
     },
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark/95 text-text-light dark:text-text-dark rounded-lg shadow-md mt-6 min-w-full h-[250px]">
+    <div className="bg-background-light dark:bg-background-dark/95 text-text-light dark:text-text-dark rounded-lg shadow-md h-[260px]">
       <Bar data={chartData} options={options} />
     </div>
   )

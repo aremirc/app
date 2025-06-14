@@ -60,6 +60,7 @@ export async function GET(req) {
 
     const users = await prisma.user.findMany({
       where: whereClause,
+      orderBy: { createdAt: 'desc' },
       select: {
         dni: true,
         firstName: true,

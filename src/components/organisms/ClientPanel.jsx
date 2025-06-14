@@ -12,9 +12,9 @@ import { useAuth } from "@/context/AuthContext"
 const headers = [
   { key: "id", label: "RUC/DNI" },
   { key: "name", label: "Nombre de Cliente" },
-  { key: "email", label: "Correo Electrónico" },
   { key: "phone", label: "Teléfono" },
   { key: "address", label: "Dirección" },
+  { key: "email", label: "Correo Electrónico" },
   { key: "isActive", label: "Estado" }
 ]
 

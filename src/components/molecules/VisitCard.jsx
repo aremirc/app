@@ -20,8 +20,20 @@ const steps = [
 // Esquema de validación con Zod
 const visitSchema = z.object({
   id: z.number().optional(),
-  date: z.string().refine(value => !isNaN(Date.parse(value)), "La hora de inicio no es válida"), // startTime
-  endTime: z.string().refine(value => !isNaN(Date.parse(value)), "La hora de fin no es válida"),
+  date: z.string()
+    .refine(value => !isNaN(Date.parse(value)), "La hora de inicio no es válida") // startTime
+    .refine(value => {
+      const date = new Date(value);
+      const hours = date.getHours();
+      return hours >= 6 && hours < 22;
+    }, "La hora de inicio debe estar entre las 06:00 y las 22:00"),
+  endTime: z.string()
+    .refine(value => !isNaN(Date.parse(value)), "La hora de fin no es válida")
+    .refine(value => {
+      const date = new Date(value);
+      const hours = date.getHours();
+      return hours >= 6 && hours < 22;
+    }, "La hora de fin debe estar entre las 06:00 y las 22:00"),
   description: z.string().min(1, "La descripción es obligatoria"),
   orderId: z.number().min(1, "La orden es obligatoria"),
   userId: z.string().min(1, "El trabajador es obligatorio"),
@@ -32,6 +44,7 @@ const visitSchema = z.object({
     .min(0, "Debe ser al menos 0")
     .max(5, "No puede ser mayor a 5")
     .optional(),
+  updatedAt: z.string().optional(), // ISO date string
 })
   .refine(data => new Date(data.endTime) > new Date(data.date), {
     message: "La hora de fin debe ser posterior a la de inicio",
@@ -47,6 +60,7 @@ const defaultValues = {
   clientId: "",
   isReviewed: false,
   evaluation: 0.0,
+  updatedAt: "",
 }
 
 // Funciones de consulta para react-query
@@ -67,6 +81,7 @@ const VisitCard = ({ visit, handleCancel }) => {
     resolver: zodResolver(visitSchema),
     defaultValues: visit ? {
       ...visit,
+      updatedAt: visit.updatedAt ?? "",
       date: visit.date ? toDatetimeLocal(visit.date) : "",
       endTime: visit.endTime ? toDatetimeLocal(visit.endTime) : "",
     } : defaultValues,
@@ -102,6 +117,7 @@ const VisitCard = ({ visit, handleCancel }) => {
       ...data,
       date: new Date(data.date),
       endTime: new Date(data.endTime),
+      updatedAt: data.updatedAt,
     }
 
     try {

@@ -207,7 +207,7 @@ export async function GET(req) {
 
     const orders = await prisma.order.findMany({
       where: whereClause,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { scheduledDate: 'desc' },
       select: {
         id: true,
         alternateContactName: true,
@@ -219,6 +219,7 @@ export async function GET(req) {
         status: true,
         statusDetails: true,
         createdAt: true,
+        updatedAt: true,
         client: {
           select: {
             id: true,
@@ -247,9 +248,6 @@ export async function GET(req) {
           select: {
             id: true,
             name: true
-          },
-          where: {
-            deletedAt: null,
           },
         }
       }
@@ -401,11 +399,20 @@ export async function PUT(req) {
     const authResponse = await verifyAndLimit(req, ["ADMIN", "SUPERVISOR"])
     if (authResponse) return authResponse
 
-    const { id, description, status, clientId, workers = [], services = [], scheduledDate, endDate, alternateContactName, alternateContactPhone, responsibleId } = await req.json()
+    const { id, description, status, clientId, workers = [], services = [], scheduledDate, endDate, alternateContactName, alternateContactPhone, responsibleId, updatedAt } = await req.json()
 
     if (!id || !description || !status || !clientId) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
+
+    if (!updatedAt) {
+      return NextResponse.json(
+        { error: 'El timestamp de actualización es requerido' },
+        { status: 400 }
+      )
+    }
+
+    const clientUpdatedAt = new Date(updatedAt)
 
     const currentOrder = await prisma.order.findUnique({
       where: { id },
@@ -431,6 +438,22 @@ export async function PUT(req) {
       return NextResponse.json({ error: 'Estado de orden no válido' }, { status: 400 })
     }
 
+    // Reglas de transición para OrderStatus
+    const validOrderTransitions = {
+      AWAITING_APPROVAL: ['PENDING', 'IN_PROGRESS'],
+      PENDING: ['AWAITING_APPROVAL', 'IN_PROGRESS', 'ON_HOLD', 'CANCELLED'],
+      IN_PROGRESS: ['COMPLETED', 'CANCELLED', 'ON_HOLD', 'FAILED'],
+      COMPLETED: [],
+      ON_HOLD: ['IN_PROGRESS', 'CANCELLED', 'PENDING'],
+    }
+
+    const currentOrderStatus = currentOrder.status
+    if (!validOrderTransitions[currentOrderStatus]?.includes(status)) {
+      return NextResponse.json({
+        error: `No se puede cambiar el estado de ${currentOrderStatus} a ${status}`,
+      }, { status: 400 })
+    }
+
     const client = await prisma.client.findUnique({ where: { id: clientId } })
     if (!client) {
       return NextResponse.json({ error: 'Cliente no válido' }, { status: 400 })
@@ -452,6 +475,38 @@ export async function PUT(req) {
       return NextResponse.json({ error: 'Uno o más técnicos no son válidos o están inactivos' }, { status: 400 })
     }
 
+    // // Reglas de transición para OrderWorkerStatus
+    // const validWorkerTransitions = {
+    //   ASSIGNED: ['IN_PROGRESS', 'REASSIGNED', 'CANCELLED'],
+    //   IN_PROGRESS: ['COMPLETED', 'CANCELLED', 'FAILED'],
+    //   COMPLETED: [],
+    //   FAILED: ['REASSIGNED'],
+    // }
+
+    // // Validación de transición de estado de los trabajadores
+    // for (const worker of validWorkers) {
+    //   // Obtener el estado actual de la relación OrderWorker para este trabajador
+    //   const orderWorker = await prisma.orderWorker.findUnique({
+    //     where: { orderId_userId: { orderId: id, userId: worker.dni } },
+    //   })
+
+    //   // Si no encontramos la relación, retornamos un error
+    //   if (!orderWorker) {
+    //     return NextResponse.json({
+    //       error: `El trabajador ${worker.dni} no está asignado a esta orden`,
+    //     }, { status: 400 })
+    //   }
+
+    //   const workerStatus = orderWorker.status // El estado del trabajador en la orden
+
+    //   // Verificar si la transición es válida
+    //   if (!validWorkerTransitions[workerStatus]?.includes(status)) {
+    //     return NextResponse.json({
+    //       error: `No se puede cambiar el estado del trabajador ${worker.dni} de ${workerStatus} a ${status}`,
+    //     }, { status: 400 })
+    //   }
+    // }
+
     if (responsibleId) {
       if (!workers.includes(responsibleId)) {
         return NextResponse.json({
@@ -471,15 +526,15 @@ export async function PUT(req) {
     const parsedEndDate = endDate ? new Date(endDate) : undefined
 
     if (parsedScheduledDate && isNaN(parsedScheduledDate.getTime())) {
-      return NextResponse.json({ error: 'scheduledDate inválida' }, { status: 400 })
+      return NextResponse.json({ error: 'Fecha programada inválida' }, { status: 400 })
     }
 
     if (parsedEndDate && isNaN(parsedEndDate.getTime())) {
-      return NextResponse.json({ error: 'endDate inválida' }, { status: 400 })
+      return NextResponse.json({ error: 'Fecha de fin inválida' }, { status: 400 })
     }
 
     if (parsedScheduledDate && parsedEndDate && parsedEndDate <= parsedScheduledDate) {
-      return NextResponse.json({ error: 'endDate debe ser posterior a scheduledDate' }, { status: 400 })
+      return NextResponse.json({ error: 'Fecha de fin debe ser posterior a fecha programada' }, { status: 400 })
     }
 
     const decoded = await verifyJWT(req)
@@ -489,6 +544,7 @@ export async function PUT(req) {
 
     const updatedBy = decoded.dni
 
+    // Verificación de estado PENDING antes de permitir el cambio
     if (status === "PENDING") {
       const visitCount = await prisma.visit.count({
         where: {
@@ -504,22 +560,39 @@ export async function PUT(req) {
       }
     }
 
-    const updatedOrder = await prisma.order.update({
-      where: { id },
+    const updatedOrder = await prisma.order.updateMany({
+      where: {
+        id,
+        updatedAt: clientUpdatedAt,
+      },
       data: {
         description,
         status,
-        client: { connect: { id: clientId } },
-        services: {
-          set: [], // Limpiamos servicios anteriores
-          connect: services.map((id) => ({ id })),
-        },
+        clientId,
         ...(parsedScheduledDate && { scheduledDate: parsedScheduledDate }),
         ...(parsedEndDate && { endDate: parsedEndDate }),
         ...(alternateContactName && { alternateContactName }),
         ...(alternateContactPhone && { alternateContactPhone }),
         updatedBy,
       },
+    })
+
+    if (updatedOrder.count === 0) {
+      return NextResponse.json(
+        { error: 'La orden fue modificada por otro usuario. Revisa los últimos cambios.' },
+        { status: 409 } // HTTP 409 Conflict
+      )
+    }
+
+    // Actualización separada de relaciones many-to-many
+    await prisma.order.update({
+      where: { id },
+      data: {
+        services: {
+          set: [], // Limpiamos servicios anteriores
+          connect: services.map((id) => ({ id })),
+        },
+      }
     })
 
     const currentWorkerDnis = currentOrder.workers.map((w) => w.userId)
@@ -566,7 +639,7 @@ export async function PUT(req) {
     ])
 
     await prisma.notification.createMany({
-      data: workers.map((dni) => ({
+      data: newWorkers.map((dni) => ({
         userId: dni,
         type: 'ASSIGNMENT_UPDATE',
         title: 'Nueva asignación de orden',

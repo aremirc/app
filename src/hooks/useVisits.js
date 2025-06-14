@@ -27,8 +27,12 @@ export const useVisits = () => {
         socket.emit("new-visit", newVisit)
       }
     },
-    onError: () => {
-      handleToast("Error al agregar la visita.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al agregar la visita."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     },
   })
 
@@ -44,8 +48,12 @@ export const useVisits = () => {
         socket.emit("visit-updated", updatedVisit)
       }
     },
-    onError: () => {
-      handleToast("Error al actualizar la visita.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al actualizar la visita."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     },
   })
 
@@ -60,8 +68,12 @@ export const useVisits = () => {
         socket.emit("visit-deleted", id)
       }
     },
-    onError: () => {
-      handleToast("Error al eliminar la visita.", "error")  // Usamos la función utilitaria con tipo "error"
+    onError: (error) => {
+      const message =
+        error?.response?.data?.error || // si backend usa { error: 'mensaje' }
+        error?.response?.data?.message || // si backend usa { message: 'mensaje' }
+        "Error al eliminar la visita."
+      handleToast(message, "error")  // Usamos la función utilitaria con tipo "error"
     },
   })
 

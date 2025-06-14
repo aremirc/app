@@ -90,6 +90,7 @@ export async function GET(req) {
         orderId: true,
         isReviewed: true,
         evaluation: true,
+        updatedAt: true,
         client: {
           select: {
             name: true,
@@ -224,31 +225,16 @@ export async function POST(req) {
       },
     })
 
-    if (order.status === "IN_PROGRESS") {
-      await prisma.orderWorker.updateMany({
-        where: {
-          orderId,
-          status: "ASSIGNED"
-        },
-        data: {
-          status: "IN_PROGRESS"
-        }
-      })
-    }
-
     // Revisar si esta es la primera visita
-    const existingVisits = await prisma.visit.count({
-      where: { orderId }
-    })
+    const existingVisits = await prisma.visit.count({ where: { orderId } })
 
+    // Si está en PENDING y es la primera visita, actualizamos todo en una transacción
     if (order.status === "PENDING" && existingVisits === 1) {
       await prisma.$transaction([
         prisma.order.update({
           where: { id: orderId },
           data: { status: "IN_PROGRESS" }
         }),
-
-        // Actualizar estado de técnicos que estén ASSIGNED
         prisma.orderWorker.updateMany({
           where: {
             orderId,
@@ -259,6 +245,17 @@ export async function POST(req) {
           }
         })
       ])
+    } else if (order.status === "IN_PROGRESS") {
+      // Si ya está en progreso, aseguramos que los técnicos también estén actualizados
+      await prisma.orderWorker.updateMany({
+        where: {
+          orderId,
+          status: "ASSIGNED"
+        },
+        data: {
+          status: "IN_PROGRESS"
+        }
+      })
     }
 
     return NextResponse.json(newVisit, { status: 201 })
@@ -279,11 +276,20 @@ export async function PUT(req) {
     const authResponse = await verifyAndLimit(req)
     if (authResponse) return authResponse
 
-    const { id, orderId, clientId, userId, date, endTime, description, evaluation, isReviewed } = await req.json()
+    const { id, orderId, clientId, userId, date, endTime, description, evaluation, isReviewed, updatedAt } = await req.json()
 
     if (!id || !orderId || !userId || !date || !endTime || !description) {
       return NextResponse.json({ error: 'Todos los campos son requeridos' }, { status: 400 })
     }
+
+    if (!updatedAt) {
+      return NextResponse.json(
+        { error: 'El timestamp de actualización es requerido' },
+        { status: 400 }
+      )
+    }
+
+    const clientUpdatedAt = new Date(updatedAt)
 
     if (typeof orderId !== 'number' || orderId < 1) {
       return NextResponse.json({ error: 'orderId inválido' }, { status: 400 })
@@ -354,8 +360,11 @@ export async function PUT(req) {
 
     const updatedBy = decoded.dni
 
-    const updatedVisit = await prisma.visit.update({
-      where: { id },
+    const updatedVisit = await prisma.visit.updateMany({
+      where: {
+        id,
+        updatedAt: clientUpdatedAt,
+      },
       data: {
         orderId,
         userId,
@@ -368,6 +377,13 @@ export async function PUT(req) {
         updatedBy,
       },
     })
+
+    if (updatedVisit.count === 0) {
+      return NextResponse.json(
+        { error: 'La visita fue modificada por otro usuario. Revisa los últimos cambios.' },
+        { status: 409 } // HTTP 409 Conflict
+      )
+    }
 
     return NextResponse.json(updatedVisit, { status: 200 })
   } catch (error) {

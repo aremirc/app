@@ -9,10 +9,10 @@ import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"  // Hook para WebSoc
 import SearchBar from "../molecules/SearchBar"
 
 const headers = [
-  { key: "id", label: "ID de Visita" },
   { key: "date", label: "Fecha de Visita" },
+  { key: "id", label: "ID de Visita" },
   { key: "description", label: "Descripción" },
-  { key: "orderId", label: "ID de Orden" },
+  // { key: "orderId", label: "ID de Orden" },
   { key: "client", label: "Cliente" },
   { key: "user", label: "Trabajador" },
 ]

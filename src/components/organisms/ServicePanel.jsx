@@ -11,8 +11,8 @@ import SearchBar from "../molecules/SearchBar"
 const headers = [
   { key: "id", label: "ID" },
   { key: "name", label: "Nombre" },
-  { key: "description", label: "Descripción" },
   { key: "price", label: "Precio" },
+  { key: "description", label: "Descripción" },
   { key: "status", label: "Estado" }
 ]
 
