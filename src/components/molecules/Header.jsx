@@ -1,15 +1,14 @@
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
-import useDarkMode from "@/hooks/useDarkMode"
 import useNavigationItems from "@/hooks/useNavigationItems"
 import Navbar from "../organisms/NavBar"
 import UserList from "../organisms/UserList"
 import Countdown from "../atoms/Countdown"
+import ThemeToggleIcon from "../atoms/ThemeToggle"
 
 const Header = ({ title: propTitle }) => {
   const { user } = useAuth()
   const { itemNav } = useNavigationItems()
-  const { isDark, toggleDarkMode } = useDarkMode()
   const pathname = usePathname()
 
   // Buscar la primera sección de la ruta
@@ -56,14 +55,7 @@ const Header = ({ title: propTitle }) => {
         {user?.role?.name && <UserList />}
       </div>
 
-      <button
-        onClick={toggleDarkMode}
-        type="button"
-        title="toggleTheme"
-        className="fixed bottom-2 right-2 m-2 backdrop-brightness-90 w-7 h-7 dark:bg-background-dark rounded-full"
-      >
-        {isDark ? '🌙' : '🌞'}
-      </button>
+      <ThemeToggleIcon />
     </header>
   )
 }

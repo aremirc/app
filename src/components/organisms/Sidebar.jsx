@@ -67,8 +67,8 @@ const Sidebar = () => {
           {/* Sección rápida para Admin */}
           {user?.role?.name === 'ADMIN' && (
             <div className="flex flex-col gap-3 bg-primary dark:bg-primary-dark rounded-lg p-4 mt-5">
-              <h3 className="text-base font-semibold dark:text-darkSecondary">CREAR NUEVA ORDEN</h3>
-              <p className="text-sm dark:text-darkSecondary">Acceso rápido</p>
+              <h3 className="text-base font-semibold text-text-light dark:text-text-dark">CREAR NUEVA ORDEN</h3>
+              <p className="text-sm text-text-light dark:text-text-dark">Acceso rápido</p>
               <Button
                 onClick={() => {
                   setIsModalOpen(true)

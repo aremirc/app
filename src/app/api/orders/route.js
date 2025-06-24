@@ -440,11 +440,11 @@ export async function PUT(req) {
 
     // Reglas de transición para OrderStatus
     const validOrderTransitions = {
-      AWAITING_APPROVAL: ['PENDING', 'IN_PROGRESS'],
-      PENDING: ['AWAITING_APPROVAL', 'IN_PROGRESS', 'ON_HOLD', 'CANCELLED'],
-      IN_PROGRESS: ['COMPLETED', 'CANCELLED', 'ON_HOLD', 'FAILED'],
-      COMPLETED: [],
-      ON_HOLD: ['IN_PROGRESS', 'CANCELLED', 'PENDING'],
+      AWAITING_APPROVAL: ['AWAITING_APPROVAL', 'PENDING', 'IN_PROGRESS'],
+      PENDING: ['PENDING', 'AWAITING_APPROVAL', 'IN_PROGRESS', 'ON_HOLD', 'CANCELLED'],
+      IN_PROGRESS: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD', 'FAILED'],
+      COMPLETED: ['COMPLETED', 'IN_PROGRESS'],
+      ON_HOLD: ['ON_HOLD', 'IN_PROGRESS', 'CANCELLED', 'PENDING'],
     }
 
     const currentOrderStatus = currentOrder.status

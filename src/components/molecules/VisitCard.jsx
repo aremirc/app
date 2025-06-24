@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQuery } from "@tanstack/react-query"
@@ -59,7 +59,7 @@ const defaultValues = {
   userId: "",
   clientId: "",
   isReviewed: false,
-  evaluation: 0.0,
+  evaluation: 0,
   updatedAt: "",
 }
 
@@ -84,6 +84,8 @@ const VisitCard = ({ visit, handleCancel }) => {
       updatedAt: visit.updatedAt ?? "",
       date: visit.date ? toDatetimeLocal(visit.date) : "",
       endTime: visit.endTime ? toDatetimeLocal(visit.endTime) : "",
+      evaluation: typeof visit.evaluation === 'number' ? visit.evaluation : 0,
+      isReviewed: visit.isReviewed ?? false,
     } : defaultValues,
     mode: "onChange",
   })
@@ -96,27 +98,11 @@ const VisitCard = ({ visit, handleCancel }) => {
     queryFn: fetchOrders
   })
 
-  const orderId = watch("orderId")
-
-  useEffect(() => {
-    if (!orderId) return
-
-    const selectedOrder = orders.find(order => order.id === orderId)
-    if (selectedOrder) {
-      setValue("clientId", selectedOrder.clientId)
-
-      const responsibleWorker = selectedOrder.workers.find(w => w.isResponsible)
-      if (responsibleWorker) {
-        setValue("userId", responsibleWorker.userId)
-      }
-    }
-  }, [orderId, orders, setValue])
-
   const onSubmit = async (data) => {
     const payload = {
       ...data,
-      date: new Date(data.date),
-      endTime: new Date(data.endTime),
+      date: new Date(data.date).toISOString(),
+      endTime: new Date(data.endTime).toISOString(),
       updatedAt: data.updatedAt,
     }
 
@@ -150,6 +136,8 @@ const VisitCard = ({ visit, handleCancel }) => {
       console.log("❌ Errores en el paso actual:", errors)
     }
   }
+
+  const isReviewedValue = watch("isReviewed")
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
@@ -264,8 +252,18 @@ const VisitCard = ({ visit, handleCancel }) => {
                     className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.orderId ? 'border-red-500' : ''}`}
                     disabled={loading || visit}
                     onChange={(e) => {
-                      // Convertir el valor seleccionado a número
-                      field.onChange(Number(e.target.value))
+                      const selectedId = Number(e.target.value)
+                      field.onChange(selectedId)
+
+                      const selectedOrder = orders.find(order => order.id === selectedId)
+                      if (selectedOrder) {
+                        setValue("clientId", selectedOrder.clientId)
+
+                        const responsibleWorker = selectedOrder.workers.find(w => w.isResponsible)
+                        if (responsibleWorker) {
+                          setValue("userId", responsibleWorker.userId)
+                        }
+                      }
                     }}
                   >
                     <option value="" disabled>Selecciona una orden</option>
@@ -332,27 +330,44 @@ const VisitCard = ({ visit, handleCancel }) => {
               render={({ field }) => <input type="hidden" {...field} />}
             />
 
-            <Controller
-              name="evaluation"
-              control={control}
-              render={({ field }) => (
-                <div className="mb-4">
-                  <label htmlFor="evaluation" className="block text-sm font-medium text-gray-700">Evaluación (0-5)</label>
-                  {errors.evaluation && <p className="text-red-500 text-sm">{errors.evaluation.message}</p>}
-                  <Input
-                    {...field}
-                    id="evaluation"
-                    type="number"
-                    min={0}
-                    max={5}
-                    step={0.1}
-                    placeholder="Ej. 4.5"
-                    className={`${errors.evaluation ? 'border-red-500' : ''}`}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                  />
-                </div>
-              )}
-            />
+            {isReviewedValue && (
+              <Controller
+                name="evaluation"
+                control={control}
+                render={({ field }) => (
+                  <div className="mb-4">
+                    <label htmlFor="evaluation" className="block text-sm font-medium text-gray-700">Evaluación (0-5)</label>
+                    {errors.evaluation && <p className="text-red-500 text-sm">{errors.evaluation.message}</p>}
+                    <Input
+                      {...field}
+                      id="evaluation"
+                      type="number"
+                      min={0}
+                      max={5}
+                      step={0.1}
+                      placeholder="Ej. 4.5"
+                      className={`${errors.evaluation ? 'border-red-500' : ''}`}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        const numberValue = parseFloat(value)
+                        field.onChange(isNaN(numberValue) ? undefined : numberValue)
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value
+                        const numberValue = parseFloat(value)
+
+                        if (isNaN(numberValue) || value === "") {
+                          setValue("isReviewed", false)
+                          setValue("evaluation", undefined)
+                        } else {
+                          setValue("isReviewed", true)
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              />
+            )}
 
             <Controller
               name="isReviewed"
@@ -365,7 +380,15 @@ const VisitCard = ({ visit, handleCancel }) => {
                     id="isReviewed"
                     className="form-checkbox h-5 w-5 text-primary"
                     checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      field.onChange(checked)
+
+                      if (!checked) {
+                        // Limpiar evaluación si se desmarca
+                        setValue("evaluation", undefined)
+                      }
+                    }}
                   />
                   <label htmlFor="isReviewed" className="text-sm text-text-light">
                     ¿Revisada?

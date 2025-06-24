@@ -35,14 +35,14 @@ const WorkerCard = ({ worker }) => {
       )}
 
       {user ? (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center gap-1">
           <img
             src={user.avatar || '/default-avatar.webp'}
             className="w-16 h-16 object-cover rounded-full border"
             alt={`${user.firstName} ${user.lastName}`}
             onError={(e) => { e.target.src = "/default-avatar.webp" }}
           />
-          <p className="text-primary dark:text-primary-dark font-medium">
+          <p className="text-primary dark:text-primary-dark font-medium text-center">
             {user.firstName} {user.lastName}
           </p>
           <p className="text-sm text-text-light dark:text-text-dark">Empleado</p>

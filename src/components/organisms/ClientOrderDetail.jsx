@@ -1,65 +1,58 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { FileText, MapPin, Plus, Tag } from "lucide-react"
+import { FileText, MapPin, Tag } from "lucide-react"
 import api from "@/lib/axios"
 import Card from "../molecules/Card"
-import Button from "../atoms/Button"
-import VisitList from "./VisitList"
 import WorkerCard from "../molecules/WorkerCard"
 import LoadingSpinner from "../atoms/LoadingSpinner"
+import LocationMapEditor from "../molecules/LocationMapEditor"
+import VisitList from "./VisitList"
+import Button from "../atoms/Button"
 
-const OrderDetail = ({ orderId }) => {
-  const [order, setOrder] = useState(null)  // Estado para la orden
-  const [loading, setLoading] = useState(true)  // Estado de carga
-  const [error, setError] = useState(null)  // Estado de error
+const ClientOrderDetail = ({ orderId }) => {
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        // Hacemos la solicitud a la API con el `orderId`
         const response = await api.get(`/api/orders/${orderId}`)
-        const data = response.data
-        setOrder(data)  // Guardamos los datos de la orden en el estado
-      } catch (error) {
-        setError('No se pudieron cargar los detalles de la orden.')  // Si hay error, guardamos el mensaje
+        setOrder(response.data)
+      } catch (err) {
+        setError("No se pudieron cargar los detalles de la orden.")
       } finally {
-        setLoading(false)  // Terminamos de cargar
+        setLoading(false)
       }
     }
 
-    fetchOrder()  // Llamamos a la función para obtener la orden
-  }, [orderId])  // Dependencia para que se ejecute cuando cambie el `orderId`
+    fetchOrder()
+  }, [orderId])
 
-  // Mostrar "loading" mientras se obtiene la orden
   if (loading) return <LoadingSpinner />
-
-  // Si hubo un error
   if (error) return <div className="text-red-500 text-center mt-10">{error}</div>
-
-  // Si no se encuentra la orden
   if (!order) return <div className="text-center mt-10">Orden no encontrada.</div>
 
   return (
     <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
-      <Card title="Detalles" className="p-8 flex flex-col gap-3 text-sm text-gray-700">
-        <Button variant="outline" size="sm" className="absolute top-4 right-4 flex items-center gap-2">
-          <FileText className="w-4 h-4" /> <span>Imprimir PDF</span>
+      <Card title="Detalles" className="p-8 flex flex-col gap-3 text-sm text-gray-700 dark:text-gray-300">
+        <Button variant="outline" size="sm" className="absolute top-4 right-4">
+          <FileText className="w-4 h-4" />
         </Button>
 
         <p><strong>Fecha de creación:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
         <p><strong>Servicio:</strong> {order.description}</p>
-        <p><strong>Estado:</strong>{" "}
-          <span
-            className={`font-semibold ${order.status === "COMPLETED"
-              ? "text-green-500"
-              : order.status === "IN_PROGRESS"
-                ? "text-yellow-500"
-                : order.status === "FAILED" || order.status === "CANCELLED"
-                  ? "text-red-500"
-                  : "text-gray-500"
-              }`}
-          >
+        <p>
+          <strong>Estado:</strong>{" "}
+          <span className={`font-semibold ${order.status === "COMPLETED"
+            ? "text-green-500"
+            : order.status === "IN_PROGRESS"
+              ? "text-yellow-500"
+              : order.status === "FAILED" || order.status === "CANCELLED"
+                ? "text-red-500"
+                : "text-gray-500"
+            }`}>
             {order.status}
           </span>
         </p>
@@ -77,26 +70,16 @@ const OrderDetail = ({ orderId }) => {
             style={{
               width: (() => {
                 if (order.status === "PENDING") return "0%"
-                if (order.status === "COMPLETED") return "100%"
-                if (order.status === "FAILED" || order.status === "CANCELLED") return "100%"
-
-                if (
-                  order.status === "IN_PROGRESS" &&
-                  order.visits?.length > 0 &&
-                  order.scheduledDate &&
-                  order.endDate
-                ) {
+                if (["COMPLETED", "FAILED", "CANCELLED"].includes(order.status)) return "100%"
+                if (order.status === "IN_PROGRESS" && order.visits?.length > 0 && order.scheduledDate && order.endDate) {
                   const start = new Date(order.scheduledDate).getTime()
                   const end = new Date(order.endDate).getTime()
                   const now = Date.now()
-
-                  if (end <= start) return "0%" // prevent division by zero or invalid ranges
-
+                  if (end <= start) return "0%"
                   const progress = ((now - start) / (end - start)) * 100
-                  return `${Math.min(Math.max(progress, 5), 95)}%` // clamp to range 5–95%
+                  return `${Math.min(Math.max(progress, 5), 95)}%`
                 }
-
-                return "20%" // default for undefined cases
+                return "20%"
               })(),
             }}
           ></div>
@@ -104,23 +87,22 @@ const OrderDetail = ({ orderId }) => {
 
         <p><strong>Fecha Programada:</strong> {new Date(order.scheduledDate).toLocaleDateString()}</p>
         <p><strong>Fecha de Finalización:</strong> {new Date(order.endDate || '').toLocaleDateString()}</p>
+
         {order.alternateContactName && order.alternateContactPhone && (
-          <p>
-            <strong>Contacto Alternativo:</strong> {order.alternateContactName} ({order.alternateContactPhone})
-          </p>
+          <p><strong>Contacto Alternativo:</strong> {order.alternateContactName} ({order.alternateContactPhone})</p>
         )}
       </Card>
 
       <div className="col-span-1 xl:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="col-span-2 flex flex-col justify-between text-white bg-linear-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
-          <p className="text-sm">N° Orden: {String(order.id).padStart(3, '0')}</p>
+        <div className="col-span-2 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white p-6 rounded-2xl shadow-md">
+          <p className="text-sm">Nº Orden: {String(order.id).padStart(3, "0")}</p>
           <div>
             <h2 className="text-2xl font-semibold">{order.client?.name}</h2>
-            {order.client?.contactPersonName && order.client?.contactPersonPhone ? (
-              <p className="text-sm mt-2">{order.client?.contactPersonName} ({order.client?.contactPersonPhone})</p>
-            ) : (
-              <p className="text-sm mt-2">{order.client?.phone}</p>
-            )}
+            <p className="text-sm mt-2">
+              {order.client?.contactPersonName && order.client?.contactPersonPhone
+                ? `${order.client.contactPersonName} (${order.client.contactPersonPhone})`
+                : order.client?.phone}
+            </p>
             <p className="text-sm">{order.client?.address}</p>
           </div>
         </div>
@@ -129,7 +111,7 @@ const OrderDetail = ({ orderId }) => {
         <WorkerCard worker={order.workers?.[1]} />
 
         {order.conformity && (
-          <Card title="Condormidad del Cliente" className="col-span-2 p-8 space-y-2 rounded-2xl">
+          <Card title="Conformidad del Cliente" className="col-span-2 p-8 space-y-2 rounded-2xl">
             <p><strong>Descripción:</strong> {order.conformity.description}</p>
             <p>
               <strong>Estado:</strong>{" "}
@@ -149,7 +131,7 @@ const OrderDetail = ({ orderId }) => {
               </div>
             )}
 
-            {order.conformity.files && Array.isArray(order.conformity.files) && order.conformity.files.length > 0 && (
+            {order.conformity.files?.length > 0 && (
               <div>
                 <p className="font-medium">Archivos Adjuntos:</p>
                 <ul className="list-disc list-inside space-y-1">
@@ -164,14 +146,8 @@ const OrderDetail = ({ orderId }) => {
               </div>
             )}
 
-            {order.conformity.rating && (
-              <p><strong>Calificación:</strong> {order.conformity.rating} / 5</p>
-            )}
-
-            {order.conformity.feedback && (
-              <p><strong>Comentario del Cliente:</strong> {order.conformity.feedback}</p>
-            )}
-
+            {order.conformity.rating && <p><strong>Calificación:</strong> {order.conformity.rating} / 5</p>}
+            {order.conformity.feedback && <p><strong>Comentario del Cliente:</strong> {order.conformity.feedback}</p>}
             {order.conformity.conformityDate && (
               <p><strong>Fecha de Conformidad:</strong> {new Date(order.conformity.conformityDate).toLocaleDateString()}</p>
             )}
@@ -199,29 +175,41 @@ const OrderDetail = ({ orderId }) => {
               </div>
             ))}
           </div>
-
-          <div className="mt-4">
-            <Button variant="outline" className="w-full flex items-center sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar Ubicación
-            </Button>
-          </div>
         </Card>
       </div>
 
-      <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
-        <Button
-          size="sm"
-          variant="outline"
-          className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light/10"
-        >
-          CREAR NUEVA VISITA
-        </Button>
+      <Card title="Editar Ubicaciones" className="col-span-1 xl:col-span-3 p-8">
+        <LocationMapEditor
+          initialLocations={order.locations}
+          onSave={async (updatedLocations) => {
+            try {
+              const payload = updatedLocations.map((loc) => ({
+                ...loc,
+                orderId: order.id,
+                createdBy: order.createdBy, // Asegúrate de que este valor esté presente
+              }))
 
+              const response = await api.post('/api/locations', payload)
+
+              if (response.status === 200) {
+                setOrder((prevOrder) => ({
+                  ...prevOrder,
+                  locations: response.data,
+                }))
+              }
+            } catch (err) {
+              console.error('Error al guardar ubicaciones:', err)
+              alert('Hubo un error al guardar las ubicaciones.')
+            }
+          }}
+        />
+      </Card>
+
+      <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
         <VisitList visits={order.visits} />
       </Card>
     </div>
   )
 }
 
-export default OrderDetail
+export default ClientOrderDetail

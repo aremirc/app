@@ -217,6 +217,28 @@ export async function PUT(req) {
     const role = await prisma.role.findUnique({ where: { id: roleId } })
     if (!role) return NextResponse.json({ error: 'Rol no válido' }, { status: 400 })
 
+    // Verificar si se está intentando cambiar el rol de un ADMIN a otro distinto
+    const currentRole = await prisma.role.findUnique({ where: { id: existingUser.roleId } })
+    if (currentRole?.name === 'ADMIN' && role.name !== 'ADMIN') {
+      // Verificar si es el único admin activo
+      const activeAdminsCount = await prisma.user.count({
+        where: {
+          status: 'ACTIVE',
+          deletedAt: null,
+          role: {
+            name: 'ADMIN',
+          },
+        },
+      })
+
+      if (activeAdminsCount <= 1) {
+        return NextResponse.json(
+          { error: 'No se puede cambiar el rol del único administrador activo' },
+          { status: 403 }
+        )
+      }
+    }
+
     const hashedPassword = password ? await bcrypt.hash(password, 12) : undefined
 
     const updatedUser = await prisma.user.update({

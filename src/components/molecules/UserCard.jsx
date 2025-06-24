@@ -23,32 +23,31 @@ const userSchema = z.object({
   firstName: z.string().min(1, "El nombre es obligatorio"),
   lastName: z.string().min(1, "El apellido es obligatorio"),
   gender: z.enum(["MALE", "FEMALE"], { message: "El género es obligatorio" }),
-  birthDate: z.coerce.date()
-    .refine((d) => !isNaN(d.getTime()), {
+  birthDate: z
+    .string()
+    .optional()
+    .refine((val) => !val || !isNaN(new Date(val).getTime()), {
       message: "Fecha inválida",
     })
-    .refine((d) => {
-      const today = new Date();
+    .refine((val) => {
+      if (!val) return true
+      const date = new Date(val)
+      const today = new Date()
       const eighteenYearsAgo = new Date(
         today.getFullYear() - 18,
         today.getMonth(),
         today.getDate()
-      );
-      return d <= eighteenYearsAgo;
+      )
+      return date <= eighteenYearsAgo
     }, {
       message: "Debes ser mayor de 18 años",
-    })
-    .optional(),
+    }),
   phone: z.string().regex(/^\d{9}$/, "El teléfono debe tener 9 dígitos numéricos").optional(),
   email: z.string().email("Correo electrónico inválido"),
   country: z.string().optional(),
   address: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_VERIFICATION"]).default("ACTIVE"),
   username: z.string().min(3, "Por favor, ingresa al menos 3 caracteres."),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres")
-    .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
-    .regex(/\d/, "Debe contener al menos un número")
-    .regex(/[\W_]/, "Debe contener al menos un carácter especial"),
   roleId: z.number().int().positive("El Rol es obligatorio"),
   // avatar: z
   //   .any()
@@ -116,13 +115,26 @@ const fetchRoles = async () => {
   return data
 }
 
+const toLocalDateInput = (isoDate) => {
+  const date = new Date(isoDate)
+  const offset = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
+}
+
 const UserCard = ({ user, handleCancel }) => {
   const [step, setStep] = useState(1)
   const { addUserMutation, updateUserMutation } = useUsers()
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset, trigger } = useForm({
     resolver: zodResolver(!!user ? editUserSchema : createUserSchema),
-    defaultValues: user ? { ...user, birthDate: user?.birthDate ? new Date(user.birthDate).toISOString().split("T")[0] : "", password: '' } : defaultValues,
+    defaultValues: user ? {
+      ...user,
+      birthDate: user?.birthDate ? toLocalDateInput(user.birthDate) : "",
+      phone: user.phone ?? "",
+      country: user.country ?? "",
+      address: user.address ?? "",
+      password: ""
+    } : defaultValues,
     mode: "onChange",
   })
 
@@ -282,7 +294,7 @@ const UserCard = ({ user, handleCancel }) => {
                 return (
                   <div className="mb-4">
                     <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">Fecha de nacimiento</label>
-                    {errors.birthDate && <p className="text-red-500 text-sm">{errors.birthDate.message}</p>}
+                    {errors.birthDate?.message && <p className="text-red-500 text-sm">{errors.birthDate.message}</p>}
                     <Input
                       {...field}
                       type="date"

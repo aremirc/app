@@ -172,7 +172,7 @@ const ClientCard = ({ client, handleCancel }) => {
                 name="type"
                 control={control}
                 render={({ field }) => (
-                  <select {...field} className="mb-4 w-full p-2 border rounded-sm dark:bg-text-dark dark:text-text-light" disabled={Boolean(client)}>
+                  <select {...field} className="mb-4 shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={Boolean(client)}>
                     <option value="INDIVIDUAL">Individual</option>
                     <option value="COMPANY">Empresa</option>
                   </select>

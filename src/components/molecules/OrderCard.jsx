@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -23,21 +23,25 @@ const orderSchema = z.object({
   id: z.number().optional(),
   description: z.string().min(1, "El título es obligatorio"),
   clientId: z.string().min(1, "Selecciona un cliente"),
-  workers: z.array(z.string()).min(1, "Selecciona al menos un trabajador").max(2, "Puedes asignar solo hasta dos trabajadores"),
-  status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"], { message: "Selecciona un estado válido" }), // Uso de enum para validar el status
+  workers: z
+    .array(z.string())
+    .min(1, "Selecciona al menos un trabajador")
+    .max(2, "Puedes asignar solo hasta dos trabajadores"),
+  status: z.enum(
+    ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED", 'ON_HOLD', 'FAILED'],
+    { message: "Selecciona un estado válido" }
+  ), // Uso de enum para validar el status
   services: z.array(z.number()).min(1, "Selecciona al menos un servicio"),
   scheduledDate: z
     .string()
     .min(1, "La fecha programada es obligatoria")
     .refine((str) => !isNaN(new Date(str).getTime()), { message: "Fecha inválida" })
-    .transform((str) => new Date(str))
-    .refine(date => date >= new Date(), { message: "La fecha programada no puede ser pasada" }),
+    .transform((str) => new Date(str).toISOString()),
   endDate: z
     .string()
     .min(1, "La fecha de finalización es obligatoria")
     .refine((str) => !isNaN(new Date(str).getTime()), { message: "Fecha inválida" })
-    .transform((str) => new Date(str))
-    .refine(date => date >= new Date(), { message: "La fecha de finalización no puede ser pasada" }),
+    .transform((str) => new Date(str).toISOString()),
   alternateContactName: z.string().optional(),
   alternateContactPhone: z
     .string()
@@ -50,19 +54,39 @@ const orderSchema = z.object({
   responsibleId: z.string().optional(),
   updatedAt: z.string().optional(), // ISO date string
 })
-  .refine((data) => data.endDate >= data.scheduledDate, {
+  .refine((data) => new Date(data.endDate) >= new Date(data.scheduledDate), {
     message: "La fecha de finalización debe ser posterior a la programada",
     path: ["endDate"],
   })
   .superRefine((data, ctx) => {
-    if (data.responsibleId) {
-      if (!data.workers.includes(data.responsibleId)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["responsibleId"],
-          message: "El responsable debe estar en la lista de técnicos asignados",
-        })
-      }
+    const now = new Date()
+    const allowPastDates = ["IN_PROGRESS", "COMPLETED", "CANCELLED", "ON_HOLD", "FAILED"].includes(data.status)
+
+    // Fecha programada en el pasado
+    if (!allowPastDates && data.scheduledDate < now) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["scheduledDate"],
+        message: "La fecha programada no puede ser pasada",
+      })
+    }
+
+    // Fecha de finalización en el pasado
+    if (!allowPastDates && data.endDate < now) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "La fecha de finalización no puede ser pasada",
+      })
+    }
+
+    // Validar que el responsable esté entre los trabajadores seleccionados
+    if (data.responsibleId && !data.workers.includes(data.responsibleId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["responsibleId"],
+        message: "El responsable debe estar en la lista de técnicos asignados",
+      })
     }
   })
 
@@ -97,11 +121,24 @@ const fetchActiveServices = async () => {
   return data
 }
 
+const toLocalDatetimeInputValue = (isoString) => {
+  const date = new Date(isoString)
+  const offset = date.getTimezoneOffset() * 60000
+  const localISO = new Date(date.getTime() - offset).toISOString().slice(0, 16)
+  return localISO
+}
+
 const OrderCard = ({ order, handleCancel }) => {
   const [step, setStep] = useState(1)
   const [availableTechs, setAvailableTechs] = useState([])
   const [loadingTechs, setLoadingTechs] = useState(false)
   const { addOrderMutation, updateOrderMutation } = useOrders()
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+
+  useEffect(() => {
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    setIsTouchDevice(isTouch)
+  }, [])
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, getValues, setValue, trigger } = useForm({
     resolver: zodResolver(orderSchema),
@@ -109,8 +146,8 @@ const OrderCard = ({ order, handleCancel }) => {
       ...order,
       updatedAt: order.updatedAt ?? "",
       clientName: order?.client?.name,
-      scheduledDate: order?.scheduledDate?.slice(0, 16) ?? "",
-      endDate: order?.endDate?.slice(0, 16) ?? "",
+      scheduledDate: order?.scheduledDate ? toLocalDatetimeInputValue(order.scheduledDate) : "",
+      endDate: order?.endDate ? toLocalDatetimeInputValue(order.endDate) : "",
       statusDetails: order.statusDetails ?? "",
       alternateContactName: order.alternateContactName ?? "",
       alternateContactPhone: order.alternateContactPhone ?? "",
@@ -148,8 +185,8 @@ const OrderCard = ({ order, handleCancel }) => {
     const isValidDates = await trigger(["scheduledDate", "endDate"])
     if (!isValidDates) return
 
-    const currentScheduledDate = getValues("scheduledDate")
-    const currentEndDate = getValues("endDate")
+    const currentScheduledDate = new Date(getValues("scheduledDate")).toISOString()
+    const currentEndDate = new Date(getValues("endDate")).toISOString()
 
     if (!currentScheduledDate || !currentEndDate) return
 
@@ -171,6 +208,16 @@ const OrderCard = ({ order, handleCancel }) => {
       setLoadingTechs(false)
     }
   }
+
+  useEffect(() => {
+    if (order && step === 2) {
+      const scheduled = getValues("scheduledDate")
+      const end = getValues("endDate")
+      if (scheduled && end) {
+        checkAvailability()
+      }
+    }
+  }, [step])
 
   const onSubmit = async (data) => {
     const payload = {
@@ -253,7 +300,7 @@ const OrderCard = ({ order, handleCancel }) => {
                   <Input
                     {...field}
                     type="text"
-                    placeholder="Ej. Orden para Empresa XYZ"
+                    placeholder="Ej. Instalación de CCTV para cliente ABC"
                     className={`mb-4 ${errors.description ? "border-red-500" : ""}`}
                   />
                 </>
@@ -353,89 +400,95 @@ const OrderCard = ({ order, handleCancel }) => {
 
         {step === 2 && (
           <>
-            <Controller
-              name="clientName"
-              control={control}
-              render={({ field }) => (
-                <div className="mb-4">
-                  <label htmlFor="clientName" className="block text-sm font-medium text-gray-700">
-                    Selecciona un Cliente
-                  </label>
-                  {errors.clientId && (
-                    <p className="text-red-500 text-sm">{errors.clientId.message}</p>
+            {isTouchDevice ? (
+              // Mostrar <select> en móviles
+              <Controller
+                name="clientId"
+                control={control}
+                render={({ field }) => (
+                  <div className="mb-4">
+                    <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">
+                      Selecciona un Cliente
+                    </label>
+                    {errors.clientId && <p className="text-red-500 text-sm">{errors.clientId.message}</p>}
+                    <select {...field} id="clientId" className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={loading}>
+                      <option value="" disabled>Selecciona un cliente</option>
+                      {loadingClients ? (
+                        <option value="" disabled>Cargando clientes...</option>
+                      ) : (
+                        clients.map((client) => (
+                          <option key={client.id} value={client.id}>
+                            {client.name}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                )}
+              />
+            ) : (
+              // Mostrar input con datalist en desktop
+              <>
+                <Controller
+                  name="clientName"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="mb-4">
+                      <label htmlFor="clientName" className="block text-sm font-medium text-gray-700">
+                        Selecciona un Cliente
+                      </label>
+                      {errors.clientId && (
+                        <p className="text-red-500 text-sm">{errors.clientId.message}</p>
+                      )}
+                      <input
+                        {...field}
+                        list="client-suggestions"
+                        id="clientName"
+                        placeholder="Selecciona un cliente"
+                        disabled={loading}
+                        className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark"
+                        onChange={(e) => {
+                          const name = e.target.value;
+                          field.onChange(name);
+                          const matchedClient = clients.find((client) => client.name === name);
+                          if (matchedClient) {
+                            setValue("clientId", matchedClient.id);
+                          } else {
+                            // Limpiar ID si no hay coincidencia
+                            setValue("clientId", "");
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const name = e.target.value;
+                          const matchedClient = clients.find((client) => client.name === name);
+                          if (!matchedClient) {
+                            // Si no es válido, limpia el input
+                            field.onChange("");
+                            setValue("clientId", "");
+                          }
+                        }}
+                      />
+                      <datalist id="client-suggestions">
+                        {loadingClients ? (
+                          <option value="Cargando clientes..." disabled />
+                        ) : (
+                          clients.map((client) => (
+                            <option key={client.id} value={client.name} />
+                          ))
+                        )}
+                      </datalist>
+                    </div>
                   )}
-                  <input
-                    {...field}
-                    list="client-suggestions"
-                    id="clientName"
-                    placeholder="Selecciona un cliente"
-                    disabled={loading}
-                    className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark"
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      field.onChange(name);
-                      const matchedClient = clients.find((client) => client.name === name);
-                      if (matchedClient) {
-                        setValue("clientId", matchedClient.id);
-                      } else {
-                        // Limpiar ID si no hay coincidencia
-                        setValue("clientId", "");
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const name = e.target.value;
-                      const matchedClient = clients.find((client) => client.name === name);
-                      if (!matchedClient) {
-                        // Si no es válido, limpia el input
-                        field.onChange("");
-                        setValue("clientId", "");
-                      }
-                    }}
-                  />
-                  <datalist id="client-suggestions">
-                    {loadingClients ? (
-                      <option value="Cargando clientes..." disabled />
-                    ) : (
-                      clients.map((client) => (
-                        <option key={client.id} value={client.name} />
-                      ))
-                    )}
-                  </datalist>
-                </div>
-              )}
-            />
+                />
 
-            {/* Campo oculto para enviar el ID real */}
-            <Controller
-              name="clientId"
-              control={control}
-              render={({ field }) => <input type="hidden" {...field} />}
-            />
-
-            {/* <Controller
-              name="clientId"
-              control={control}
-              render={({ field }) => (
-                <div className="mb-4">
-                  <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">
-                    Selecciona un Cliente
-                  </label>
-                  {errors.clientId && <p className="text-red-500 text-sm">{errors.clientId.message}</p>}
-                  <select {...field} id="clientId" className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={loading}>
-                    <option value="" disabled>Selecciona un cliente</option>
-                    {loadingClients ? (
-                      <option value="" disabled>Cargando clientes...</option>
-                    ) : (
-                      clients.map((client) => (
-                        <option key={client.id} value={client.id}>
-                          {client.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-              )}
-            /> */}
+                {/* Campo oculto para enviar el ID real */}
+                <Controller
+                  name="clientId"
+                  control={control}
+                  render={({ field }) => <input type="hidden" {...field} />}
+                />
+              </>
+            )}
 
             <Controller
               name="alternateContactName"
@@ -490,7 +543,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     field.onChange(selectedWorkers.filter((w) => w !== id))
                     // Si se deselecciona el responsable, limpiamos responsibleId
                     if (watch("responsibleId") === id) {
-                      setValue("responsibleId", null)
+                      setValue("responsibleId", "")
                     }
                   } else if (selectedWorkers.length < 2) {
                     field.onChange([...selectedWorkers, id])
@@ -508,6 +561,8 @@ const OrderCard = ({ order, handleCancel }) => {
                     <div className="space-y-2 mt-2">
                       {loadingTechs ? (
                         <p>Cargando técnicos...</p>
+                      ) : availableTechs.length === 0 ? (
+                        <p className="text-sm text-gray-500">No hay técnicos disponibles para esta orden.</p>
                       ) : (
                         availableTechs.map((worker) => {
                           const isSelected = selectedWorkers.includes(worker.dni)
@@ -531,7 +586,7 @@ const OrderCard = ({ order, handleCancel }) => {
                               <label htmlFor={`worker-${worker.dni}`} className={`text-sm ${isSelected ? 'font-semibold' : 'text-gray-700'}`}>
                                 {worker.firstName} {worker.lastName}
                                 {isResponsible && (
-                                  <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary-light text-background-dark dark:bg-primary-dark">
                                     R. Asignado
                                   </span>
                                 )}
@@ -545,7 +600,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     {/* ✅ Mostrar trabajadores seleccionados */}
                     {selectedWorkers.length > 0 && (
                       <div className="mt-3 text-sm text-gray-600">
-                        <strong>Técnico responsable:</strong>{" "}
+                        <strong>Técnicos Asignados:</strong>{" "}
                         <div className="space-y-2 mt-2">
                           {selectedWorkers
                             .map((workerId) => {
@@ -566,7 +621,7 @@ const OrderCard = ({ order, handleCancel }) => {
                                   <label htmlFor={`responsible-${workerId}`} className="text-sm text-gray-700">
                                     {worker?.firstName} {worker?.lastName}
                                     {isResponsible && (
-                                      <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                                      <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary-light text-background-dark dark:bg-primary-dark">
                                         Responsable
                                       </span>
                                     )}

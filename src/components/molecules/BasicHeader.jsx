@@ -1,8 +1,7 @@
 import { usePathname } from "next/navigation"
-import useDarkMode from "@/hooks/useDarkMode"
+import ThemeToggleIcon from "../atoms/ThemeToggle"
 
 const BasicHeader = ({ title: propTitle }) => {
-  const { isDark, toggleDarkMode } = useDarkMode()
   const pathname = usePathname()
 
   // Obtener primera parte del pathname (ej: '/login' → 'login')
@@ -33,14 +32,7 @@ const BasicHeader = ({ title: propTitle }) => {
         </div>
       </div>
 
-      <button
-        onClick={toggleDarkMode}
-        type="button"
-        title="toggleTheme"
-        className="fixed bottom-2 right-2 m-2 backdrop-brightness-90 w-7 h-7 dark:bg-background-dark rounded-full"
-      >
-        {isDark ? '🌙' : '🌞'}
-      </button>
+      <ThemeToggleIcon />
     </header>
   )
 }

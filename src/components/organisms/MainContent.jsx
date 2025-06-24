@@ -1,10 +1,11 @@
 import { useState } from "react"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts"
+import { Timer, CalendarDays, Users, ClipboardList } from "lucide-react"
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from "@/context/AuthContext"
 import DashboardGrid from "./DashboardGrid"
 import Card from "../molecules/Card"
 import api from "@/lib/axios"
-import BarChart from "./Chart"
 import Icon from "../atoms/Icon"
 import Button from '../atoms/Button'
 import Table from "../molecules/Table"
@@ -14,6 +15,51 @@ import SearchBar from "../molecules/SearchBar"
 import LoadingSpinner from "../atoms/LoadingSpinner"
 import LoadingOverlay from "../atoms/LoadingOverlay"
 import Link from "next/link"
+
+const cardMetric = [
+  {
+    title: "Órdenes Completadas",
+    icon: <ClipboardList className="h-6 w-6 text-primary" />,
+    value: "532",
+    description: "+12 este mes",
+  },
+  {
+    title: "Visitas",
+    icon: <CalendarDays className="h-6 w-6 text-primary" />,
+    value: "214",
+    description: "+8% desde abril",
+  },
+  {
+    title: "Usuarios Activos",
+    icon: <Users className="h-6 w-6 text-primary" />,
+    value: "58",
+    description: "78% verificados",
+  },
+  {
+    title: "Horas Trabajadas",
+    icon: <Timer className="h-6 w-6 text-primary" />,
+    value: "1,450",
+    description: "Promedio mensual",
+  },
+]
+
+const ordersPerMonth = [
+  { name: "Ene", Órdenes: 45 },
+  { name: "Feb", Órdenes: 62 },
+  { name: "Mar", Órdenes: 53 },
+  { name: "Abr", Órdenes: 70 },
+  { name: "May", Órdenes: 60 },
+  { name: "Jun", Órdenes: 75 },
+]
+
+const visitsPerMonth = [
+  { month: "Ene", Visitas: 32 },
+  { month: "Feb", Visitas: 40 },
+  { month: "Mar", Visitas: 38 },
+  { month: "Abr", Visitas: 50 },
+  { month: "May", Visitas: 54 },
+  { month: "Jun", Visitas: 58 },
+]
 
 const headers = [
   { key: "cliente", label: "Cliente" },
@@ -80,11 +126,6 @@ const MainContent = () => {
 
   const isInitialLoading = loadingPending || loadingMetrics
 
-  const chartData = metrics.map(user => ({
-    label: `${user.firstName} ${user.lastName}`,
-    value: user.totalVisits
-  }))
-
   const mapOrders = (orders) => {
     return orders.map(order => {
       const responsable = order.workers.find(w => w.isResponsible)?.user
@@ -127,8 +168,25 @@ const MainContent = () => {
 
   return (
     <>
+      <DashboardGrid className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {cardMetric.map((card) => (
+          <Card key={card.title} className="rounded-2xl shadow-md p-4 bg-background-muted dark:bg-background-muted-dark">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 rounded-full bg-background-light dark:bg-background-dark shadow" style={{ boxShadow: '0 2px 4px var(--color-shadow-light)' }}>
+                {card.icon}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text-light dark:text-text-dark">{card.title}</p>
+                <p className="text-xl font-semibold text-primary dark:text-primary-dark">{card.value}</p>
+                <p className="text-xs text-text-light dark:text-text-dark">{card.description}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </DashboardGrid>
+
       <DashboardGrid>
-        <Card title="Órdenes pendientes">
+        <Card title={`Órdenes pendientes (${pendingOrders.length})`}>
           {pendingOrders.length === 0 ? (
             <p className="text-sm text-gray-500">No hay órdenes pendientes.</p>
           ) : (
@@ -167,56 +225,6 @@ const MainContent = () => {
           )}
         </Card>
 
-        <Card title="Órdenes">
-          <div className="w-full px-4 mb-2">
-            <SearchBar
-              placeholder="Buscar por cliente, servicio o fecha..."
-              onSearch={setSearchTerm}
-            />
-          </div>
-          {loadingOrders ? (
-            <LoadingOverlay />
-          ) : (
-            <Table data={filteredOrders} headers={headers} showActions={false} searchTerm={searchTerm} />
-          )}
-        </Card>
-      </DashboardGrid>
-
-      {user?.role?.name === 'ADMIN' && (
-        <DashboardGrid>
-          <Card>
-            <Link href={`/services`}>
-              <div className="h-full flex flex-col xl:flex-row justify-between gap-3 xl:gap-8">
-                <div className="flex-1">
-                  <h3 className="text-primary dark:text-primary-dark text-xl font-semibold mb-3">Servicios</h3>
-                  <p>Ve los servicios disponibles y realiza modificaciones en ellos si fuera necesario.</p>
-                </div>
-                <div className="w-full xl:w-64 flex items-center">
-                  <img className="object-cover rounded-md w-full h-auto" src="https://images.pexels.com/photos/96612/pexels-photo-96612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Servicios" />
-                </div>
-              </div>
-            </Link>
-          </Card>
-
-          <Card>
-            <Link href={`/users`}>
-              <div className="aspect-video w-full h-full xl:max-h-48">
-                <img
-                  className="w-full h-full object-cover rounded-md"
-                  src="https://images.pexels.com/photos/11139140/pexels-photo-11139140.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load"
-                  alt="Imagen de ejemplo"
-                />
-              </div>
-            </Link>
-          </Card>
-        </DashboardGrid>
-      )}
-
-      <DashboardGrid>
-        <Card title="Visitas por técnico">
-          <BarChart data={chartData} />
-        </Card>
-
         <Card title="Métricas">
           {metrics.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -248,6 +256,108 @@ const MainContent = () => {
             </div>
           ) : (
             <p className="text-sm text-gray-500">No se encontraron métricas para mostrar.</p>
+          )}
+        </Card>
+      </DashboardGrid>
+
+      {user?.role?.name === 'ADMIN' && (
+        <>
+          <DashboardGrid>
+            <Card title={<div className="flex items-center gap-2"><ClipboardList className="w-5 h-5" /> Órdenes por Mes</div>} className="rounded-2xl shadow-md">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={ordersPerMonth}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="name" stroke="var(--color-text)" />
+                  <YAxis stroke="var(--color-text)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--color-background-light)', borderColor: 'var(--color-border-light)', color: 'var(--color-text-light)' }}
+                    itemStyle={{ color: 'var(--color-text-light)' }}
+                  />
+                  <Bar dataKey="Órdenes" fill="var(--color-primary)" radius={[5, 5, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+
+              <p className="text-xs text-right text-gray-500 dark:text-text-dark mt-2">
+                Total este año: {ordersPerMonth.reduce((sum, item) => sum + item.Órdenes, 0)}
+              </p>
+            </Card>
+
+            <Card title={<div className="flex items-center gap-2"><CalendarDays className="w-5 h-5" /> Visitas por Mes</div>} className="rounded-2xl shadow-md">
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={visitsPerMonth}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-light)" />
+                  <XAxis dataKey="month" stroke="var(--color-text)" />
+                  <YAxis stroke="var(--color-text)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--color-background-light)', borderColor: 'var(--color-border-light)', color: 'var(--color-text-light)' }}
+                    itemStyle={{ color: 'var(--color-text-light)' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="Visitas"
+                    stroke="var(--color-success-dark)"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: 'var(--color-success-dark)' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+
+              <p className="text-xs text-right text-gray-500 dark:text-text-dark mt-2">
+                Total este año: {visitsPerMonth.reduce((sum, item) => sum + item.Visitas, 0)}
+              </p>
+            </Card>
+          </DashboardGrid>
+
+          <DashboardGrid>
+            <Card>
+              <Link href={`/services`}>
+                <div className="h-full flex flex-col xl:flex-row justify-between gap-3 xl:gap-8">
+                  <div className="flex-1">
+                    <h3 className="text-primary dark:text-primary-dark text-xl font-semibold mb-3">Servicios</h3>
+                    <p>Ve los servicios disponibles y realiza modificaciones en ellos si fuera necesario.</p>
+                  </div>
+                  <div className="w-full xl:w-64 flex items-center">
+                    <img className="object-cover rounded-md w-full h-auto" src="https://images.pexels.com/photos/96612/pexels-photo-96612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Servicios" />
+                  </div>
+                </div>
+              </Link>
+            </Card>
+
+            <Card>
+              <Link href={`/users`}>
+                <div className="aspect-video w-full h-full xl:max-h-48">
+                  <img
+                    className="w-full h-full object-cover rounded-md"
+                    src="https://images.pexels.com/photos/11139140/pexels-photo-11139140.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load"
+                    alt="Imagen de ejemplo"
+                  />
+                </div>
+              </Link>
+            </Card>
+          </DashboardGrid>
+        </>
+      )}
+
+      <DashboardGrid>
+        <Card title="Órdenes">
+          <div className="w-full px-4 mb-2">
+            <SearchBar
+              placeholder="Buscar por cliente, servicio o fecha..."
+              onSearch={setSearchTerm}
+            />
+          </div>
+          {loadingOrders ? (
+            <LoadingOverlay />
+          ) : (
+            <>
+              <Table data={filteredOrders} headers={headers} showActions={false} searchTerm={searchTerm} />
+
+              {filteredOrders.length === 0 && (
+                <p className="text-center text-sm text-gray-500 dark:text-text-dark mt-3">
+                  No se encontraron órdenes con ese criterio.
+                </p>
+              )}
+            </>
           )}
         </Card>
       </DashboardGrid>
