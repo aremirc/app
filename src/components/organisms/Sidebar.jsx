@@ -58,7 +58,7 @@ const Sidebar = () => {
               {/* <h2 className="text-xl font-bold text-text-light dark:text-primary-dark mb-4">Navegación</h2> */}
               {isLoading && <SkeletonNav />}
               {!isLoading && !error && (
-                <NavBar itemNav={itemNav} onClick={toggleAside} />
+                <NavBar itemNav={itemNav} onClick={() => setIsOpen(false)} />
               )}
               {error && <ErrorBanner message="No se pudo cargar la navegación" />}
             </div>

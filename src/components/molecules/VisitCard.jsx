@@ -69,13 +69,18 @@ const fetchOrders = async () => {
   return data
 }
 
+const toDateTimeLocalString = (date) => {
+  const pad = n => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+const toDatetimeLocal = (dateStr) =>
+  new Date(new Date(dateStr).getTime() - new Date().getTimezoneOffset() * 60000)
+    .toISOString().slice(0, 16)
+
 const VisitCard = ({ visit, handleCancel }) => {
   const [step, setStep] = useState(1)
   const { addVisitMutation, updateVisitMutation } = useVisits()
-
-  const toDatetimeLocal = (dateStr) =>
-    new Date(new Date(dateStr).getTime() - new Date().getTimezoneOffset() * 60000)
-      .toISOString().slice(0, 16)
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset, trigger } = useForm({
     resolver: zodResolver(visitSchema),
@@ -119,6 +124,8 @@ const VisitCard = ({ visit, handleCancel }) => {
       console.error("Error al guardar la visita", error)
     }
   }
+
+  const nowLocal = toDateTimeLocalString(new Date())
 
   const validateStepAndSet = async (newStep) => {
     const fieldsToValidate = {
@@ -175,44 +182,38 @@ const VisitCard = ({ visit, handleCancel }) => {
             <Controller
               name="date"
               control={control}
-              render={({ field }) => {
-                const today = new Date().toISOString().slice(0, 16) // "YYYY-MM-DDTHH:MM"
-                return (
-                  <div className="mb-4">
-                    <label htmlFor="date" className="block text-sm font-medium text-gray-700">Hora de Inicio</label>
-                    {errors.date && <p className="text-red-500 text-sm">{errors.date.message}</p>}
-                    <Input
-                      {...field}
-                      id="date"
-                      type="datetime-local"
-                      max={today}
-                      className={`${errors.date ? 'border-red-500' : ''}`}
-                    />
-                  </div>
-                )
-              }}
+              render={({ field }) => (
+                <div className="mb-4">
+                  <label htmlFor="date" className="block text-sm font-medium text-gray-700">Hora de Inicio</label>
+                  {errors.date && <p className="text-red-500 text-sm">{errors.date.message}</p>}
+                  <Input
+                    {...field}
+                    id="date"
+                    type="datetime-local"
+                    max={nowLocal} // "YYYY-MM-DDTHH:MM"
+                    className={`${errors.date ? 'border-red-500' : ''}`}
+                  />
+                </div>
+              )}
             />
 
             {/* Hora de Fin */}
             <Controller
               name="endTime"
               control={control}
-              render={({ field }) => {
-                const today = new Date().toISOString().slice(0, 16) // "YYYY-MM-DDTHH:MM"
-                return (
-                  <div className="mb-4">
-                    <label htmlFor="endTime" className="block text-sm font-medium text-gray-700">Hora de Fin</label>
-                    {errors.endTime && <p className="text-red-500 text-sm">{errors.endTime.message}</p>}
-                    <Input
-                      {...field}
-                      id="endTime"
-                      type="datetime-local"
-                      max={today}
-                      className={`${errors.endTime ? 'border-red-500' : ''}`}
-                    />
-                  </div>
-                )
-              }}
+              render={({ field }) => (
+                <div className="mb-4">
+                  <label htmlFor="endTime" className="block text-sm font-medium text-gray-700">Hora de Fin</label>
+                  {errors.endTime && <p className="text-red-500 text-sm">{errors.endTime.message}</p>}
+                  <Input
+                    {...field}
+                    id="endTime"
+                    type="datetime-local"
+                    max={nowLocal} // "YYYY-MM-DDTHH:MM"
+                    className={`${errors.endTime ? 'border-red-500' : ''}`}
+                  />
+                </div>
+              )}
             />
           </>
         )}

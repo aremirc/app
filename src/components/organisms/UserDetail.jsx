@@ -75,12 +75,12 @@ const UserDetail = ({ userId }) => {
               )}
             </div>
             <div className="grid sm:grid-cols-2 gap-5 gap-x-20">
-              <p className="text-primary dark:text-primary-dark">Nombre completo <br /> <span className="text-gray-600  dark:text-gray-300">{user.firstName + ' ' + user.lastName}</span></p>
-              <p className="text-primary dark:text-primary-dark">N° DNI <br /> <span className="text-gray-600  dark:text-gray-300">{user.dni}</span></p>
-              <p className="text-primary dark:text-primary-dark">Teléfono <br /> <span className="text-gray-600  dark:text-gray-300">{user.phone}</span></p>
-              <p className="text-primary dark:text-primary-dark">Estado <br /> <span className="text-gray-600  dark:text-gray-300">{user.status}</span></p>
-              <p className="text-primary dark:text-primary-dark">Correo <br /> <span className="text-gray-600  dark:text-gray-300">{user.email}</span></p>
-              <p className="text-primary dark:text-primary-dark">Creado <br /> <span className="text-gray-600  dark:text-gray-300">{new Date(user.createdAt).toLocaleDateString()}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Nombre completo <br /> <span className="text-gray-600  dark:text-gray-300">{user.firstName + ' ' + user.lastName}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">N° DNI <br /> <span className="text-gray-600  dark:text-gray-300">{user.dni}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Teléfono <br /> <span className="text-gray-600  dark:text-gray-300">{user.phone}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Estado <br /> <span className="text-gray-600  dark:text-gray-300">{user.status}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Correo <br /> <span className="text-gray-600  dark:text-gray-300">{user.email}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Creado <br /> <span className="text-gray-600  dark:text-gray-300">{new Date(user.createdAt).toLocaleDateString()}</span></p>
             </div>
           </div>
         </Card>

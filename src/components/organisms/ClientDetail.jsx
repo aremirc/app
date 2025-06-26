@@ -35,14 +35,10 @@ const ClientDetail = ({ clientId }) => {
   }
 
   // Si hubo un error
-  if (error) {
-    return <div>{error}</div>
-  }
+  if (error) return <div className="text-red-500 text-center mt-10">{error}</div>
 
   // Si no se encuentra el cliente
-  if (!client) {
-    return <div>Client not found.</div>
-  }
+  if (!client) return <div className="text-center mt-10">Cliente no encontrado.</div>
 
   return (
     <div className="p-6 space-y-5 w-full mx-auto">
@@ -69,15 +65,15 @@ const ClientDetail = ({ clientId }) => {
               <p>Cliente</p>
             </div>
             <div className="grid sm:grid-cols-2 gap-5 md:gap-x-12 xl:gap-x-20">
-              <p className="text-primary dark:text-primary-dark">Nombre completo <br /> <span className="text-gray-600  dark:text-gray-300">{client.name}</span></p>
-              <p className="text-primary dark:text-primary-dark">
+              <p className="truncate text-primary dark:text-primary-dark">Nombre completo <br /> <span className="text-gray-600 dark:text-gray-300">{client.name}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">
                 {client.type === "COMPANY" ? "N° RUC" : "N° DNI"} <br />
                 <span className="text-gray-600 dark:text-gray-300">{client.id}</span>
               </p>
-              <p className="text-primary dark:text-primary-dark">Teléfono <br /> <span className="text-gray-600  dark:text-gray-300">{client.phone}</span></p>
-              <p className="text-primary dark:text-primary-dark">Dirección <br /> <span className="text-gray-600  dark:text-gray-300">{client.address}</span></p>
-              <p className="text-primary dark:text-primary-dark">Correo <br /> <span className="text-gray-600  dark:text-gray-300">{client.email}</span></p>
-              <p className="text-primary dark:text-primary-dark">Creado <br /> <span className="text-gray-600  dark:text-gray-300">{new Date(client.createdAt).toLocaleDateString()}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Teléfono <br /> <span className="text-gray-600 dark:text-gray-300">{client.phone}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Dirección <br /> <span className="text-gray-600 dark:text-gray-300">{client.address}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Correo <br /> <span className="text-gray-600 dark:text-gray-300">{client.email}</span></p>
+              <p className="truncate text-primary dark:text-primary-dark">Creado <br /> <span className="text-gray-600 dark:text-gray-300">{new Date(client.createdAt).toLocaleDateString()}</span></p>
             </div>
           </div>
         </Card>

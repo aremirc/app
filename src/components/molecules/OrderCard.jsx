@@ -121,6 +121,11 @@ const fetchActiveServices = async () => {
   return data
 }
 
+const toDateTimeLocalString = (date) => {
+  const pad = n => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 const toLocalDatetimeInputValue = (isoString) => {
   const date = new Date(isoString)
   const offset = date.getTimezoneOffset() * 60000
@@ -239,6 +244,8 @@ const OrderCard = ({ order, handleCancel }) => {
     }
   }
 
+  const nowLocal = toDateTimeLocalString(new Date())
+
   const validateStepAndSet = async (newStep) => {
     const fieldsToValidate = {
       1: ["description", "status", "scheduledDate", "endDate", "statusDetails"],
@@ -344,7 +351,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     type="datetime-local"
                     className="mb-4"
                     label="Fecha Programada"
-                    min={new Date().toISOString().slice(0, 16)} // formato "YYYY-MM-DDTHH:mm"
+                    min={nowLocal} // formato "YYYY-MM-DDTHH:mm"
                     onBlur={(e) => {
                       field.onBlur?.(e)
                       checkAvailability()
@@ -369,7 +376,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     type="datetime-local"
                     className="mb-4"
                     label="Fecha de Finalización"
-                    min={new Date().toISOString().slice(0, 16)}
+                    min={nowLocal}
                     onBlur={(e) => {
                       field.onBlur?.(e)
                       checkAvailability()
@@ -448,23 +455,23 @@ const OrderCard = ({ order, handleCancel }) => {
                         disabled={loading}
                         className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark"
                         onChange={(e) => {
-                          const name = e.target.value;
-                          field.onChange(name);
-                          const matchedClient = clients.find((client) => client.name === name);
+                          const name = e.target.value
+                          field.onChange(name)
+                          const matchedClient = clients.find((client) => client.name === name)
                           if (matchedClient) {
-                            setValue("clientId", matchedClient.id);
+                            setValue("clientId", matchedClient.id)
                           } else {
                             // Limpiar ID si no hay coincidencia
-                            setValue("clientId", "");
+                            setValue("clientId", "")
                           }
                         }}
                         onBlur={(e) => {
-                          const name = e.target.value;
-                          const matchedClient = clients.find((client) => client.name === name);
+                          const name = e.target.value
+                          const matchedClient = clients.find((client) => client.name === name)
                           if (!matchedClient) {
                             // Si no es válido, limpia el input
-                            field.onChange("");
-                            setValue("clientId", "");
+                            field.onChange("")
+                            setValue("clientId", "")
                           }
                         }}
                       />
