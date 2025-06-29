@@ -14,7 +14,8 @@ const headers = [
   { key: "id", label: "ID de Orden" },
   { key: "status", label: "Estado" },
   { key: "description", label: "Descripción" },
-  { key: "createdAt", label: "Fecha de Creación" }
+  // { key: "createdAt", label: "Fecha de Creación" }
+  { key: "isResponsible", label: "Técnico Asignado" }
 ]
 
 const OrderPanel = () => {
@@ -87,6 +88,7 @@ const OrderPanel = () => {
           <SearchBar
             placeholder="Buscar orden"
             onSearch={setSearchTerm}
+            total={filteredOrders.length}
           />
         </div>
 
@@ -99,10 +101,15 @@ const OrderPanel = () => {
         ) : (
           <Table
             headers={headers}
-            data={filteredOrders.map(order => ({
-              ...order,
-              client: order.client?.name
-            }))}
+            data={filteredOrders.map(order => {
+              const responsable = order.workers.find(w => w.isResponsible)?.user
+
+              return {
+                ...order,
+                client: order.client?.name,
+                isResponsible: `${responsable?.firstName?.split(" ")[0] ?? "-"} ${responsable?.lastName?.split(" ")[0] ?? "-"}`
+              }
+            })}
             onEdit={handleEdit}
             onDelete={handleDelete}
             showActions={user.role.name === 'ADMIN'}

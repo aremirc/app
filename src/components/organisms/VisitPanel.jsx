@@ -85,6 +85,7 @@ const VisitPanel = () => {
           <SearchBar
             placeholder="Buscar visita"
             onSearch={setSearchTerm}
+            total={filteredVisits.length}
           />
         </div>
 
@@ -100,7 +101,7 @@ const VisitPanel = () => {
             data={filteredVisits.map(visit => ({
               ...visit,
               client: visit.client?.name,
-              user: visit.user?.firstName + ' ' + visit.user?.lastName
+              user: visit.user?.firstName?.split(" ")[0] + ' ' + visit.user?.lastName?.split(" ")[0]
             }))}
             onEdit={handleEdit}
             onDelete={handleDelete}

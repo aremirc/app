@@ -188,6 +188,7 @@ const VisitCard = ({ visit, handleCancel }) => {
                   {errors.date && <p className="text-red-500 text-sm">{errors.date.message}</p>}
                   <Input
                     {...field}
+                    autoFocus
                     id="date"
                     type="datetime-local"
                     max={nowLocal} // "YYYY-MM-DDTHH:MM"
@@ -230,6 +231,7 @@ const VisitCard = ({ visit, handleCancel }) => {
                   {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
                   <Input
                     {...field}
+                    autoFocus
                     id="description"
                     type="text"
                     placeholder="Descripción"
@@ -300,7 +302,7 @@ const VisitCard = ({ visit, handleCancel }) => {
                     if (!selectedOrder) return <li>No hay técnicos asignados</li>
 
                     return selectedOrder.workers.map(worker => {
-                      const fullName = `${worker.user.firstName} ${worker.user.lastName}`
+                      const fullName = `${worker.user.firstName?.split(" ")[0]} ${worker.user.lastName?.split(" ")[0]}`
                       return (
                         <li key={worker.userId} className="flex items-center gap-2">
                           <span>{fullName}</span>
@@ -377,6 +379,7 @@ const VisitCard = ({ visit, handleCancel }) => {
                 <div className="mb-4 flex items-center space-x-2">
                   <input
                     {...field}
+                    autoFocus
                     type="checkbox"
                     id="isReviewed"
                     className="form-checkbox h-5 w-5 text-primary"

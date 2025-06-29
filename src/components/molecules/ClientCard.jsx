@@ -189,6 +189,7 @@ const ClientCard = ({ client, handleCancel }) => {
                     {errors.dni && <p className="text-red-500 text-sm">{errors.dni.message}</p>}
                     <Input
                       {...field}
+                      autoFocus
                       type="text"
                       inputMode="numeric"
                       pattern="\d*"
@@ -284,6 +285,7 @@ const ClientCard = ({ client, handleCancel }) => {
                   {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
                   <Input
                     {...field}
+                    autoFocus
                     type="email"
                     placeholder="Correo electrónico"
                     className={`mb-4 ${errors.email ? 'border-red-500' : ''}`}
@@ -363,6 +365,7 @@ const ClientCard = ({ client, handleCancel }) => {
               render={({ field }) => (
                 <Input
                   {...field}
+                  autoFocus
                   type="text"
                   placeholder="Nombre de contacto (opcional)"
                   className="mb-4"

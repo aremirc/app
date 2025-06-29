@@ -23,7 +23,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Botón flotante para abrir/cerrar sidebar */}
-      <div className={`fixed transform transition-all duration-700 z-30 flex text-text-dark dark:text-text-light ${isSticky ? "top-1/2" : "top-24"} ${isOpen ? "translate-x-64" : "-translate-x-4"}`}>
+      <div className={`fixed transform transition-all duration-700 z-40 flex text-text-dark dark:text-text-light ${isSticky ? "top-1/2" : "top-24"} ${isOpen ? "translate-x-64" : "-translate-x-4"}`}>
         <button
           onClick={toggleAside}
           type="button"
@@ -38,13 +38,13 @@ const Sidebar = () => {
         {/* Overlay para móviles */}
         {isOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-20 sm:hidden"
+            className="fixed inset-0 bg-black/50 z-30 sm:hidden"
             onClick={toggleAside}
           ></div>
         )}
 
         {/* Sidebar */}
-        <aside className={`w-64 h-full fixed sm:h-auto sm:left-0 p-4 transition-all duration-300 ease-in-out z-30 ${isOpen ? "top-0 left-0 bg-border-light dark:bg-background-dark" : "-left-[300px]"} sm:top-22`}>
+        <aside className={`w-64 h-full fixed sm:h-auto sm:left-0 p-4 transition-all duration-300 ease-in-out z-40 ${isOpen ? "top-0 left-0 bg-border-light dark:bg-background-dark" : "-left-[300px]"} sm:top-22`}>
           {/* Logo */}
           <div className="flex items-center justify-center mb-5 sm:mb-4">
             <Link href="/">
@@ -58,7 +58,10 @@ const Sidebar = () => {
               {/* <h2 className="text-xl font-bold text-text-light dark:text-primary-dark mb-4">Navegación</h2> */}
               {isLoading && <SkeletonNav />}
               {!isLoading && !error && (
-                <NavBar itemNav={itemNav} onClick={() => setIsOpen(false)} />
+                <NavBar
+                  itemNav={itemNav.filter(route => route.showInMenu !== false)}
+                  onClick={() => setIsOpen(false)}
+                />
               )}
               {error && <ErrorBanner message="No se pudo cargar la navegación" />}
             </div>

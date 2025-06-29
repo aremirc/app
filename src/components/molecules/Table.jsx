@@ -91,7 +91,7 @@ const Table = ({ headers, data, onEdit = () => { }, onDelete = () => { }, showAc
         {data.map((item) => (
           <tr
             key={item.id || item.dni}
-            className="block xl:table-row hover:bg-gray-50 dark:hover:bg-background-dark/25 border-b border-border-light dark:border-border-dark xl:border-b-0 last:border-b-0 xl:border-t pb-2 xl:pb-0 mt-3 xl:mt-0 relative"
+            className="block xl:table-row hover:bg-gray-50 dark:hover:bg-background-dark/25 border-b border-gray-200 dark:border-gray-500 xl:border-b-0 last:border-b-0 xl:border-t pb-2 xl:pb-0 mt-3 xl:mt-0 relative"
           >
             {headers.map((header) => (
               <td key={header.key} className="px-3 py-2 block xl:table-cell">

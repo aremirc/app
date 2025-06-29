@@ -12,18 +12,20 @@ import OrderPanel from "../organisms/OrderPanel"
 import VisitPanel from "../organisms/VisitPanel"
 import ServicePanel from "../organisms/ServicePanel"
 import UserProfile from "../organisms/UserProfile"
+import OperationsManual from "./OperationsManual"
 import LoadingSpinner from "../atoms/LoadingSpinner"
 import Link from "next/link"
 
 const DashboardByRole = () => {
   const panels = {
     '/dashboard': <MainContent />,
-    '/users': <UserPanel />,
+    '/services': <ServicePanel />,
     '/clients': <ClientPanel />,
+    '/users': <UserPanel />,
     '/orders': <OrderPanel />,
     '/visits': <VisitPanel />,
-    '/services': <ServicePanel />,
     '/profile': <UserProfile />,
+    '/manual': <OperationsManual />,
   }
 
   const { user } = useAuth()

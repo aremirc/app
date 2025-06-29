@@ -5,6 +5,8 @@ import Navbar from "../organisms/NavBar"
 import UserList from "../organisms/UserList"
 import Countdown from "../atoms/Countdown"
 import ThemeToggleIcon from "../atoms/ThemeToggle"
+import Link from 'next/link'
+import Icon from "../atoms/Icon"
 
 const Header = ({ title: propTitle }) => {
   const { user } = useAuth()
@@ -31,16 +33,21 @@ const Header = ({ title: propTitle }) => {
   const finalTitle = propTitle || navTitle || fallbackTitle
 
   return (
-    <header className="sticky top-0 bg-linear-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-10">
+    <header className="sticky top-0 bg-linear-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-20">
       <div className="container lg:max-w-full mx-auto flex justify-between items-center">
         {user?.role?.name && (
-          <Countdown className="fixed top-0 sm:top-auto text-red-500 font-bold" visible={false} />
+          <div className="fixed top-0 sm:top-auto text-red-500 font-bold">
+            <Link href="/manual" title="Manual de Usuario">
+              <Icon name="manual" active />
+            </Link>
+            <Countdown visible={false} />
+          </div>
         )}
 
         <div className={`relative flex items-center justify-center gap-3 transform ${user?.role?.name ? "sm:translate-x-64" : ""}`}>
           <div className="col-span-full flex items-center justify-center">
             <button
-              className="flex items-center justify-center text-black text-4xl transition duration-200 ease-in-out"
+              className="flex items-center justify-center text-black text-4xl transition duration-200 ease-in-out cursor-pointer"
               onClick={() => window.history.back()}
               aria-label="Volver"
             >
@@ -51,7 +58,6 @@ const Header = ({ title: propTitle }) => {
         </div>
 
         {/* <Navbar /> */}
-
         {user?.role?.name && <UserList />}
       </div>
 

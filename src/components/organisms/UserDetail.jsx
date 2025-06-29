@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import api from "@/lib/axios"
-import LoadingSpinner from "../atoms/LoadingSpinner"
 import { Pencil, Cake } from "lucide-react"
+import { isBirthday } from '@/lib/utils'
+import api from "@/lib/axios"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 import VisitList from "./VisitList"
+import LoadingSpinner from "../atoms/LoadingSpinner"
 
 const UserDetail = ({ userId }) => {
   const [user, setUser] = useState(null)  // Estado para el usuario
@@ -28,15 +29,6 @@ const UserDetail = ({ userId }) => {
 
     fetchUser()  // Llamamos a la función para obtener el usuario
   }, [userId])  // Dependencia para que se ejecute cuando cambie el `userId`
-
-  const isBirthday = (birthDateStr) => {
-    if (!birthDateStr) return false
-
-    const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
-    const today = new Date()
-
-    return today.getDate() === day && today.getMonth() === month - 1
-  }
 
   // Mostrar "loading" mientras se obtiene el usuario
   if (loading) return <LoadingSpinner />

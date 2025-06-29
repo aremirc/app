@@ -1,18 +1,24 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { FileText, MapPin, Plus, Tag } from "lucide-react"
+import { Plus } from "lucide-react"
 import api from "@/lib/axios"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 import VisitList from "./VisitList"
 import WorkerCard from "../molecules/WorkerCard"
 import LoadingSpinner from "../atoms/LoadingSpinner"
+import PdfOrderReport from "./PdfOrderReport"
+import PrintPreviewModal from "./PrintPreviewModal"
+import OrderPdfExporter from "./OrderPdfExporter"
+import DownloadPdfOptions from "./DownloadPdfOptions"
+import LocationMapPreview from "../molecules/LocationMapPreview"
 
 const OrderDetail = ({ orderId }) => {
   const [order, setOrder] = useState(null)  // Estado para la orden
   const [loading, setLoading] = useState(true)  // Estado de carga
   const [error, setError] = useState(null)  // Estado de error
+  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -43,9 +49,14 @@ const OrderDetail = ({ orderId }) => {
   return (
     <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
       <Card title="Detalles" className="p-8 flex flex-col gap-3 text-sm text-gray-700">
-        <Button variant="outline" size="sm" className="absolute top-4 right-4 flex items-center gap-2">
-          <FileText className="w-4 h-4" /> <span>Imprimir PDF</span>
+        <Button onClick={() => setShowPreview(true)} variant="outline" size="sm" className="absolute top-4 right-4 flex items-center gap-2">
+          Ver reporte PDF
         </Button>
+
+        <PrintPreviewModal isOpen={showPreview} onClose={() => setShowPreview(false)}>
+          <PdfOrderReport order={order} />
+          {/* <DownloadPdfOptions elementId="printable-order" orderId={order.id} /> */}
+        </PrintPreviewModal>
 
         <p><strong>Fecha de creación:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
         <p><strong>Servicio:</strong> {order.description}</p>
@@ -112,7 +123,7 @@ const OrderDetail = ({ orderId }) => {
       </Card>
 
       <div className="col-span-1 xl:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="col-span-2 flex flex-col justify-between text-white bg-linear-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
+        <div className="relative col-span-2 flex flex-col justify-between text-white bg-linear-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
           <p className="text-sm">N° Orden: {String(order.id).padStart(3, '0')}</p>
           <div>
             <h2 className="text-2xl font-semibold">{order.client?.name}</h2>
@@ -123,6 +134,8 @@ const OrderDetail = ({ orderId }) => {
             )}
             <p className="text-sm">{order.client?.address}</p>
           </div>
+
+          <OrderPdfExporter order={order} className="absolute top-2 right-2" />
         </div>
 
         <WorkerCard worker={order.workers?.[0]} />
@@ -179,26 +192,7 @@ const OrderDetail = ({ orderId }) => {
         )}
 
         <Card title="Ubicación" className={`p-8 col-span-2 ${!order.conformity && 'md:col-span-4'}`}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {order.locations?.map((loc, i) => (
-              <div key={i} className="border rounded-xl p-4 bg-muted flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-sm"><strong>Lat:</strong> {loc.latitude}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground rotate-180" />
-                  <p className="text-sm"><strong>Lng:</strong> {loc.longitude}</p>
-                </div>
-                {loc.label && (
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-muted-foreground" />
-                    <p className="text-sm"><strong>Etiqueta:</strong> {loc.label}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <LocationMapPreview locations={order.locations} />
 
           <div className="mt-4">
             <Button variant="outline" className="w-full flex items-center sm:w-auto">

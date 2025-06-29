@@ -30,18 +30,19 @@ const userSchema = z.object({
       message: "Fecha inválida",
     })
     .refine((val) => {
-      if (!val) return true
-      const date = new Date(val)
-      const today = new Date()
+      if (!val) return true;
+      const date = new Date(val);
+      const today = new Date();
       const eighteenYearsAgo = new Date(
         today.getFullYear() - 18,
         today.getMonth(),
         today.getDate()
-      )
-      return date <= eighteenYearsAgo
+      );
+      return date <= eighteenYearsAgo;
     }, {
       message: "Debes ser mayor de 18 años",
-    }),
+    })
+    .transform((val) => (val ? new Date(val).toISOString() : undefined)),
   phone: z.string().regex(/^\d{9}$/, "El teléfono debe tener 9 dígitos numéricos").optional(),
   email: z.string().email("Correo electrónico inválido"),
   country: z.string().optional(),
@@ -116,9 +117,11 @@ const fetchRoles = async () => {
 }
 
 const toLocalDateInput = (isoDate) => {
+  if (!isoDate) return ""
   const date = new Date(isoDate)
-  const offset = date.getTimezoneOffset() * 60000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
+  return date.toISOString().split("T")[0]
+  // const offset = date.getTimezoneOffset() * 60000
+  // return new Date(date.getTime() - offset).toISOString().slice(0, 10)
 }
 
 const UserCard = ({ user, handleCancel }) => {
@@ -212,6 +215,7 @@ const UserCard = ({ user, handleCancel }) => {
                     {errors.dni && <p className="text-red-500 text-sm">{errors.dni.message}</p>}
                     <Input
                       {...field}
+                      autoFocus
                       placeholder="DNI"
                       className={`mb-4 ${errors.dni ? "border-red-500" : ""}`}
                       inputMode="numeric"
@@ -322,6 +326,7 @@ const UserCard = ({ user, handleCancel }) => {
                   {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                   <Input
                     {...field}
+                    autoFocus
                     placeholder="Teléfono"
                     className={`mb-4 ${errors.phone ? "border-red-500" : ""}`}
                     inputMode="numeric"
@@ -410,6 +415,7 @@ const UserCard = ({ user, handleCancel }) => {
                   {errors.username && <p className="text-red-500 text-sm">{errors.username.message}</p>}
                   <Input
                     {...field}
+                    autoFocus
                     placeholder="Usuario"
                     className={`mb-4 ${errors.username ? "border-red-500" : ""}`}
                   />

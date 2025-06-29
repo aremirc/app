@@ -58,6 +58,7 @@ export async function GET(req, { params }) {
                 birthDate: true,
               },
             },
+            isResponsible: true,
           },
           where: {
             user: {

@@ -97,6 +97,7 @@ const ServiceCard = ({ service, handleCancel }) => {
               {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
               <Input
                 {...field}
+                autoFocus
                 type="text"
                 placeholder="Nombre"
                 className={`mb-4 ${errors.name ? 'border-red-500' : ''}`}

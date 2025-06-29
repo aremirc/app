@@ -1,20 +1,12 @@
-import { useAuth } from "@/context/AuthContext"
 import { PartyPopper, Cake } from "lucide-react"
-import LogoutButton from "../atoms/LogoutButton"
+import { useAuth } from "@/context/AuthContext"
+import { isBirthday } from '@/lib/utils'
 import Link from "next/link"
+import LogoutButton from "../atoms/LogoutButton"
 
 const AuthenticatedSection = () => {
   const { user } = useAuth()
   const name = user.name || (user.firstName + ' ' + user.lastName)
-
-  const isBirthday = (birthDateStr) => {
-    if (!birthDateStr) return false
-
-    const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
-    const today = new Date()
-
-    return today.getDate() === day && today.getMonth() === month - 1
-  }
 
   return (
     <section className="flex-1 flex flex-col items-center justify-center backdrop-brightness-50">

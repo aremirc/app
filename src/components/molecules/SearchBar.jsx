@@ -3,7 +3,7 @@ import { useDebounce } from "@/hooks/useDebounce"
 import Input from "../atoms/Input"
 import Icon from "../atoms/Icon"
 
-const SearchBar = ({ placeholder = "Buscar...", onSearch, className = "" }) => {
+const SearchBar = ({ placeholder = "Buscar...", onSearch, total, className = "" }) => {
   const [inputValue, setInputValue] = useState("")
   const [isFocused, setIsFocused] = useState(false)
   const debouncedValue = useDebounce(inputValue, 500)
@@ -27,6 +27,11 @@ const SearchBar = ({ placeholder = "Buscar...", onSearch, className = "" }) => {
         placeholder={placeholder}
         className={`w-1/3 pl-10 ${className}`}
       />
+      {total !== undefined &&
+        <span className="text-gray-500 absolute top-1/2 right-3 transform -translate-y-1/2">
+          Total: {total}
+        </span>
+      }
     </div>
   )
 }

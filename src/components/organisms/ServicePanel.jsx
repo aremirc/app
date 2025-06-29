@@ -88,6 +88,7 @@ const ServicePanel = () => {
           <SearchBar
             placeholder="Buscar servicio"
             onSearch={setSearchTerm}
+            total={filteredServices.length}
           />
         </div>
 

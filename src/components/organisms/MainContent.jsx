@@ -3,72 +3,20 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Timer, CalendarDays, Users, ClipboardList } from "lucide-react"
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from "@/context/AuthContext"
+import Link from "next/link"
+import api from "@/lib/axios"
 import DashboardGrid from "./DashboardGrid"
 import Card from "../molecules/Card"
-import api from "@/lib/axios"
-import Icon from "../atoms/Icon"
 import Button from '../atoms/Button'
 import Table from "../molecules/Table"
 import CardForm from '../molecules/CardForm'
 import CardGrid from '../organisms/CardGrid'
 import SearchBar from "../molecules/SearchBar"
+import TechnicianMetrics from "./TechnicianMetrics"
+import TechnicianAssignments from "./TechnicianAssignments"
+import OrderTimeline from "../molecules/OrderTimeline"
 import LoadingSpinner from "../atoms/LoadingSpinner"
 import LoadingOverlay from "../atoms/LoadingOverlay"
-import Link from "next/link"
-
-const cardMetric = [
-  {
-    title: "Órdenes Completadas",
-    icon: <ClipboardList className="h-6 w-6 text-primary" />,
-    value: "532",
-    description: "+12 este mes",
-  },
-  {
-    title: "Visitas",
-    icon: <CalendarDays className="h-6 w-6 text-primary" />,
-    value: "214",
-    description: "+8% desde abril",
-  },
-  {
-    title: "Usuarios Activos",
-    icon: <Users className="h-6 w-6 text-primary" />,
-    value: "58",
-    description: "78% verificados",
-  },
-  {
-    title: "Horas Trabajadas",
-    icon: <Timer className="h-6 w-6 text-primary" />,
-    value: "1,450",
-    description: "Promedio mensual",
-  },
-]
-
-const ordersPerMonth = [
-  { name: "Ene", Órdenes: 45 },
-  { name: "Feb", Órdenes: 62 },
-  { name: "Mar", Órdenes: 53 },
-  { name: "Abr", Órdenes: 70 },
-  { name: "May", Órdenes: 60 },
-  { name: "Jun", Órdenes: 75 },
-]
-
-const visitsPerMonth = [
-  { month: "Ene", Visitas: 32 },
-  { month: "Feb", Visitas: 40 },
-  { month: "Mar", Visitas: 38 },
-  { month: "Abr", Visitas: 50 },
-  { month: "May", Visitas: 54 },
-  { month: "Jun", Visitas: 58 },
-]
-
-const headers = [
-  { key: "cliente", label: "Cliente" },
-  { key: "responsable", label: "T. Responsable" },
-  // { key: "tecnicos", label: "Técnicos" },
-  { key: "fecha", label: "Fecha programada" },
-  { key: "estado", label: "Estado" },
-  { key: "hide", label: "" }
-]
 
 const fetchOrders = async (query = '') => {
   const params = new URLSearchParams()
@@ -77,9 +25,9 @@ const fetchOrders = async (query = '') => {
   return Array.isArray(data) ? data : []
 }
 
-const fetchMetrics = async () => {
-  const { data } = await api.get("/api/metrics")
-  return data?.data || []
+const fetchAssignments = async () => {
+  const { data } = await api.get('/api/assignments')
+  return Array.isArray(data) ? data : []
 }
 
 const fetchPendingOrders = async ({ status = 'PENDING' }) => {
@@ -87,36 +35,72 @@ const fetchPendingOrders = async ({ status = 'PENDING' }) => {
   if (status) params.append('status', status)
 
   const { data } = await api.get(`/api/orders?${params.toString()}`)
-  return data
+  return data || []
 }
+
+const fetchMetrics = async () => {
+  const { data } = await api.get("/api/metrics")
+  return data || []
+}
+
+const fetchOrdersPerMonth = async () => {
+  const { data } = await api.get('/api/metrics/orders-per-month')
+  return data || []
+}
+
+const fetchVisitsPerMonth = async () => {
+  const { data } = await api.get('/api/metrics/visits-per-month')
+  return data || []
+}
+
+const defaultCards = [
+  {
+    title: 'Órdenes',
+    description: 'Gestiona las órdenes',
+    href: '/orders',
+    bgColor: 'bg-teal-400 hover:bg-teal-500 dark:bg-teal-300 dark:hover:bg-teal-400',
+  },
+  {
+    title: 'Hikvision',
+    description: 'Revisa los productos destacados',
+    href: 'https://www.hikvision.com/es-la/',
+    bgColor: 'bg-red-500 hover:bg-red-600 dark:bg-red-400 dark:hover:bg-red-500',
+  },
+]
 
 const MainContent = () => {
   const { user } = useAuth()
-  const [cards, setCards] = useState([
-    {
-      title: 'Órdenes',
-      description: 'Gestiona las órdenes',
-      href: '/orders',
-      bgColor: 'bg-teal-400 hover:bg-teal-500 dark:bg-teal-300 dark:hover:bg-teal-400',
-    },
-    {
-      title: 'Hikvision',
-      description: 'Revisa los productos destacados',
-      href: 'https://www.hikvision.com/es-la/',
-      bgColor: 'bg-red-500 hover:bg-red-600 dark:bg-red-400 dark:hover:bg-red-500',
-    },
-  ])
+  const [cards, setCards] = useState(defaultCards)
   const [showForm, setShowForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+
+  const headers = [
+    { key: "cliente", label: "Cliente" },
+    { key: "responsable", label: "T. Responsable" },
+    // ["TECHNICIAN", "SUPERVISOR"].includes(user?.role?.name) && { key: "tecnicos", label: "Técnicos" },
+    { key: "fecha", label: "Fecha programada" },
+    { key: "estado", label: "Estado" },
+    { key: "hide", label: "" }
+  ].filter(Boolean)
 
   const { data: allOrders = [], isLoading: loadingOrders } = useQuery({
     queryKey: ['orders', searchTerm],
     queryFn: () => fetchOrders(searchTerm),
+    enabled: searchTerm.length > 0,
   })
+
+  const { data: assignments = [], isLoading: loadingAssignments } = useQuery({
+    queryKey: ['assignments'],
+    queryFn: fetchAssignments,
+    enabled: ["ADMIN", "SUPERVISOR"].includes(user?.role?.name),
+  })
+
+  const shouldFetchPending = ["TECHNICIAN", "ADMIN", "SUPERVISOR"].includes(user?.role?.name)
 
   const { data: pendingOrders = [], isLoading: loadingPending } = useQuery({
     queryKey: ['pendingOrders'],
-    queryFn: fetchPendingOrders
+    queryFn: fetchPendingOrders,
+    enabled: shouldFetchPending,
   })
 
   const { data: metrics = [], isLoading: loadingMetrics } = useQuery({
@@ -124,20 +108,77 @@ const MainContent = () => {
     queryFn: fetchMetrics,
   })
 
-  const isInitialLoading = loadingPending || loadingMetrics
+  const isAdmin = user?.role?.name === 'ADMIN'
+
+  const { data: ordersPerMonth = [], isLoading: loadingOrdersPerMonth } = useQuery({
+    queryKey: ['ordersPerMonth'],
+    queryFn: fetchOrdersPerMonth,
+    enabled: isAdmin, // solo ADMIN
+  })
+
+  const { data: visitsPerMonth = [], isLoading: loadingVisitsPerMonth } = useQuery({
+    queryKey: ['visitsPerMonth'],
+    queryFn: fetchVisitsPerMonth,
+    enabled: isAdmin, // solo ADMIN
+  })
+
+  const isInitialLoading = loadingAssignments || loadingPending || loadingMetrics || loadingOrdersPerMonth || loadingVisitsPerMonth
+
+  const cardMetric = [
+    {
+      title: "Órdenes Completadas",
+      icon: <ClipboardList className="h-6 w-6 text-primary" />,
+      value: new Set(metrics.flatMap(u => u.completedOrderIds)).size,
+      description: "+12 este mes",
+    },
+    {
+      title: "Visitas",
+      icon: <CalendarDays className="h-6 w-6 text-primary" />,
+      value: metrics.reduce((acc, u) => acc + u.totalVisits, 0),
+      description: "+8% desde abril",
+    },
+    {
+      title: "Usuarios Activos",
+      icon: <Users className="h-6 w-6 text-primary" />,
+      value: metrics.length,
+      description: "78% verificados",
+    },
+    {
+      title: "Horas Trabajadas",
+      icon: <Timer className="h-6 w-6 text-primary" />,
+      value: metrics.reduce((acc, u) => acc + u.totalTime, 0),
+      description: "Promedio mensual",
+    },
+  ]
+
+  const groupedAssignments = assignments.reduce((acc, a) => {
+    const key = a.user.dni
+    if (!acc[key]) {
+      acc[key] = {
+        user: a.user,
+        orders: new Set(),
+        statuses: new Set(),
+        clients: new Set(),
+      }
+    }
+    acc[key].orders.add(a.order.id)
+    acc[key].clients.add(a.order.client?.name ?? "(sin cliente)")
+    acc[key].statuses.add(a.status)
+    return acc
+  }, {})
 
   const mapOrders = (orders) => {
     return orders.map(order => {
       const responsable = order.workers.find(w => w.isResponsible)?.user
       const tecnicos = order.workers
         .filter(w => !w.isResponsible)
-        .map(w => `${w.user.firstName} ${w.user.lastName}`)
+        .map(w => `${w.user.firstName?.split(" ")[0]} ${w.user.lastName?.split(" ")[0]}`)
         .join(", ")
 
       return {
         id: order.id,
         cliente: order.client?.name ?? "(Sin nombre)",
-        responsable: `${responsable?.firstName ?? "-"} ${responsable?.lastName ?? "-"}`,
+        responsable: `${responsable?.firstName?.split(" ")[0] ?? "-"} ${responsable?.lastName?.split(" ")[0] ?? "-"}`,
         tecnicos: tecnicos || "-",
         fecha: order.scheduledDate
           ? new Date(order.scheduledDate).toLocaleDateString()
@@ -186,88 +227,59 @@ const MainContent = () => {
       </DashboardGrid>
 
       <DashboardGrid>
-        <Card title={`Órdenes pendientes (${pendingOrders.length})`}>
-          {pendingOrders.length === 0 ? (
-            <p className="text-sm text-gray-500">No hay órdenes pendientes.</p>
+        {["ADMIN", "SUPERVISOR"].includes(user?.role?.name) ? (
+          <Card title={`Asignaciones técnicas - ${assignments.length}`}>
+            <TechnicianAssignments assignments={assignments} />
+          </Card>
+        ) : (
+          <Card title={`Órdenes pendientes - ${pendingOrders.length}`}>
+            <OrderTimeline orders={pendingOrders} />
+          </Card>
+        )}
+
+        <Card title={`Órdenes - ${filteredOrders.length}`}>
+          <div className="w-full px-4 mb-2">
+            <SearchBar
+              placeholder="Buscar por cliente, servicio o fecha..."
+              onSearch={setSearchTerm}
+            />
+          </div>
+          {loadingOrders ? (
+            <LoadingOverlay />
           ) : (
-            <ol className="relative border-s border-gray-200 dark:border-gray-700 ms-2">
-              {pendingOrders.map((order) => (
-                <li key={order.id} className="mb-2 ms-4 relative">
-                  <Link href={`/orders/${order.id}`} className="group block hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                    {/* Punto en la línea de tiempo */}
-                    <span className="absolute left-[-22px] top-1/2 transform -translate-y-1/2 w-3 h-3 bg-primary rounded-full border border-white dark:border-gray-900" />
+            <>
+              <Table data={filteredOrders} headers={headers} showActions={false} searchTerm={searchTerm} />
 
-                    <div className="flex items-center gap-2 p-2">
-                      <Icon
-                        name={order.client?.name.includes('Hospital') ? 'hospital' : 'building'}
-                        size={20}
-                        color="group-hover:text-primary dark:group-hover:text-primary-dark"
-                      />
-                      <div className="flex flex-col">
-                        <h5 className="font-semibold">
-                          {order.client?.name ?? '(Sin cliente)'}
-                        </h5>
-                        <time className="text-xs text-gray-500 dark:text-text-dark">
-                          {order.scheduledDate
-                            ? new Date(order.scheduledDate).toLocaleDateString('es-PE', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })
-                            : '(Sin fecha)'}
-                        </time>
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Card>
-
-        <Card title="Métricas">
-          {metrics.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {metrics.map((item) => (
-                <Link
-                  key={item.dni}
-                  href={`/users/${item.dni}`}
-                  className="p-3 rounded-md bg-primary/10 dark:bg-primary-dark/20 hover:bg-primary/20 dark:hover:bg-primary-dark/40 transition-colors shadow-sm"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-primary-dark dark:text-primary-light truncate">
-                      {item.firstName} {item.lastName}
-                    </h3>
-                    {item.icon && <Icon name={item.icon} size={20} />}
-                  </div>
-
-                  <div className="text-xs text-gray-700 dark:text-gray-300">
-                    <div className="mb-1 flex justify-between">
-                      <span className="font-medium">Visitas:</span>
-                      <span className="font-semibold">{item.totalVisits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Tiempo:</span>
-                      <span className="font-semibold">{item.totalTime}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No se encontraron métricas para mostrar.</p>
+              {filteredOrders.length === 0 && (
+                <p className="text-center text-sm text-gray-500 dark:text-text-dark mt-3">
+                  No se encontraron órdenes con ese criterio.
+                </p>
+              )}
+            </>
           )}
         </Card>
       </DashboardGrid>
 
-      {user?.role?.name === 'ADMIN' && (
+      <DashboardGrid>
+        {user?.role?.name !== 'TECHNICIAN' && (
+          <Card title={`Órdenes pendientes - ${pendingOrders.length}`}>
+            <OrderTimeline orders={pendingOrders} />
+          </Card>
+        )}
+
+        <Card title="Métricas">
+          <TechnicianMetrics metrics={metrics} />
+        </Card>
+      </DashboardGrid>
+
+      {isAdmin && (
         <>
           <DashboardGrid>
-            <Card title={<div className="flex items-center gap-2"><ClipboardList className="w-5 h-5" /> Órdenes por Mes</div>} className="rounded-2xl shadow-md">
+            <Card title={<div className="flex items-center gap-2"><ClipboardList className="w-5 h-5" /> Órdenes por Mes - {ordersPerMonth?.year}</div>} className="rounded-2xl shadow-md">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={ordersPerMonth}>
+                <BarChart data={ordersPerMonth?.data}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="name" stroke="var(--color-text)" />
+                  <XAxis dataKey="month" stroke="var(--color-text)" />
                   <YAxis stroke="var(--color-text)" />
                   <Tooltip
                     contentStyle={{ backgroundColor: 'var(--color-background-light)', borderColor: 'var(--color-border-light)', color: 'var(--color-text-light)' }}
@@ -278,13 +290,13 @@ const MainContent = () => {
               </ResponsiveContainer>
 
               <p className="text-xs text-right text-gray-500 dark:text-text-dark mt-2">
-                Total este año: {ordersPerMonth.reduce((sum, item) => sum + item.Órdenes, 0)}
+                Total este año: {ordersPerMonth?.data.reduce((sum, item) => sum + item.Órdenes, 0)}
               </p>
             </Card>
 
-            <Card title={<div className="flex items-center gap-2"><CalendarDays className="w-5 h-5" /> Visitas por Mes</div>} className="rounded-2xl shadow-md">
+            <Card title={<div className="flex items-center gap-2"><CalendarDays className="w-5 h-5" /> Visitas por Mes - {visitsPerMonth?.year}</div>} className="rounded-2xl shadow-md">
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={visitsPerMonth}>
+                <LineChart data={visitsPerMonth?.data}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-light)" />
                   <XAxis dataKey="month" stroke="var(--color-text)" />
                   <YAxis stroke="var(--color-text)" />
@@ -303,7 +315,7 @@ const MainContent = () => {
               </ResponsiveContainer>
 
               <p className="text-xs text-right text-gray-500 dark:text-text-dark mt-2">
-                Total este año: {visitsPerMonth.reduce((sum, item) => sum + item.Visitas, 0)}
+                Total este año: {visitsPerMonth?.data.reduce((sum, item) => sum + item.Visitas, 0)}
               </p>
             </Card>
           </DashboardGrid>
@@ -337,30 +349,6 @@ const MainContent = () => {
           </DashboardGrid>
         </>
       )}
-
-      <DashboardGrid>
-        <Card title="Órdenes">
-          <div className="w-full px-4 mb-2">
-            <SearchBar
-              placeholder="Buscar por cliente, servicio o fecha..."
-              onSearch={setSearchTerm}
-            />
-          </div>
-          {loadingOrders ? (
-            <LoadingOverlay />
-          ) : (
-            <>
-              <Table data={filteredOrders} headers={headers} showActions={false} searchTerm={searchTerm} />
-
-              {filteredOrders.length === 0 && (
-                <p className="text-center text-sm text-gray-500 dark:text-text-dark mt-3">
-                  No se encontraron órdenes con ese criterio.
-                </p>
-              )}
-            </>
-          )}
-        </Card>
-      </DashboardGrid>
 
       <DashboardGrid>
         <Card title={showForm ? 'Crear nueva tarjeta' : 'Enlaces'}>

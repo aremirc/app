@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { SocketProvider } from "@/context/SocketContext"
 import { useAuth } from "@/context/AuthContext"
+import { isBirthday } from '@/lib/utils'
 import queryClient from "@/lib/queryClient"
 import Header from "@/components/molecules/Header"
 import Sidebar from "@/components/organisms/Sidebar"
@@ -25,15 +26,6 @@ export default function ProtectedLayout({ children }) {
       router.replace(`/login`)
     }
   }, [loading, user, router])
-
-  const isBirthday = (birthDateStr) => {
-    if (!birthDateStr) return false
-
-    const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
-    const today = new Date()
-
-    return today.getDate() === day && today.getMonth() === month - 1
-  }
 
   if (loading) return <LoadingSpinner />
 

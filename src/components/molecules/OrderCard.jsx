@@ -244,7 +244,9 @@ const OrderCard = ({ order, handleCancel }) => {
     }
   }
 
-  const nowLocal = toDateTimeLocalString(new Date())
+  const minDate = toDateTimeLocalString(
+    order?.scheduledDate ? new Date(order.scheduledDate) : new Date()
+  )
 
   const validateStepAndSet = async (newStep) => {
     const fieldsToValidate = {
@@ -306,6 +308,7 @@ const OrderCard = ({ order, handleCancel }) => {
                   {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
                   <Input
                     {...field}
+                    autoFocus
                     type="text"
                     placeholder="Ej. Instalación de CCTV para cliente ABC"
                     className={`mb-4 ${errors.description ? "border-red-500" : ""}`}
@@ -351,7 +354,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     type="datetime-local"
                     className="mb-4"
                     label="Fecha Programada"
-                    min={nowLocal} // formato "YYYY-MM-DDTHH:mm"
+                    min={minDate} // formato "YYYY-MM-DDTHH:mm"
                     onBlur={(e) => {
                       field.onBlur?.(e)
                       checkAvailability()
@@ -376,7 +379,7 @@ const OrderCard = ({ order, handleCancel }) => {
                     type="datetime-local"
                     className="mb-4"
                     label="Fecha de Finalización"
-                    min={nowLocal}
+                    min={minDate}
                     onBlur={(e) => {
                       field.onBlur?.(e)
                       checkAvailability()
@@ -418,7 +421,7 @@ const OrderCard = ({ order, handleCancel }) => {
                       Selecciona un Cliente
                     </label>
                     {errors.clientId && <p className="text-red-500 text-sm">{errors.clientId.message}</p>}
-                    <select {...field} id="clientId" className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={loading}>
+                    <select {...field} autoFocus id="clientId" className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={loading}>
                       <option value="" disabled>Selecciona un cliente</option>
                       {loadingClients ? (
                         <option value="" disabled>Cargando clientes...</option>
@@ -449,6 +452,7 @@ const OrderCard = ({ order, handleCancel }) => {
                       )}
                       <input
                         {...field}
+                        autoFocus
                         list="client-suggestions"
                         id="clientName"
                         placeholder="Selecciona un cliente"
@@ -591,7 +595,7 @@ const OrderCard = ({ order, handleCancel }) => {
                                 className="mr-2"
                               />
                               <label htmlFor={`worker-${worker.dni}`} className={`text-sm ${isSelected ? 'font-semibold' : 'text-gray-700'}`}>
-                                {worker.firstName} {worker.lastName}
+                                {worker.firstName?.split(" ")[0]} {worker.lastName?.split(" ")[0]}
                                 {isResponsible && (
                                   <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary-light text-background-dark dark:bg-primary-dark">
                                     R. Asignado
@@ -626,7 +630,7 @@ const OrderCard = ({ order, handleCancel }) => {
                                     className="mr-2"
                                   />
                                   <label htmlFor={`responsible-${workerId}`} className="text-sm text-gray-700">
-                                    {worker?.firstName} {worker?.lastName}
+                                    {worker?.firstName?.split(" ")[0]} {worker?.lastName?.split(" ")[0]}
                                     {isResponsible && (
                                       <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary-light text-background-dark dark:bg-primary-dark">
                                         Responsable

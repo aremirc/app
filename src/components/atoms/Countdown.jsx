@@ -93,10 +93,10 @@ const Countdown = ({ className = '', visible = true }) => {
   }
 
   // Si no hay startTime en localStorage, no renderizamos el componente
-  if (!visible || !startTimeRef.current) return null
+  if (!startTimeRef.current) return null
 
   return (
-    <div className={`mt-1 text-sm text-center text-gray-500 dark:text-gray-300 ${className}`}>
+    <div className={`${!visible && 'hidden'} mt-1 text-sm text-center text-gray-500 dark:text-gray-300 ${className}`}>
       <p>{formatTime(timeLeft)}</p>
     </div>
   )

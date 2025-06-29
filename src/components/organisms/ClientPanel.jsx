@@ -92,6 +92,7 @@ const ClientPanel = () => {
           <SearchBar
             placeholder="Buscar cliente"
             onSearch={setSearchTerm}
+            total={filteredClients.length}
           />
         </div>
 

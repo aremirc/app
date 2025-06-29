@@ -1,15 +1,7 @@
 import { Pencil, Cake, ShieldCheck } from "lucide-react"
+import { isBirthday } from '@/lib/utils'
 import Card from "./Card"
 import Button from "../atoms/Button"
-
-const isBirthday = (birthDateStr) => {
-  if (!birthDateStr) return false
-
-  const [year, month, day] = birthDateStr.split("T")[0].split("-").map(Number)
-  const today = new Date()
-
-  return today.getDate() === day && today.getMonth() === month - 1
-}
 
 const WorkerCard = ({ worker }) => {
   const user = worker?.user
@@ -43,7 +35,7 @@ const WorkerCard = ({ worker }) => {
             onError={(e) => { e.target.src = "/default-avatar.webp" }}
           />
           <p className="text-primary dark:text-primary-dark font-medium text-center">
-            {user.firstName} {user.lastName}
+            {user.firstName?.split(" ")[0]} {user.lastName?.split(" ")[0]}
           </p>
           <p className="text-sm text-text-light dark:text-text-dark">Empleado</p>
         </div>

@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { NextResponse } from 'next/server'
+import { verifyAndLimit } from '@/lib/permissions'
+import prisma from '@/lib/prisma'
 
 export async function POST(req) {
+  const authResponse = await verifyAndLimit(req)
+  if (authResponse) return authResponse
+
   try {
     const body = await req.json()
 

@@ -44,7 +44,7 @@ export async function GET(req) {
 
       return NextResponse.json({
         status: 'success',
-        message: '¡Todo está en orden!',
+        message: 'Hola, puedes seguir explorando libremente.',
         code: hasRefreshToken ? 1027 : 1000,
         timestamp: new Date().toISOString(),
       }, { status: 200 })

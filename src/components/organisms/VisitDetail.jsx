@@ -36,14 +36,10 @@ const VisitDetail = ({ visitId }) => {
   }
 
   // Si hubo un error
-  if (error) {
-    return <div>{error}</div>
-  }
+  if (error) return <div className="text-red-500 text-center mt-10">{error}</div>
 
   // Si no se encuentra la visita
-  if (!visit) {
-    return <div>Visit not found.</div>
-  }
+  if (!visit) return <div className="text-center mt-10">Visita no encontrada.</div>
 
   return (
     <Card>

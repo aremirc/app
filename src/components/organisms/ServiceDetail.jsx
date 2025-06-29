@@ -35,14 +35,10 @@ const ServiceDetail = ({ serviceId }) => {
   }
 
   // Si hubo un error
-  if (error) {
-    return <div>{error}</div>
-  }
+  if (error) return <div className="text-red-500 text-center mt-10">{error}</div>
 
   // Si no se encuentra el servicio
-  if (!service) {
-    return <div>Service not found.</div>
-  }
+  if (!service) return <div className="text-center mt-10">Servicio no encontrado.</div>
 
   return (
     <div className="p-6 space-y-5 w-full mx-auto">

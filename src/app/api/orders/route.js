@@ -249,7 +249,8 @@ export async function GET(req) {
             id: true,
             name: true
           },
-        }
+        },
+        ...(status === 'PENDING') && { locations: true },
       }
     })
 
@@ -477,10 +478,10 @@ export async function PUT(req) {
 
     // // Reglas de transición para OrderWorkerStatus
     // const validWorkerTransitions = {
-    //   ASSIGNED: ['IN_PROGRESS', 'REASSIGNED', 'CANCELLED'],
-    //   IN_PROGRESS: ['COMPLETED', 'CANCELLED', 'FAILED'],
-    //   COMPLETED: [],
-    //   FAILED: ['REASSIGNED'],
+    //   ASSIGNED: ['ASSIGNED', 'IN_PROGRESS', 'REASSIGNED', 'CANCELLED', 'DECLINED'],
+    //   IN_PROGRESS: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'FAILED'],
+    //   COMPLETED: ['COMPLETED', 'IN_PROGRESS'],
+    //   FAILED: ['FAILED', 'REASSIGNED'],
     // }
 
     // // Validación de transición de estado de los trabajadores
@@ -595,6 +596,44 @@ export async function PUT(req) {
       }
     })
 
+    // Si el estado global de la orden se cierra, actualizar los estados de todos los OrderWorker asociados
+    const closedStatuses = ['COMPLETED', 'CANCELLED', 'FAILED']
+    if (closedStatuses.includes(status)) {
+      // Técnicos con estados que deben actualizarse
+      const affectedWorkers = await prisma.orderWorker.findMany({
+        where: {
+          orderId: id,
+          status: { in: ['ASSIGNED', 'IN_PROGRESS'] },
+        },
+        select: { userId: true },
+      })
+
+      if (affectedWorkers.length > 0) {
+        const affectedDnis = affectedWorkers.map((w) => w.userId)
+
+        // Actualizar el estado de esos técnicos
+        await prisma.orderWorker.updateMany({
+          where: {
+            orderId: id,
+            userId: { in: affectedDnis },
+            // Solo actualizar si su estado actual aún no es el final (para evitar sobrescribir estados explícitos como FAILED individual)
+            // status: { notIn: closedStatuses },
+          },
+          data: { status }, // Usar el mismo estado que la orden
+        })
+
+        // Crear notificaciones para ellos
+        await prisma.notification.createMany({
+          data: affectedDnis.map((dni) => ({
+            userId: dni,
+            type: 'ASSIGNMENT_UPDATE',
+            title: `Orden ${status === 'COMPLETED' ? 'completada' : status === 'CANCELLED' ? 'cancelada' : 'fallida'}`,
+            message: `La orden N° ${id} ha sido marcada como ${status.toLowerCase()}`,
+          })),
+        })
+      }
+    }
+
     const currentWorkerDnis = currentOrder.workers.map((w) => w.userId)
 
     // Técnicos a desasignar (ya no están en la nueva lista)
@@ -643,7 +682,7 @@ export async function PUT(req) {
         userId: dni,
         type: 'ASSIGNMENT_UPDATE',
         title: 'Nueva asignación de orden',
-        message: `Has sido asignado a la orden #${id}`,
+        message: `Has sido asignado a la orden N° ${id}`,
       })),
     })
 

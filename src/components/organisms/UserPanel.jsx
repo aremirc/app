@@ -9,7 +9,7 @@ import useRealTimeUpdates from "@/hooks/useRealTimeUpdates"  // Hook para WebSoc
 import SearchBar from "../molecules/SearchBar"
 
 const headers = [
-  { key: "fullName", label: "Nombre de Usuario" },
+  { key: "fullName", label: "Nombre y Apellidos" },
   { key: "dni", label: "DNI" },
   { key: "roleName", label: "Rol de Usuario" },
   { key: "status", label: "Estado" },
@@ -86,6 +86,7 @@ const UserPanel = () => {
           <SearchBar
             placeholder="Buscar usuario"
             onSearch={setSearchTerm}
+            total={filteredUsers.length}
           />
         </div>
 
@@ -100,7 +101,7 @@ const UserPanel = () => {
             headers={headers}
             data={filteredUsers.map(user => ({
               ...user,
-              fullName: user.firstName + ' ' + user.lastName,
+              fullName: user.firstName?.split(" ")[0] + ' ' + user.lastName,
               roleName: user.role?.name
             }))}
             onEdit={handleEdit}

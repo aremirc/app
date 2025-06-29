@@ -16,7 +16,7 @@ const BasicHeader = ({ title: propTitle }) => {
   const finalTitle = propTitle || fallbackTitle
 
   return (
-    <header className="sticky top-0 bg-linear-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-10">
+    <header className="sticky top-0 bg-linear-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-20">
       <div className="container lg:max-w-full mx-auto flex justify-between items-center">
         <div className="relative flex items-center justify-center gap-3">
           <div className="col-span-full flex items-center justify-center">
