@@ -22,7 +22,7 @@ const baseRoutes = {
   orders: { title: "Órdenes", href: ROUTES.orders, icon: "order", showInMenu: true },
   visits: { title: "Visitas", href: ROUTES.visits, icon: "visit", showInMenu: true },
   profile: { title: "Perfil", href: ROUTES.profile, icon: "profile", showInMenu: false },
-  manual: { title: "Manual de Usuario", href: ROUTES.manual, icon: "manual", showInMenu: false },
+  manual: { title: "Manual", href: ROUTES.manual, icon: "manual", showInMenu: false },
   settings: { title: "Configuración", href: ROUTES.settings, icon: "settings", showInMenu: false },
 }
 

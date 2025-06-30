@@ -13,7 +13,7 @@ import OrderCard from "../molecules/OrderCard"
 const Sidebar = () => {
   const { user } = useAuth()
   const isSticky = useSticky()
-  const { itemNav, isLoading, error } = useNavigationItems()
+  const { itemNav, isLoading, error, refetch } = useNavigationItems()
 
   const [isOpen, setIsOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -63,7 +63,7 @@ const Sidebar = () => {
                   onClick={() => setIsOpen(false)}
                 />
               )}
-              {error && <ErrorBanner message="No se pudo cargar la navegación" />}
+              {error && <ErrorBanner message="No se pudo cargar la navegación" retry={refetch} />}
             </div>
           )}
 

@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
 
       toast.promise(promise, {
         loading: 'Verificando sesión...',
-        success: (response) => response?.user?.firstName ? `${saludo}, ${response.user.firstName}! ¡Qué alegría tenerte aquí!` : response,
+        success: (response) => response?.user?.firstName ? `${saludo}, ${response.user.firstName.split(" ")[0]}! ¡Qué alegría tenerte aquí!` : response,
         error: (err) => `${err.response.data.message || err.message || 'No autenticado o sesión inválida'}`,
       })
 

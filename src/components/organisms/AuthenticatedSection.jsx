@@ -6,7 +6,7 @@ import LogoutButton from "../atoms/LogoutButton"
 
 const AuthenticatedSection = () => {
   const { user } = useAuth()
-  const name = user.name || (user.firstName + ' ' + user.lastName)
+  const name = user.name || (user.firstName?.split(" ")[0] + ' ' + user.lastName?.split(" ")[0])
 
   return (
     <section className="flex-1 flex flex-col items-center justify-center backdrop-brightness-50">

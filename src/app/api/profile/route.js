@@ -46,7 +46,7 @@ export async function GET(req) {
 
     return NextResponse.json({ user }, { status: 200 })
   } catch (error) {
-    console.error('Error en /api/profile [GET]:', error)
+    console.error('Error al obtener datos del perfil:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
@@ -56,22 +56,27 @@ export async function PATCH(req) {
   if (decoded?.error) return decoded
 
   try {
-    const { username, email, password } = await req.json()
+    const { username, email, password, firstName, lastName, phone, country, avatar } = await req.json()
 
-    if (!username && !email && !password) {
+    if (!username && !email && !password && !firstName && !lastName && !phone && !country && !avatar) {
       return NextResponse.json({ error: 'Debes enviar al menos un campo para actualizar' }, { status: 400 })
     }
 
     const updates = {}
 
     if (username) updates.username = username
+    if (firstName) updates.firstName = firstName
+    if (lastName) updates.lastName = lastName
+    if (phone) updates.phone = phone
+    if (country) updates.country = country
+    if (avatar) updates.avatar = avatar
 
     if (email) {
-      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(email)) {
         return NextResponse.json({ error: 'Correo electrónico no válido' }, { status: 400 })
       }
-      updates.email = email
+      // updates.email = email
     }
 
     if (password) {
@@ -81,7 +86,7 @@ export async function PATCH(req) {
           error: 'La contraseña debe tener al menos 8 caracteres, incluyendo letras y números',
         }, { status: 400 })
       }
-      updates.password = await bcrypt.hash(password, 10)
+      updates.password = await bcrypt.hash(password, 12)
     }
 
     const updatedUser = await prisma.user.update({
@@ -96,7 +101,7 @@ export async function PATCH(req) {
     const payload = {
       dni: updatedUser.dni,
       username: updatedUser.username,
-      roleId: updatedUser.roleId,
+      role: role?.name,
     }
 
     const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -110,10 +115,11 @@ export async function PATCH(req) {
     const res = NextResponse.json({
       message: 'Perfil actualizado correctamente',
       user: {
-        dni: updatedUser.dni,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        role: role?.name,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        country: updatedUser.country,
+        avatar: updatedUser.avatar,
+        phone: updatedUser.phone,
       },
     }, { status: 200 })
 
@@ -122,7 +128,7 @@ export async function PATCH(req) {
 
     return res
   } catch (error) {
-    console.error('Error en /api/profile [PATCH]:', error)
-    return NextResponse.json({ error: 'Error al actualizar el perfil' }, { status: 500 })
+    console.error('Error al actualizar el perfil:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

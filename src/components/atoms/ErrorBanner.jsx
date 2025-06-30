@@ -8,7 +8,7 @@ const ErrorBanner = ({ message, retry }) => {
       <div className="flex-1">
         <p className="font-bold text-base sm:text-lg mb-1 flex flex-col items-center gap-2">
           <span aria-hidden="true" className="text-2xl">¡Ups!</span>
-           Algo salió mal 😟
+          <strong>Algo salió mal 😟</strong>
         </p>
         <p className="text-sm sm:text-base text-center text-red-800 dark:text-red-200 leading-relaxed">
           {message || "Ha ocurrido un error. Por favor, intenta nuevamente."}

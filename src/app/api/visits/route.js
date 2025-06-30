@@ -88,6 +88,8 @@ export async function GET(req) {
         endTime: true,
         description: true,
         orderId: true,
+        userId: true,
+        clientId: true,
         isReviewed: true,
         evaluation: true,
         updatedAt: true,

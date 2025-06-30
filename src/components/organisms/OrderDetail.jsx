@@ -203,17 +203,7 @@ const OrderDetail = ({ orderId }) => {
         </Card>
       </div>
 
-      <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
-        <Button
-          size="sm"
-          variant="outline"
-          className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light/10"
-        >
-          CREAR NUEVA VISITA
-        </Button>
-
-        <VisitList visits={order.visits} />
-      </Card>
+      <VisitList visits={order.visits} orderID={orderId} />
     </div>
   )
 }

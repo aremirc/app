@@ -45,11 +45,15 @@ const visitSchema = z.object({
     .max(5, "No puede ser mayor a 5")
     .optional(),
   updatedAt: z.string().optional(), // ISO date string
+}).superRefine((data, ctx) => {
+  if (new Date(data.endTime) <= new Date(data.date)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "La hora de fin debe ser posterior a la de inicio",
+      path: ["endTime"],
+    })
+  }
 })
-  .refine(data => new Date(data.endTime) > new Date(data.date), {
-    message: "La hora de fin debe ser posterior a la de inicio",
-    path: ["endTime"],
-  })
 
 const defaultValues = {
   date: "",
@@ -64,8 +68,16 @@ const defaultValues = {
 }
 
 // Funciones de consulta para react-query
-const fetchOrders = async () => {
-  const { data } = await api.get("/api/orders")
+const fetchOrders = async ({ queryKey }) => {
+  const [_key, filters] = queryKey
+  const params = new URLSearchParams()
+
+  if (filters.orderID) params.append("orderId", filters.orderID)
+  if (filters.clientID) params.append("clientId", filters.clientID)
+  if (filters.userID) params.append("workerDni", filters.userID)
+
+  const url = `/api/orders${params.toString() ? `?${params}` : ""}`
+  const { data } = await api.get(url)
   return data
 }
 
@@ -78,9 +90,20 @@ const toDatetimeLocal = (dateStr) =>
   new Date(new Date(dateStr).getTime() - new Date().getTimezoneOffset() * 60000)
     .toISOString().slice(0, 16)
 
-const VisitCard = ({ visit, handleCancel }) => {
+const VisitCard = ({ visit, userID, clientID, orderID, handleCancel }) => {
   const [step, setStep] = useState(1)
   const { addVisitMutation, updateVisitMutation } = useVisits()
+
+  const orderFilters = {
+    ...(orderID && { orderID }),
+    ...(clientID && { clientID }),
+    ...(userID && { userID })
+  }
+
+  const { data: orders = [], isLoading: loading } = useQuery({
+    queryKey: ["orders", orderFilters], // clave react-query dependiente de filtros
+    queryFn: fetchOrders
+  })
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset, trigger } = useForm({
     resolver: zodResolver(visitSchema),
@@ -91,17 +114,20 @@ const VisitCard = ({ visit, handleCancel }) => {
       endTime: visit.endTime ? toDatetimeLocal(visit.endTime) : "",
       evaluation: typeof visit.evaluation === 'number' ? visit.evaluation : 0,
       isReviewed: visit.isReviewed ?? false,
-    } : defaultValues,
+    } : {
+      ...defaultValues,
+      orderId: orderID ? Number(orderID) : "", // ← asegura un número válido o string vacío
+      clientId: orderID
+        ? orders.find(o => o.id === Number(orderID))?.clientId || ""
+        : "",
+      userId: orderID
+        ? orders.find(o => o.id === Number(orderID))?.workers.find(w => w.isResponsible)?.userId || ""
+        : "",
+    },
     mode: "onChange",
   })
 
   const isSaving = addVisitMutation.isPending || updateVisitMutation.isPending || isSubmitting
-
-  // Usamos useQuery para obtener órdenes, clientes y trabajadores
-  const { data: orders = [], isLoading: loading } = useQuery({
-    queryKey: ["orders"],
-    queryFn: fetchOrders
-  })
 
   const onSubmit = async (data) => {
     const payload = {
@@ -127,6 +153,24 @@ const VisitCard = ({ visit, handleCancel }) => {
 
   const nowLocal = toDateTimeLocalString(new Date())
 
+  const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1)
+
+  const isReviewedValue = watch("isReviewed")
+  const selectedOrder = orders.find(o => o.id === watch("orderId"))
+
+  if (selectedOrder) {
+    // Si clientId está vacío pero sí lo tenemos en la orden, actualizamos.
+    if (!watch("clientId") && selectedOrder.clientId) {
+      setValue("clientId", selectedOrder.clientId)
+    }
+
+    // Lo mismo con userId
+    const responsibleUserId = selectedOrder.workers.find(w => w.isResponsible)?.userId
+    if (!watch("userId") && responsibleUserId) {
+      setValue("userId", responsibleUserId)
+    }
+  }
+
   const validateStepAndSet = async (newStep) => {
     const fieldsToValidate = {
       1: ["date", "endTime"],
@@ -144,10 +188,14 @@ const VisitCard = ({ visit, handleCancel }) => {
     }
   }
 
-  const isReviewedValue = watch("isReviewed")
-
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+      {Object.keys(errors).length > 0 && (
+        <pre className="bg-red-100 text-red-800 text-sm p-2 rounded mb-4 overflow-auto max-h-60">
+          {JSON.stringify(errors, null, 2)}
+        </pre>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
         {isSaving && <LoadingOverlay />}
 
@@ -242,59 +290,120 @@ const VisitCard = ({ visit, handleCancel }) => {
             />
 
             {/* Orden */}
-            <Controller
-              name="orderId"
-              control={control}
-              render={({ field }) => (
-                <div className="mb-4">
-                  <label htmlFor="orderId" className="block text-sm font-medium text-gray-700">Selecciona una Orden</label>
-                  {errors.orderId && <p className="text-red-500 text-sm">{errors.orderId.message}</p>}
-                  <select
-                    {...field}
-                    id="orderId"
-                    className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.orderId ? 'border-red-500' : ''}`}
-                    disabled={loading || visit}
-                    onChange={(e) => {
-                      const selectedId = Number(e.target.value)
-                      field.onChange(selectedId)
+            <div className="mb-4">
+              <label htmlFor="orderId" className="block text-sm font-medium text-text-light">
+                {(!visit && !orderID) ? "Selecciona una Orden" : "Orden Seleccionada"}
+              </label>
 
-                      const selectedOrder = orders.find(order => order.id === selectedId)
-                      if (selectedOrder) {
-                        setValue("clientId", selectedOrder.clientId)
+              {(!visit && !orderID) ? (
+                <Controller
+                  name="orderId"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      {errors.orderId && (
+                        <p className="text-red-500 text-sm">{errors.orderId.message}</p>
+                      )}
+                      <select
+                        {...field}
+                        id="orderId"
+                        className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.orderId ? 'border-red-500' : ''}`}
+                        disabled={loading}
+                        onChange={(e) => {
+                          const selectedId = Number(e.target.value)
+                          field.onChange(selectedId)
 
-                        const responsibleWorker = selectedOrder.workers.find(w => w.isResponsible)
-                        if (responsibleWorker) {
-                          setValue("userId", responsibleWorker.userId)
-                        }
-                      }
-                    }}
-                  >
-                    <option value="" disabled>Selecciona una orden</option>
-                    {loading ? <option value="" disabled>Cargando órdenes...</option> : orders?.map(order => (
-                      <option key={order.id} value={order.id}>{order.description} - {order.status}</option>
-                    ))}
-                  </select>
-                </div>
+                          const order = orders.find(o => o.id === selectedId)
+                          if (order) {
+                            setValue("clientId", order.clientId)
+                            const responsible = order.workers.find(w => w.isResponsible)
+                            if (responsible) {
+                              setValue("userId", responsible.userId)
+                            }
+                          }
+                        }}
+                      >
+                        <option value="" disabled>Selecciona una orden</option>
+                        {loading
+                          ? <option value="" disabled>Cargando órdenes...</option>
+                          : orders.map(order => (
+                            <option key={order.id} value={order.id}>
+                              {order.description} - {order.status}
+                            </option>
+                          ))}
+                      </select>
+                    </>
+                  )}
+                />
+              ) : (
+                <>
+                  <div className="mt-1 text-sm text-text-light">
+                    {selectedOrder?.description ?? "Sin descripción"}
+                  </div>
+                  <Controller
+                    name="orderId"
+                    control={control}
+                    render={({ field }) => <input type="hidden" {...field} />}
+                  />
+                </>
               )}
-            />
+
+              {/* Fechas de orden */}
+              <div className="mt-4">
+                {selectedOrder?.scheduledDate && (
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    <span className="font-medium">Inicio:</span>{" "}
+                    {capitalize(new Date(selectedOrder.scheduledDate).toLocaleDateString("es-PE", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }))}
+                  </div>
+                )}
+                {selectedOrder?.endDate && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium">Fin:</span>{" "}
+                    {capitalize(new Date(selectedOrder.endDate).toLocaleDateString("es-PE", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }))}
+                  </div>
+                )}
+              </div>
+
+              {selectedOrder?.status && (
+                <span
+                  className={`mt-3 inline-block align-middle text-xs px-2 py-0.5 rounded-full font-semibold
+                    ${selectedOrder.status === "COMPLETED"
+                      ? "bg-green-200 text-green-800"
+                      : selectedOrder.status === "IN_PROGRESS"
+                        ? "bg-yellow-200 text-yellow-800"
+                        : ["FAILED", "CANCELLED"].includes(selectedOrder.status)
+                          ? "bg-red-200 text-red-800"
+                          : "bg-gray-200 text-gray-800"}
+                  `}
+                >
+                  {selectedOrder.status.replace("_", " ")}
+                </span>
+              )}
+            </div>
           </>
         )}
 
         {step === 3 && (
           <>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-text-light">
-                Cliente
-              </label>
+              <label className="block text-sm font-medium text-text-light">Cliente</label>
               <p className="text-text-light">
                 {orders.find(o => o.id === watch("orderId"))?.client?.name ?? "Sin cliente"}
               </p>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-text-light">
-                Técnicos Asignados
-              </label>
+              <label className="block text-sm font-medium text-text-light">Técnicos Asignados</label>
               <ul className="mt-1 list-disc pl-5 text-text-light space-y-1">
                 {
                   (() => {

@@ -10,7 +10,7 @@ const fetchNavigation = async () => {
 const useNavigationItems = () => {
   const { user } = useAuth()
 
-  const { data: itemNav = [], isLoading, error } = useQuery({
+  const { data: itemNav = [], isLoading, error, refetch } = useQuery({
     queryKey: ["navigation", user?.role?.name],
     queryFn: fetchNavigation,
     enabled: !!user?.role?.name,            // solo consulta si hay rol
@@ -22,7 +22,8 @@ const useNavigationItems = () => {
   return {
     itemNav,
     isLoading,
-    error
+    error,
+    refetch
   }
 }
 

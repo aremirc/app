@@ -9,6 +9,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const scheduledDate = searchParams.get("scheduledDate")
   const endDate = searchParams.get("endDate")
+  const orderId = searchParams.get("orderId")
 
   if (!scheduledDate || !endDate) {
     return NextResponse.json({ error: "Missing dates" }, { status: 400 })
@@ -46,6 +47,7 @@ export async function GET(req) {
           { endDate: { gte: start } },
           { status: { in: ["PENDING", "IN_PROGRESS"] } },
           { deletedAt: null },
+          orderId ? { id: { not: Number(orderId) } } : {},
         ],
       },
       include: {

@@ -41,7 +41,6 @@ const UserDetail = ({ userId }) => {
 
   return (
     <div className="p-6 space-y-5 w-full mx-auto">
-      {/* Sección superior */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Perfil */}
         <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row items-center gap-8 xl:gap-12">
@@ -92,17 +91,7 @@ const UserDetail = ({ userId }) => {
       </div>
 
       {/* Visitas realizadas */}
-      <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
-        <Button
-          size="sm"
-          variant="outline"
-          className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light/10"
-        >
-          CREAR NUEVA VISITA
-        </Button>
-
-        <VisitList visits={user.visits} />
-      </Card>
+      <VisitList visits={user.visits} userID={userId} />
     </div >
   )
 }

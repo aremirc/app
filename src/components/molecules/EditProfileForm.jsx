@@ -1,45 +1,65 @@
-import React, { useState, useEffect } from 'react'
+'use client'
 
-const EditProfileForm = ({ user }) => {
+import { useState, useEffect } from 'react'
+import { handleToast } from '@/lib/toast'
+import api from '@/lib/axios'
+import Card from '../molecules/Card'
+import Input from '../atoms/Input'
+import LoadingOverlay from '../atoms/LoadingOverlay'
+
+const EditProfileForm = ({ user, onCancel, onSuccess }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    country: '',
+    avatar: '',
   })
 
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     setFormData({
       username: user.username || '',
       email: user.email || '',
-      password: '', // La contraseña no se autocompleta
+      password: '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      phone: user.phone || '',
+      country: user.country || '',
+      avatar: user.avatar || '',
     })
   }, [user])
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const validateForm = () => {
-    const { username, email, password } = formData
     const newErrors = {}
-
-    // Expresión regular más flexible
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    // const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
 
-    if (!username && !email && !password) {
+    if (
+      !formData.username &&
+      !formData.firstName &&
+      !formData.lastName &&
+      !formData.phone &&
+      !formData.country &&
+      !formData.password
+    ) {
       newErrors.form = 'Debes modificar al menos un campo.'
     }
 
-    if (email && !emailRegex.test(email)) {
+    if (formData.email && !emailRegex.test(formData.email)) {
       newErrors.email = 'Correo electrónico no válido.'
     }
 
-    if (password && password.length < 8) {
+    if (formData.password && formData.password.length < 8) {
       newErrors.password = 'La contraseña debe tener al menos 8 caracteres.'
     }
 
@@ -49,113 +69,175 @@ const EditProfileForm = ({ user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
     if (!validateForm()) return
 
     setIsSubmitting(true)
-    setSuccessMessage('')
 
-    // Realiza la petición al API para actualizar el perfil
     try {
-      const response = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
+      const { data } = await api.patch('/api/profile', formData)
+      setErrors({})
+      handleToast(data.message, 'success', 'Los cambios fueron guardados exitosamente.', '', '✅')
 
-      const result = await response.json()
-
-      if (response.ok) {
-        // En caso de éxito
-        setSuccessMessage('Perfil actualizado correctamente')
-        setErrors({})
-      } else {
-        setErrors({ form: result.error || 'Error al actualizar el perfil' })
+      if (typeof onSuccess === 'function') {
+        onSuccess(data.user)
       }
+
+      onCancel()
     } catch (error) {
-      setErrors({ form: 'Error en la comunicación con el servidor' })
+      const message = error.response?.data?.error || 'Error en la comunicación con el servidor'
+      setErrors({ form: message })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {Object.keys(errors).length > 0 && (
-        <div className="mb-4 rounded-md bg-red-100 p-2 text-sm text-danger-light dark:text-danger-dark border border-red-300">
-          Por favor corrige los errores antes de continuar.
+    <Card title="Editar Perfil" className="p-6">
+      {isSubmitting && <LoadingOverlay />}
+
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        {/* Feedback */}
+        {errors.form && (
+          <div className="mb-4 rounded-md bg-red-100 p-2 text-sm text-red-700 border border-red-300">
+            {errors.form}
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-2 gap-4">
+          {/* Avatar */}
+          <div className="flex flex-col items-center gap-2 col-span-full sm:col-span-2">
+            <label className="font-medium text-text-light dark:text-text-dark mb-1">Foto de Perfil</label>
+            <div className="relative w-24 h-24">
+              <img
+                src={formData.avatar || '/default-avatar.webp'}
+                alt="Avatar"
+                className="w-24 h-24 object-cover rounded-full border border-border-light shadow-sm"
+                onError={(e) => (e.target.src = '/default-avatar.webp')}
+              />
+              <label className="absolute bottom-0 right-0 w-6 h-6 bg-primary text-white text-xs rounded-full flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition" title="Cambiar">
+                📷
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        setFormData((prev) => ({ ...prev, avatar: reader.result }))
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Campos */}
+          <div>
+            <label htmlFor="firstName" className="block font-medium mb-1">Nombre</label>
+            <Input
+              id="firstName"
+              type="text"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              className="rounded-md"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="lastName" className="block font-medium mb-1">Apellido</label>
+            <Input
+              id="lastName"
+              type="text"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              className="rounded-md"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block font-medium mb-1">Correo Electrónico</label>
+            <Input
+              id="email"
+              type="email"
+              name="email"
+              value={formData.email}
+              disabled
+              className="w-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-md px-3 py-2 cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block font-medium mb-1">Teléfono</label>
+            <Input
+              id="phone"
+              type="tel"
+              name="phone"
+              pattern="\d*"
+              inputMode="numeric"
+              value={formData.phone}
+              onChange={(e) => {
+                const onlyNums = e.target.value.replace(/\D/g, '') // Remueve todo lo que no sea número
+                if (onlyNums.length <= 9) {
+                  setFormData(prev => ({ ...prev, phone: onlyNums }))
+                }
+              }}
+              className="rounded-md"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="country" className="block font-medium mb-1">País</label>
+            <Input
+              id="country"
+              type="text"
+              name="country"
+              value={formData.country}
+              onChange={handleChange}
+              className="rounded-md"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block font-medium mb-1">Nueva Contraseña</label>
+            <Input
+              id="password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="rounded-md"
+              placeholder="Dejar en blanco si no deseas cambiarla"
+              required={false}
+            />
+          </div>
         </div>
-      )}
 
-      {errors.form && (
-        <div className="mb-4 rounded-md bg-red-100 p-2 text-sm text-danger-light dark:text-danger-dark border border-red-300">
-          {errors.form}
+        <div className="flex justify-end gap-4 mt-6">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            title="Cancelar cambios"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-md bg-primary text-text-light hover:bg-primary/90 transition"
+            title="Actualizar perfil"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Actualizando...' : 'Guardar Cambios'}
+          </button>
         </div>
-      )}
-
-      {successMessage && (
-        <div className="mb-4 rounded-md bg-green-100 p-2 text-sm text-green-700 border border-green-300">
-          {successMessage}
-        </div>
-      )}
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-text-light dark:text-text-dark" htmlFor="username">
-          Nombre de Usuario
-        </label>
-        <input
-          type="text"
-          id="username"
-          name="username"
-          value={formData.username}
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg"
-          placeholder="Nuevo nombre de usuario"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-text-light dark:text-text-dark" htmlFor="email">
-          Correo Electrónico
-        </label>
-        {errors.email && <p className="text-danger-light dark:text-danger-dark text-sm">{errors.email}</p>}
-        <input
-          type="email"
-          id="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg"
-          placeholder="Nuevo correo electrónico"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-text-light dark:text-text-dark" htmlFor="password">
-          Contraseña Nueva
-        </label>
-        {errors.password && <p className="text-danger-light dark:text-danger-dark text-sm">{errors.password}</p>}
-        <input
-          type="password"
-          id="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg"
-          placeholder="Nueva contraseña (mín. 8 caracteres)"
-        />
-      </div>
-
-      <div className="flex justify-center">
-        <button
-          type="submit"
-          className="bg-blue-500 text-white py-2 px-4 rounded-lg"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Actualizando...' : 'Actualizar Perfil'}
-        </button>
-      </div>
-    </form>
+      </form>
+    </Card>
   )
 }
 

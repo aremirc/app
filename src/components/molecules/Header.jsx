@@ -36,7 +36,7 @@ const Header = ({ title: propTitle }) => {
     <header className="sticky top-0 bg-linear-to-r from-background-light dark:from-primary-dark via-primary to-background-dark dark:to-background-dark p-6 shadow-md z-20">
       <div className="container lg:max-w-full mx-auto flex justify-between items-center">
         {user?.role?.name && (
-          <div className="fixed top-0 sm:top-auto text-red-500 font-bold">
+          <div className="fixed bottom-4 left-4 sm:top-auto font-bold">
             <Link href="/manual" title="Manual de Usuario">
               <Icon name="manual" active />
             </Link>

@@ -75,129 +75,107 @@ const UserProfile = () => {
           {/* Vista: Información del Usuario */}
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <button className="absolute bottom-0 right-0">
-                <Icon name='edit' size={21} active />
+              <button
+                onClick={toggleEditMode}
+                className="absolute bottom-0 right-0"
+                title="Editar perfil"
+              >
+                <Icon name="edit" size={21} color="dark:hover:bg-primary-dark/80" active />
               </button>
               <img
                 src={user.avatar || '/default-avatar.webp'}
                 alt="Avatar del usuario"
-                className="w-16 h-16 rounded-full object-cover"
+                className="w-16 h-16 rounded-full object-cover border-2 border-primary dark:border-primary-dark"
                 onError={(e) => {
                   e.target.src = "/default-avatar.webp"
                 }}
               />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-primary dark:text-white">
-                {user.username}
-              </h2>
-              <p className="text-sm font-light text-gray-600 dark:text-gray-300">{user.email}</p>
-
+              <h2 className="text-xl font-bold text-primary dark:text-white">{user.username}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{user.email}</p>
             </div>
           </div>
+
           {/* Redes Sociales */}
-          <div className="mt-2 flex space-x-4">
-            {user.socialLinks?.facebook && (
-              <a href={user.socialLinks.facebook} target="_blank" rel="noopener noreferrer">
-                <Icon name="facebook" size={32} color="dark:bg-transparent dark:hover:bg-shadow-light" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 transition" />
+          <div className="flex gap-3 mt-4 sm:mt-0">
+            {Object.entries(user.socialLinks || {}).map(([key, url]) => (
+              <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-500 hover:text-primary transition"
+              >
+                <Icon name={key} size={32} color="dark:bg-transparent dark:hover:bg-shadow-light" />
               </a>
-            )}
-            {user.socialLinks?.twitter && (
-              <a href={user.socialLinks.twitter} target="_blank" rel="noopener noreferrer">
-                <Icon name="twitter" size={32} color="dark:bg-transparent dark:hover:bg-shadow-light" className="text-blue-400 dark:text-blue-300 hover:text-blue-500 transition" />
-              </a>
-            )}
-            {user.socialLinks?.linkedin && (
-              <a href={user.socialLinks.linkedin} target="_blank" rel="noopener noreferrer">
-                <Icon name="linkedin" size={32} color="dark:bg-transparent dark:hover:bg-shadow-light" className="text-blue-700 dark:text-blue-500 hover:text-blue-800 transition" />
-              </a>
-            )}
-            {user.socialLinks?.instagram && (
-              <a href={user.socialLinks.instagram} target="_blank" rel="noopener noreferrer">
-                <Icon name="instagram" size={32} color="dark:bg-transparent dark:hover:bg-shadow-light" className="text-pink-500 dark:text-pink-400 hover:text-pink-600 transition" />
-              </a>
-            )}
+            ))}
           </div>
         </Card>
       </div>
-      <Card className="dark:bg-gray-800 shadow-lg rounded-lg p-8 mt-12 sm:mt-24">
-        {!isEditing ? (
-          <>
-            <DashboardGrid>
-              <div className="">
-                <h3 className="text-lg font-semibold text-primary dark:text-gray-200 mb-2">Información de Perfil</h3>
-                <ul className="text-gray-600 dark:text-gray-300 space-y-1">
-                  <li><strong>Rol:</strong> {user.role.name || 'Desconocido'}</li>
-                  <li><strong>N° DNI:</strong> {user.dni}</li>
-                  <li><strong>Nombre:</strong> {user.firstName + ' ' + user.lastName || 'Desconocido'}</li>
-                  <li><strong>Correo:</strong> {user.email || ''}</li>
-                  <li><strong>Celular:</strong> {user.phone || ''}</li>
-                  <li><strong>Ubicación:</strong> {user.country || 'Perú'}</li>
-                  <li><strong>Miembro desde:</strong> {new Date(user.hiredAt || user.createdAt).toLocaleDateString()}</li>
-                </ul>
-              </div>
-              <div className="">
-                <h3 className="text-lg font-semibold text-primary dark:text-gray-200 mb-2">Actividad Reciente</h3>
-                <ul className="text-gray-600 dark:text-gray-300">
-                  <li><strong>Último inicio de sesión:</strong> {new Date(user.lastLogin || '').toLocaleDateString()}</li>
-                  <li><strong>Última actualización de perfil:</strong> {new Date(user.updatedAt).toLocaleDateString()}</li>
-                  <li>
-                    <strong>Tareas pendientes:</strong>
-                    {user.notifications.length > 0 ? (
-                      <ul className="mt-2 space-y-2 text-sm">
-                        {user.notifications.map((n) => (
-                          <li key={n.id} className="border p-2 rounded bg-white dark:bg-gray-700 shadow-sm">
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold">{n.title}</span>
-                              <span className={`text-xs rounded px-2 py-0.5
-                                ${n.priority === 'HIGH' ? 'bg-red-200 text-red-700' :
-                                  n.priority === 'MEDIUM' ? 'bg-yellow-200 text-yellow-700' :
-                                    'bg-green-200 text-green-700'}
-                              `}>
-                                {n.priority}
-                              </span>
-                            </div>
-                            <p className="text-gray-600 dark:text-gray-300">{n.message}</p>
-                            {n.actionUrl && (
-                              <a href={n.actionUrl} className="text-blue-500 hover:underline text-sm">
-                                Ver más
-                              </a>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-gray-500 mt-1">No hay tareas pendientes.</p>
-                    )}
-                  </li>
-                </ul>
-              </div>
-            </DashboardGrid>
 
-            <div className="mt-5 text-center">
-              <button
-                onClick={toggleEditMode}
-                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
-              >
-                Editar Perfil
-              </button>
-            </div>
-          </>
+      <DashboardGrid className="shadow-lg rounded-lg gap-4 p-0 sm:p-8 mt-12 sm:mt-24">
+        {!isEditing ? (
+          <Card title="Información de Perfil" className="p-6">
+            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+              <li><strong>Rol:</strong> {user.role.name}</li>
+              <li><strong>DNI:</strong> {user.dni}</li>
+              <li><strong>Nombre:</strong> {user.firstName} {user.lastName}</li>
+              <li><strong>Correo:</strong> {user.email}</li>
+              <li><strong>Celular:</strong> {user.phone}</li>
+              <li><strong>Ubicación:</strong> {user.country ?? "Perú"}</li>
+              <li><strong>Miembro desde:</strong> {new Date(user.hiredAt || user.createdAt).toLocaleDateString()}</li>
+            </ul>
+
+            <button
+              onClick={toggleEditMode}
+              className="absolute top-3 right-3"
+              title="Editar perfil"
+            >
+              <Icon name="edit" size={25} color="dark:hover:bg-primary-dark/80 transition" active />
+            </button>
+          </Card>
         ) : (
-          <>
-            {/* Vista: Formulario de Edición */}
-            <div className="text-right mb-4">
-              <button
-                onClick={toggleEditMode}
-                className="text-sm text-blue-500 hover:underline"
-              >
-                CANCELAR
-              </button>
-            </div>
-            <EditProfileForm user={user} />
-          </>
+          <EditProfileForm user={user} onCancel={toggleEditMode} onSuccess={(updatedData) => {
+            setUser(prev => ({ ...prev, ...updatedData }))
+          }} />
         )}
-      </Card>
+
+        <Card title="Actividad Reciente" className="p-6">
+          <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+            <li><strong>Último login:</strong> {new Date(user.lastLogin).toLocaleDateString()}</li>
+            <li><strong>Última actualización:</strong> {new Date(user.updatedAt).toLocaleDateString()}</li>
+          </ul>
+
+          <h4 className="mt-4 mb-2 font-semibold text-sm text-primary dark:text-primary-dark">Tareas Pendientes</h4>
+          {user.notifications?.length > 0 ? (
+            <ul className="space-y-2">
+              {user.notifications.map((n) => (
+                <li key={n.id} className="bg-muted p-2 rounded shadow-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-medium">{n.title}</span>
+                    <span className={`text-xs rounded px-2 py-0.5 font-semibold
+                ${n.priority === 'HIGH' ? 'bg-red-200 text-red-700' :
+                        n.priority === 'MEDIUM' ? 'bg-yellow-200 text-yellow-700' :
+                          'bg-green-200 text-green-700'}
+              `}>
+                      {n.priority}
+                    </span>
+                  </div>
+                  <p className="text-sm">{n.message}</p>
+                  {n.actionUrl && (
+                    <a href={n.actionUrl} className="text-blue-500 hover:underline text-xs">
+                      Ver más
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500">No hay notificaciones activas.</p>
+          )}
+        </Card>
+      </DashboardGrid>
     </div>
   )
 }

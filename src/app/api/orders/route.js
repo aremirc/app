@@ -104,6 +104,7 @@ export async function GET(req) {
     const status = searchParams.get('status')?.toUpperCase()
     const clientId = searchParams.get('clientId')
     const workerDni = searchParams.get('workerDni')
+    const orderId = searchParams.get('orderId')
 
     const isTechnician = userRole === 'TECHNICIAN'
     const dateRange = getDateRange(query)
@@ -186,6 +187,7 @@ export async function GET(req) {
     const excludeDeleted = !(status === 'DELETED')
 
     const whereClause = {
+      ...(orderId && { id: Number(orderId) }),
       ...(excludeDeleted && { deletedAt: null }),
       ...(status && { status }),
       ...(clientId && { clientId }),

@@ -37,7 +37,7 @@ const PrintPreviewModal = ({ isOpen, onClose, children }) => {
               className="flex items-center gap-2 px-3 py-1 border text-sm rounded-md text-text-light dark:text-text-dark border-gray-300 hover:bg-gray-100 dark:hover:text-text-light"
             >
               <Printer className="w-4 h-4" />
-              Imprimir PDF
+              Imprimir<span className='hidden sm:flex'> PDF</span>
             </button>
 
             {/* Botón descargar */}
@@ -47,7 +47,7 @@ const PrintPreviewModal = ({ isOpen, onClose, children }) => {
               disabled
             >
               <FileText className="w-4 h-4" />
-              Descargar PDF
+              Descargar<span className='hidden sm:flex'> PDF</span>
             </button>
           </div>
 

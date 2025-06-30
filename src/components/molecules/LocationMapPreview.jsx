@@ -19,7 +19,7 @@ const LocationMapPreview = ({ locations = [] }) => {
   const [selectedLocation, setSelectedLocation] = useState(null)
 
   if (!locations.length) {
-    return <p className="text-center text-gray-500">No hay ubicaciones para mostrar.</p>
+    return <p className="text-center text-sm text-gray-500 dark:text-text-dark">No hay ubicaciones para mostrar.</p>
   }
 
   const openMapModal = (loc) => {
@@ -49,7 +49,7 @@ const LocationMapPreview = ({ locations = [] }) => {
           dragging={false}
           doubleClickZoom={false}
           zoomControl={false}
-          className="h-64 w-full rounded-xl print:h-[300px]"
+          className="h-64 w-full rounded-xl print:h-[300px] z-10"
         >
           <TileLayer
             attribution='&copy; OpenStreetMap contributors'

@@ -51,7 +51,7 @@ const orderSchema = z.object({
       { message: "El número debe tener entre 6 y 9 dígitos" }
     ),
   statusDetails: z.string().optional(),
-  responsibleId: z.string().optional(),
+  responsibleId: z.string().min(1, "Debes seleccionar un responsable"),
   updatedAt: z.string().optional(), // ISO date string
 })
   .refine((data) => new Date(data.endDate) >= new Date(data.scheduledDate), {
@@ -202,6 +202,7 @@ const OrderCard = ({ order, handleCancel }) => {
         params: {
           scheduledDate: currentScheduledDate,
           endDate: currentEndDate,
+          orderId: order?.id,
         },
       })
 
@@ -550,14 +551,28 @@ const OrderCard = ({ order, handleCancel }) => {
                 const selectedWorkers = field.value || []
 
                 const toggleWorker = (id) => {
+                  const currentResponsible = watch("responsibleId")
+
                   if (selectedWorkers.includes(id)) {
-                    field.onChange(selectedWorkers.filter((w) => w !== id))
-                    // Si se deselecciona el responsable, limpiamos responsibleId
-                    if (watch("responsibleId") === id) {
-                      setValue("responsibleId", "")
+                    const updated = selectedWorkers.filter((w) => w !== id)
+                    field.onChange(updated)
+
+                    // ✅ Si se deselecciona el responsable actual
+                    if (currentResponsible === id) {
+                      if (updated.length > 0) {
+                        setValue("responsibleId", updated[0]) // asignar otro automáticamente
+                      } else {
+                        setValue("responsibleId", "") // no queda nadie
+                      }
                     }
                   } else if (selectedWorkers.length < 2) {
-                    field.onChange([...selectedWorkers, id])
+                    const updated = [...selectedWorkers, id]
+                    field.onChange(updated)
+
+                    // ✅ Si no hay responsable asignado aún, asignar al nuevo
+                    if (!currentResponsible) {
+                      setValue("responsibleId", id)
+                    }
                   }
                 }
 
@@ -611,36 +626,40 @@ const OrderCard = ({ order, handleCancel }) => {
                     {/* ✅ Mostrar trabajadores seleccionados */}
                     {selectedWorkers.length > 0 && (
                       <div className="mt-3 text-sm text-gray-600">
-                        <strong>Técnicos Asignados:</strong>{" "}
+                        <strong>Técnicos Asignados:</strong>
+
                         <div className="space-y-2 mt-2">
-                          {selectedWorkers
-                            .map((workerId) => {
-                              const isResponsible =
-                                order?.workers?.find((w) => w.userId === workerId)?.isResponsible ?? false
-                              const worker = techs.find((w) => w.dni === workerId)
-                              return (
-                                <div key={`responsible-${workerId}`} className="flex items-center ml-4">
-                                  <input
-                                    type="radio"
-                                    name="responsibleId"
-                                    id={`responsible-${workerId}`}
-                                    value={workerId}
-                                    checked={watch("responsibleId") === workerId}
-                                    onChange={() => setValue("responsibleId", workerId)}
-                                    className="mr-2"
-                                  />
-                                  <label htmlFor={`responsible-${workerId}`} className="text-sm text-gray-700">
-                                    {worker?.firstName?.split(" ")[0]} {worker?.lastName?.split(" ")[0]}
-                                    {isResponsible && (
-                                      <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary-light text-background-dark dark:bg-primary-dark">
-                                        Responsable
-                                      </span>
-                                    )}
-                                  </label>
-                                </div>
-                              )
-                            })}
+                          {selectedWorkers.map((workerId) => {
+                            const isResponsible = order?.workers?.find((w) => w.userId === workerId)?.isResponsible ?? false
+                            const worker = techs.find((w) => w.dni === workerId)
+
+                            return (
+                              <div key={`responsible-${workerId}`} className="flex items-center ml-4">
+                                <input
+                                  type="radio"
+                                  name="responsibleId"
+                                  id={`responsible-${workerId}`}
+                                  value={workerId}
+                                  checked={watch("responsibleId") === workerId}
+                                  onChange={() => setValue("responsibleId", workerId)}
+                                  className="mr-2"
+                                />
+                                <label htmlFor={`responsible-${workerId}`} className="text-sm text-gray-700">
+                                  {worker?.firstName?.split(" ")[0]} {worker?.lastName?.split(" ")[0]}
+                                  {isResponsible && (
+                                    <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary-light text-background-dark dark:bg-primary-dark">
+                                      Responsable
+                                    </span>
+                                  )}
+                                </label>
+                              </div>
+                            )
+                          })}
                         </div>
+
+                        <p className="mt-2 text-xs text-gray-500 italic">
+                          Selecciona quién será el técnico responsable de la orden.
+                        </p>
                       </div>
                     )}
                   </div>

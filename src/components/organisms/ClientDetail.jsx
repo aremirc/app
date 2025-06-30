@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import api from "@/lib/axios"
-import LoadingSpinner from "../atoms/LoadingSpinner"
 import { Pencil } from "lucide-react"
+import api from "@/lib/axios"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 import VisitList from "./VisitList"
+import LoadingSpinner from "../atoms/LoadingSpinner"
 
 const ClientDetail = ({ clientId }) => {
   const [client, setClient] = useState(null)  // Estado para el cliente
@@ -93,17 +93,7 @@ const ClientDetail = ({ clientId }) => {
       </div>
 
       {/* Visitas realizadas */}
-      <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
-        <Button
-          size="sm"
-          variant="outline"
-          className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light/10"
-        >
-          CREAR NUEVA VISITA
-        </Button>
-
-        <VisitList visits={client.visits} />
-      </Card>
+      <VisitList visits={client.visits} clientID={clientId} />
     </div >
   )
 }

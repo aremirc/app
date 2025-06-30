@@ -129,25 +129,25 @@ const MainContent = () => {
       title: "Órdenes Completadas",
       icon: <ClipboardList className="h-6 w-6 text-primary" />,
       value: new Set(metrics.flatMap(u => u.completedOrderIds)).size,
-      description: "+12 este mes",
+      description: "En tendencia positiva",
     },
     {
       title: "Visitas",
       icon: <CalendarDays className="h-6 w-6 text-primary" />,
       value: metrics.reduce((acc, u) => acc + u.totalVisits, 0),
-      description: "+8% desde abril",
+      description: "Creciendo constantemente",
     },
     {
       title: "Usuarios Activos",
       icon: <Users className="h-6 w-6 text-primary" />,
       value: metrics.length,
-      description: "78% verificados",
+      description: "Con actividad reciente",
     },
     {
       title: "Horas Trabajadas",
       icon: <Timer className="h-6 w-6 text-primary" />,
       value: metrics.reduce((acc, u) => acc + u.totalTime, 0),
-      description: "Promedio mensual",
+      description: "Conteo acumulado",
     },
   ]
 
@@ -290,7 +290,7 @@ const MainContent = () => {
               </ResponsiveContainer>
 
               <p className="text-xs text-right text-gray-500 dark:text-text-dark mt-2">
-                Total este año: {ordersPerMonth?.data.reduce((sum, item) => sum + item.Órdenes, 0)}
+                Total este año: {ordersPerMonth?.data?.reduce((sum, item) => sum + item.Órdenes, 0)}
               </p>
             </Card>
 
@@ -315,7 +315,7 @@ const MainContent = () => {
               </ResponsiveContainer>
 
               <p className="text-xs text-right text-gray-500 dark:text-text-dark mt-2">
-                Total este año: {visitsPerMonth?.data.reduce((sum, item) => sum + item.Visitas, 0)}
+                Total este año: {visitsPerMonth?.data?.reduce((sum, item) => sum + item.Visitas, 0)}
               </p>
             </Card>
           </DashboardGrid>
