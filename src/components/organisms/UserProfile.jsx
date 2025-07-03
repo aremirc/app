@@ -172,7 +172,7 @@ const UserProfile = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">No hay notificaciones activas.</p>
+            <p className="text-sm text-gray-500 dark:text-text-dark">No hay notificaciones activas.</p>
           )}
         </Card>
       </DashboardGrid>

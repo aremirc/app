@@ -13,6 +13,7 @@ export async function GET(req) {
 
     const typeParam = searchParams.get('type') // 'INDIVIDUAL' | 'COMPANY'
     const isActiveParam = searchParams.get('isActive') // 'true' | 'false'
+    const id = searchParams.get('id')
 
     const whereClause = {
       deletedAt: null,
@@ -22,10 +23,12 @@ export async function GET(req) {
       ...(isActiveParam !== null && {
         isActive: isActiveParam === 'true', // conversión explícita a booleano
       }),
+      ...(id && { id }),
     }
 
     const clients = await prisma.client.findMany({
       where: whereClause,
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,       // RUC o DNI
         name: true,

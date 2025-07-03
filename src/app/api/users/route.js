@@ -220,7 +220,6 @@ export async function PUT(req) {
     // Verificar si se está intentando cambiar el rol de un ADMIN a otro distinto
     const currentRole = await prisma.role.findUnique({ where: { id: existingUser.roleId } })
     if (currentRole?.name === 'ADMIN' && role.name !== 'ADMIN') {
-      // Verificar si es el único admin activo
       const activeAdminsCount = await prisma.user.count({
         where: {
           status: 'ACTIVE',
@@ -234,6 +233,29 @@ export async function PUT(req) {
       if (activeAdminsCount <= 1) {
         return NextResponse.json(
           { error: 'No se puede cambiar el rol del único administrador activo' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Verificar si se intenta desactivar al único ADMIN activo
+    if (
+      currentRole?.name === 'ADMIN' &&
+      existingUser.status === 'ACTIVE' &&
+      status !== 'ACTIVE'
+    ) {
+      const activeAdminsCount = await prisma.user.count({
+        where: {
+          status: 'ACTIVE',
+          deletedAt: null,
+          role: { name: 'ADMIN' },
+          dni: { not: dni }, // Excluir al usuario que se está actualizando
+        },
+      })
+
+      if (activeAdminsCount === 0) {
+        return NextResponse.json(
+          { error: 'No se puede desactivar al único administrador activo' },
           { status: 403 }
         )
       }

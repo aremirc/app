@@ -54,18 +54,42 @@ const fetchVisitsPerMonth = async () => {
 }
 
 const defaultCards = [
-  {
-    title: 'Órdenes',
-    description: 'Gestiona las órdenes',
-    href: '/orders',
-    bgColor: 'bg-teal-400 hover:bg-teal-500 dark:bg-teal-300 dark:hover:bg-teal-400',
-  },
+  // {
+  //   title: 'Proyectos',
+  //   description: 'Organiza y haz seguimiento de tus proyectos en curso',
+  //   href: '/projects',
+  //   bgColor: 'bg-indigo-400 hover:bg-indigo-500 dark:bg-indigo-300 dark:hover:bg-indigo-400',
+  // },
+  // {
+  //   title: 'Clientes',
+  //   description: 'Administra y supervisa la información de tus clientes',
+  //   href: '/clients',
+  //   bgColor: 'bg-teal-400 hover:bg-teal-500 dark:bg-teal-300 dark:hover:bg-teal-400',
+  // },
   {
     title: 'Hikvision',
     description: 'Revisa los productos destacados',
     href: 'https://www.hikvision.com/es-la/',
     bgColor: 'bg-red-500 hover:bg-red-600 dark:bg-red-400 dark:hover:bg-red-500',
   },
+  {
+    title: 'Dahua',
+    description: 'Tecnología avanzada en videovigilancia',
+    href: 'https://www.dahuasecurity.com/',
+    bgColor: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600',
+  },
+  {
+    title: 'Ajax Systems',
+    description: 'Sistemas de alarma inalámbricos de alta gama',
+    href: 'https://ajax.systems/',
+    bgColor: 'bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-800',
+  },
+  {
+    title: 'Bosch',
+    description: 'Soluciones integradas para seguridad',
+    href: 'https://www.boschsecurity.com/',
+    bgColor: 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600',
+  }
 ]
 
 const MainContent = () => {
@@ -151,7 +175,7 @@ const MainContent = () => {
     },
   ]
 
-  const groupedAssignments = assignments.reduce((acc, a) => {
+  const userAssignmentSummary = assignments.reduce((acc, a) => {
     const key = a.user.dni
     if (!acc[key]) {
       acc[key] = {

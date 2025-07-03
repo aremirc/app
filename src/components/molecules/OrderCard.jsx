@@ -36,11 +36,21 @@ const orderSchema = z.object({
     .string()
     .min(1, "La fecha programada es obligatoria")
     .refine((str) => !isNaN(new Date(str).getTime()), { message: "Fecha inválida" })
+    .refine(value => {
+      const date = new Date(value);
+      const hours = date.getHours();
+      return hours >= 6 && hours < 22;
+    }, "La hora programada debe estar entre las 06:00 y las 22:00")
     .transform((str) => new Date(str).toISOString()),
   endDate: z
     .string()
     .min(1, "La fecha de finalización es obligatoria")
     .refine((str) => !isNaN(new Date(str).getTime()), { message: "Fecha inválida" })
+    .refine(value => {
+      const date = new Date(value);
+      const hours = date.getHours();
+      return hours >= 6 && hours < 22;
+    }, "La hora de finalización debe estar entre las 06:00 y las 22:00")
     .transform((str) => new Date(str).toISOString()),
   alternateContactName: z.string().optional(),
   alternateContactPhone: z
@@ -106,8 +116,13 @@ const defaultValues = {
   updatedAt: "",
 }
 
-const fetchActiveClients = async () => {
-  const { data } = await api.get("/api/clients?isActive=true")
+const fetchActiveClients = async ({ queryKey }) => {
+  const [_key, clientID] = queryKey
+  const params = { isActive: true }
+
+  if (clientID) params.id = clientID
+
+  const { data } = await api.get("/api/clients", { params })
   return data
 }
 
@@ -133,7 +148,7 @@ const toLocalDatetimeInputValue = (isoString) => {
   return localISO
 }
 
-const OrderCard = ({ order, handleCancel }) => {
+const OrderCard = ({ order, clientID, handleCancel }) => {
   const [step, setStep] = useState(1)
   const [availableTechs, setAvailableTechs] = useState([])
   const [loadingTechs, setLoadingTechs] = useState(false)
@@ -145,30 +160,9 @@ const OrderCard = ({ order, handleCancel }) => {
     setIsTouchDevice(isTouch)
   }, [])
 
-  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, getValues, setValue, trigger } = useForm({
-    resolver: zodResolver(orderSchema),
-    defaultValues: order ? {
-      ...order,
-      updatedAt: order.updatedAt ?? "",
-      clientName: order?.client?.name,
-      scheduledDate: order?.scheduledDate ? toLocalDatetimeInputValue(order.scheduledDate) : "",
-      endDate: order?.endDate ? toLocalDatetimeInputValue(order.endDate) : "",
-      statusDetails: order.statusDetails ?? "",
-      alternateContactName: order.alternateContactName ?? "",
-      alternateContactPhone: order.alternateContactPhone ?? "",
-      workers: order?.workers?.map((w) => w.userId) ?? [],
-      responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? "",
-      services: order?.services?.map((s) => s.id) ?? []
-    } : defaultValues,
-    mode: "onChange", // o "onSubmit" si prefieres validar solo al enviar
-    shouldUnregister: false,
-  })
-
-  const isSaving = isSubmitting || addOrderMutation.isPending || updateOrderMutation.isPending
-
   // Usando useQuery para obtener clientes, trabajadores y servicios
   const { data: clients = [], isLoading: loadingClients } = useQuery({
-    queryKey: ["clients"],
+    queryKey: ["clients", clientID], // ← react-query invalidará si cambia
     queryFn: fetchActiveClients
   })
 
@@ -184,6 +178,42 @@ const OrderCard = ({ order, handleCancel }) => {
 
   // Combinamos todas las cargas en una sola variable
   const loading = loadingClients || loadingWorkers || loadingServices
+
+  const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, getValues, setValue, trigger } = useForm({
+    resolver: zodResolver(orderSchema),
+    defaultValues: order ? {
+      ...order,
+      updatedAt: order.updatedAt ?? "",
+      clientName: order?.client?.name,
+      scheduledDate: order?.scheduledDate ? toLocalDatetimeInputValue(order.scheduledDate) : "",
+      endDate: order?.endDate ? toLocalDatetimeInputValue(order.endDate) : "",
+      statusDetails: order.statusDetails ?? "",
+      alternateContactName: order.alternateContactName ?? "",
+      alternateContactPhone: order.alternateContactPhone ?? "",
+      workers: order?.workers?.map((w) => w.userId) ?? [],
+      responsibleId: order?.workers.find((w) => w.isResponsible)?.userId ?? "",
+      services: order?.services?.map((s) => s.id) ?? []
+    } : {
+      ...defaultValues,
+      clientId: clientID ?? "",
+      clientName: clientID
+        ? clients.find(c => c.id === clientID)?.name || ""
+        : "",
+    },
+    mode: "onChange", // o "onSubmit" si prefieres validar solo al enviar
+    shouldUnregister: false,
+  })
+
+  useEffect(() => {
+    if (clientID && clients.length === 1) {
+      const current = getValues("clientName")
+      if (!current) {
+        setValue("clientName", clients[0].name)
+      }
+    }
+  }, [clients, clientID, getValues, setValue])
+
+  const isSaving = isSubmitting || addOrderMutation.isPending || updateOrderMutation.isPending
 
   const checkAvailability = async () => {
     // Validar campos antes de continuar

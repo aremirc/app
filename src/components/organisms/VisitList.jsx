@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, MessageSquare, Pencil, Trash2 } from 'lucide-react'
+import Link from 'next/link'
 import Card from '../molecules/Card'
 import Button from '../atoms/Button'
 import VisitCard from '../molecules/VisitCard'
@@ -38,11 +39,11 @@ const VisitList = ({ visits = [], userID, clientID, orderID, onEdit, onDelete, o
   }
 
   return (
-    <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl bg-background-light dark:bg-background-dark shadow-md">
+    <Card title="Visitas Realizadas" className="col-span-1 xl:col-span-3 p-6 rounded-2xl">
       <Button
         size="sm"
         variant="outline"
-        className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light/10"
+        className="absolute top-4 right-4 border border-border-light dark:border-border-dark text-primary dark:text-primary-dark hover:bg-primary-light"
         onClick={() => setIsModalOpen(true)}
       >
         +
@@ -75,14 +76,16 @@ const VisitList = ({ visits = [], userID, clientID, orderID, onEdit, onDelete, o
                     key={visit.id}
                     className="h-fit border border-border-light dark:border-border-dark p-4 rounded-lg shadow-xs bg-background-muted dark:bg-background-muted-dark"
                   >
-                    <div
-                      className={`flex justify-between items-center ${isOpen ? "mb-2" : ""} cursor-pointer`}
-                      onClick={() => toggleItem(visit.id)}
-                    >
-                      <h4 className="font-semibold text-primary dark:text-primary-dark">
-                        Visita N° {String(visit.id).padStart(3, '0')}
-                      </h4>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className={`flex justify-between items-center ${isOpen ? "mb-2" : ""}`}>
+                      <Link href={`/visits/${visit.id}`}>
+                        <h4 className="font-semibold text-primary dark:text-primary-dark">
+                          Visita N° {String(visit.id).padStart(3, '0')}
+                        </h4>
+                      </Link>
+                      <span
+                        className="text-sm text-gray-500 dark:text-gray-400 p-1 rounded-md hover:bg-primary-dark/35 cursor-pointer"
+                        onClick={() => toggleItem(visit.id)}
+                      >
                         <ChevronDown
                           className={`h-4 w-4 transition-transform text-text-light dark:text-text-dark ${isOpen ? "rotate-180" : ""}`}
                         />

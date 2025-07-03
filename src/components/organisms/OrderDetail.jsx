@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Plus } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
+import Link from "next/link"
 import api from "@/lib/axios"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
@@ -15,6 +17,7 @@ import DownloadPdfOptions from "./DownloadPdfOptions"
 import LocationMapPreview from "../molecules/LocationMapPreview"
 
 const OrderDetail = ({ orderId }) => {
+  const { user } = useAuth()
   const [order, setOrder] = useState(null)  // Estado para la orden
   const [loading, setLoading] = useState(true)  // Estado de carga
   const [error, setError] = useState(null)  // Estado de error
@@ -126,12 +129,20 @@ const OrderDetail = ({ orderId }) => {
         <div className="relative col-span-2 flex flex-col justify-between text-white bg-linear-to-r from-indigo-900 to-indigo-700 p-6 rounded-2xl shadow-md">
           <p className="text-sm">N° Orden: {String(order.id).padStart(3, '0')}</p>
           <div>
-            <h2 className="text-2xl font-semibold">{order.client?.name}</h2>
+            {user?.role?.name === 'TECHNICIAN' ? (
+              <h2 className="text-2xl font-semibold">{order.client?.name}</h2>
+            ) : (
+              <Link href={`/clients/${order.clientId}`}>
+                <h2 className="text-2xl font-semibold">{order.client?.name}</h2>
+              </Link>
+            )}
+
             {order.client?.contactPersonName && order.client?.contactPersonPhone ? (
               <p className="text-sm mt-2">{order.client?.contactPersonName} ({order.client?.contactPersonPhone})</p>
             ) : (
               <p className="text-sm mt-2">{order.client?.phone}</p>
             )}
+
             <p className="text-sm">{order.client?.address}</p>
           </div>
 
@@ -144,6 +155,7 @@ const OrderDetail = ({ orderId }) => {
         {order.conformity && (
           <Card title="Condormidad del Cliente" className="col-span-2 p-8 space-y-2 rounded-2xl">
             <p><strong>Descripción:</strong> {order.conformity.description}</p>
+
             <p>
               <strong>Estado:</strong>{" "}
               <span className={order.conformity.accepted ? "text-green-600" : "text-red-500"}>

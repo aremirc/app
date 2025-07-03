@@ -9,6 +9,7 @@ import Link from "next/link"
 import NavBar from "./NavBar"
 import Button from "../atoms/Button"
 import OrderCard from "../molecules/OrderCard"
+import VisitCard from "../molecules/VisitCard"
 
 const Sidebar = () => {
   const { user } = useAuth()
@@ -16,7 +17,8 @@ const Sidebar = () => {
   const { itemNav, isLoading, error, refetch } = useNavigationItems()
 
   const [isOpen, setIsOpen] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isModalOrderOpen, setIsModalOrderOpen] = useState(false)
+  const [isModalVisitOpen, setIsModalVisitOpen] = useState(false)
 
   const toggleAside = () => setIsOpen(!isOpen)
 
@@ -74,7 +76,24 @@ const Sidebar = () => {
               <p className="text-sm text-text-light dark:text-text-dark">Acceso rápido</p>
               <Button
                 onClick={() => {
-                  setIsModalOpen(true)
+                  setIsModalOrderOpen(true)
+                  toggleAside()
+                }}
+                className="bg-primary-light dark:bg-background-dark hover:bg-background-light dark:hover:bg-border-dark text-text-light dark:text-text-dark dark:hover:text-text-dark text-center text-sm font-bold py-2 px-4 rounded-lg focus:outline-hidden focus:ring-3 focus:ring-blue-300 transition"
+              >
+                CREAR
+              </Button>
+            </div>
+          )}
+
+          {/* Sección rápida para Técnico */}
+          {user?.role?.name === 'TECHNICIAN' && (
+            <div className="flex flex-col gap-3 bg-primary dark:bg-primary-dark rounded-lg p-4 mt-5">
+              <h3 className="text-base font-semibold text-text-light dark:text-text-dark">CREAR NUEVA VISITA</h3>
+              <p className="text-sm text-text-light dark:text-text-dark">Acceso rápido</p>
+              <Button
+                onClick={() => {
+                  setIsModalVisitOpen(true)
                   toggleAside()
                 }}
                 className="bg-primary-light dark:bg-background-dark hover:bg-background-light dark:hover:bg-border-dark text-text-light dark:text-text-dark dark:hover:text-text-dark text-center text-sm font-bold py-2 px-4 rounded-lg focus:outline-hidden focus:ring-3 focus:ring-blue-300 transition"
@@ -86,9 +105,15 @@ const Sidebar = () => {
         </aside>
       </div>
 
-      {isModalOpen && (
+      {isModalOrderOpen && (
         <OrderCard
-          handleCancel={() => setIsModalOpen(false)}
+          handleCancel={() => setIsModalOrderOpen(false)}
+        />
+      )}
+
+      {isModalVisitOpen && (
+        <VisitCard
+          handleCancel={() => setIsModalVisitOpen(false)}
         />
       )}
     </>

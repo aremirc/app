@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react"
 import api from "@/lib/axios"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
+import OrderList from "./OrderList"
 import VisitList from "./VisitList"
 import LoadingSpinner from "../atoms/LoadingSpinner"
 
@@ -46,9 +47,9 @@ const ClientDetail = ({ clientId }) => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Perfil */}
         <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row items-center gap-8 xl:gap-12">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2">
+          {/* <Button size="sm" variant="outline" className="absolute top-3 right-3">
             <Pencil className="w-4 h-4" />
-          </Button>
+          </Button> */}
           <div className="rounded-lg p-7 bg-primary aspect-square w-full max-w-[224px] flex-shrink-0">
             <img
               src={client.logo || "/globe.svg"}
@@ -59,6 +60,7 @@ const ClientDetail = ({ clientId }) => {
               }}
             />
           </div>
+          
           <div className="flex-1 flex flex-col justify-center">
             <div className="flex flex-col justify-center items-center mb-5 xl:mb-10">
               <h2 className="text-2xl font-semibold text-primary dark:text-white ">{client.name}</h2>
@@ -79,17 +81,7 @@ const ClientDetail = ({ clientId }) => {
         </Card>
 
         {/* Órdenes */}
-        <Card title="Órdenes" className="col-span-1 p-6 rounded-2xl">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4 mr-1" /></Button>
-          <div className="grid grid-cols-2 gap-4">
-            {client.orders?.map((order, index) => (
-              <div key={index} className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-xs bg-background-muted dark:bg-background-muted-dark text-center">
-                <p className="font-medium text-primary dark:text-primary-dark">N° {String(order.id).padStart(3, '0')}</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{order.status}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <OrderList orders={client.orders} clientID={clientId} />
       </div>
 
       {/* Visitas realizadas */}

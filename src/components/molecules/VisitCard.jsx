@@ -190,12 +190,6 @@ const VisitCard = ({ visit, userID, clientID, orderID, handleCancel }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-      {Object.keys(errors).length > 0 && (
-        <pre className="bg-red-100 text-red-800 text-sm p-2 rounded mb-4 overflow-auto max-h-60">
-          {JSON.stringify(errors, null, 2)}
-        </pre>
-      )}
-
       <form onSubmit={handleSubmit(onSubmit)} className="relative min-w-96 bg-background-light dark:bg-text-dark text-text-light p-6 rounded-lg shadow-lg max-w-sm">
         {isSaving && <LoadingOverlay />}
 

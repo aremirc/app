@@ -281,18 +281,18 @@ export async function POST(req) {
     if (scheduledDate) {
       parsedScheduledDate = new Date(scheduledDate)
       if (isNaN(parsedScheduledDate)) {
-        return NextResponse.json({ error: 'scheduledDate inválida' }, { status: 400 })
+        return NextResponse.json({ error: 'Fecha programada inválida' }, { status: 400 })
       }
     }
 
     if (endDate) {
       parsedEndDate = new Date(endDate)
       if (isNaN(parsedEndDate)) {
-        return NextResponse.json({ error: 'endDate inválida' }, { status: 400 })
+        return NextResponse.json({ error: 'Fecha de fin inválida' }, { status: 400 })
       }
       if (parsedScheduledDate && parsedEndDate <= parsedScheduledDate) {
         return NextResponse.json({
-          error: 'endDate debe ser posterior a scheduledDate',
+          error: 'Fecha de fin debe ser posterior a fecha programada',
         }, { status: 400 })
       }
     }

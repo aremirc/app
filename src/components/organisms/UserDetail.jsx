@@ -44,9 +44,9 @@ const UserDetail = ({ userId }) => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Perfil */}
         <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row items-center gap-8 xl:gap-12">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2">
+          {/* <Button size="sm" variant="outline" className="absolute top-3 right-3">
             <Pencil className="w-4 h-4" />
-          </Button>
+          </Button> */}
           <div className="rounded-lg p-7 bg-primary aspect-square w-full max-w-[224px] flex-shrink-0">
             <img
               src={user.avatar || "/default-avatar.webp"}
@@ -78,7 +78,7 @@ const UserDetail = ({ userId }) => {
 
         {/* Disponibilidad */}
         <Card title="Disponibilidad" className="col-span-1 p-6 rounded-2xl">
-          <Button size="sm" variant="outline" className="absolute top-2 right-2"><Pencil className="w-4 h-4 mr-1" /></Button>
+          {/* <Button size="sm" variant="outline" className="absolute top-3 right-3"><Pencil className="w-4 h-4" /></Button> */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {user.availability?.map((day, index) => (
               <div key={index} className="border border-border-light dark:border-border-dark p-4 rounded-lg shadow-xs bg-background-muted dark:bg-background-muted-dark text-center">

@@ -19,6 +19,10 @@ export async function GET(req, { params }) {
       include: {
         orders: {
           where: { deletedAt: null }, // Opcional: incluir solo órdenes activas
+          include: {
+            workers: true,
+            services: true,
+          }
         },
         visits: {
           where: { deletedAt: null }, // Opcional: incluir solo visitas activas
