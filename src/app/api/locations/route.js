@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAndLimit } from '@/lib/permissions'
+import { verifyJWT } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function POST(req) {
@@ -7,59 +8,60 @@ export async function POST(req) {
   if (authResponse) return authResponse
 
   try {
-    const body = await req.json()
-
-    if (!Array.isArray(body) || body.length === 0 || !body[0].orderId) {
-      return NextResponse.json({ error: 'Invalid data format' }, { status: 400 })
+    const decoded = await verifyJWT(req)
+    if (!decoded || decoded?.error) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
-    const orderId = body[0].orderId
+    const body = await req.json()
+
+    if (!Array.isArray(body) || body.length === 0) {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+    }
+
+    const { orderId } = body[0]
+    if (!orderId || body.some(loc => loc.orderId !== orderId)) {
+      return NextResponse.json({ error: 'Todas las ubicaciones deben tener el mismo orderId' }, { status: 400 })
+    }
 
     const existing = await prisma.location.findMany({ where: { orderId } })
-    const incomingIds = body.map((loc) => loc.id).filter(Boolean)
+    const incomingIds = body.map(loc => loc.id).filter(Boolean)
 
-    // 1. Eliminar ubicaciones que ya no están
-    const toDelete = existing.filter((loc) => !incomingIds.includes(loc.id))
-    await prisma.location.deleteMany({
-      where: {
-        id: {
-          in: toDelete.map((loc) => loc.id),
+    // Eliminar ubicaciones no incluidas
+    const toDelete = existing.filter(loc => !incomingIds.includes(loc.id))
+    if (toDelete.length > 0) {
+      await prisma.location.deleteMany({
+        where: {
+          id: {
+            in: toDelete.map(loc => loc.id),
+          },
         },
-      },
+      })
+    }
+
+    const createdBy = decoded.dni
+
+    // Crear o actualizar las ubicaciones
+    const tasks = body.map(loc => {
+      const { id, latitude, longitude, label, mapUrl } = loc
+
+      if (id) {
+        return prisma.location.update({
+          where: { id },
+          data: { latitude, longitude, label, mapUrl, createdBy },
+        })
+      } else {
+        return prisma.location.create({
+          data: { orderId, latitude, longitude, label, mapUrl, createdBy },
+        })
+      }
     })
 
-    // 2. Crear o actualizar las demás
-    const results = await Promise.all(
-      body.map(async (loc) => {
-        if (loc.id) {
-          return await prisma.location.update({
-            where: { id: loc.id },
-            data: {
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-              label: loc.label,
-              mapUrl: loc.mapUrl,
-              createdBy: loc.createdBy,
-            },
-          })
-        } else {
-          return await prisma.location.create({
-            data: {
-              orderId,
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-              label: loc.label,
-              mapUrl: loc.mapUrl,
-              createdBy: loc.createdBy,
-            },
-          })
-        }
-      })
-    )
-
+    const results = await Promise.all(tasks)
     return NextResponse.json(results, { status: 200 })
+
   } catch (error) {
-    console.error("Error actualizando ubicaciones:", error)
+    console.error("❌ Error actualizando ubicaciones:", error)
     return NextResponse.json(
       { error: "Error al actualizar ubicaciones" },
       { status: 500 }

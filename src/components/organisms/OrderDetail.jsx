@@ -14,6 +14,7 @@ import PdfOrderReport from "./PdfOrderReport"
 import PrintPreviewModal from "./PrintPreviewModal"
 import OrderPdfExporter from "./OrderPdfExporter"
 import DownloadPdfOptions from "./DownloadPdfOptions"
+import LocationMapEditor from "../molecules/LocationMapEditor"
 import LocationMapPreview from "../molecules/LocationMapPreview"
 
 const OrderDetail = ({ orderId }) => {
@@ -21,6 +22,7 @@ const OrderDetail = ({ orderId }) => {
   const [order, setOrder] = useState(null)  // Estado para la orden
   const [loading, setLoading] = useState(true)  // Estado de carga
   const [error, setError] = useState(null)  // Estado de error
+  const [mapEditor, setMapEditor] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
@@ -31,7 +33,7 @@ const OrderDetail = ({ orderId }) => {
         const data = response.data
         setOrder(data)  // Guardamos los datos de la orden en el estado
       } catch (error) {
-        setError('No se pudieron cargar los detalles de la orden.')  // Si hay error, guardamos el mensaje
+        setError("No se pudieron cargar los detalles de la orden.")  // Si hay error, guardamos el mensaje
       } finally {
         setLoading(false)  // Terminamos de cargar
       }
@@ -203,15 +205,45 @@ const OrderDetail = ({ orderId }) => {
           </Card>
         )}
 
-        <Card title="Ubicación" className={`p-8 col-span-2 ${!order.conformity && 'md:col-span-4'}`}>
-          <LocationMapPreview locations={order.locations} />
+        <Card title={mapEditor ? "Editar Ubicaciones" : "Ubicación"} className={`p-8 col-span-2 ${!order.conformity && 'md:col-span-4'}`}>
+          {mapEditor ? (
+            <LocationMapEditor
+              initialLocations={order.locations}
+              onSave={async (updatedLocations) => {
+                try {
+                  const payload = updatedLocations.map((loc) => ({
+                    ...loc,
+                    orderId: order.id,
+                  }))
 
-          <div className="mt-4">
-            <Button variant="outline" className="w-full flex items-center sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar Ubicación
-            </Button>
-          </div>
+                  const response = await api.post('/api/locations', payload)
+
+                  if (response.status === 200) {
+                    setOrder((prevOrder) => ({
+                      ...prevOrder,
+                      locations: response.data,
+                    }))
+                    handleToast('Ubicaciones agregadas correctamente', 'success', 'Los cambios fueron guardados exitosamente.')
+                  }
+                } catch (err) {
+                  console.error('Error al guardar ubicaciones:', err)
+                  handleToast(err.response?.data?.error || 'Hubo un error al guardar las ubicaciones.', "error")
+                }
+              }}
+              onClose={() => setMapEditor(false)}
+            />
+          ) : (
+            <>
+              <LocationMapPreview locations={order.locations} />
+
+              <div className="mt-4">
+                <Button variant="outline" onClick={() => setMapEditor(true)} className="w-full flex items-center sm:w-auto">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {order.locations.length > 1 ? 'Modificar Ubicación' : 'Agregar Ubicación'}
+                </Button>
+              </div>
+            </>
+          )}
         </Card>
       </div>
 

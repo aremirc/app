@@ -37,14 +37,21 @@ import prisma from '@/lib/prisma'
 import bcrypt from 'bcrypt'
 
 export async function GET(req) {
-  const authResponse = await verifyAndLimit(req, 'ADMIN')
+  const authResponse = await verifyAndLimit(req, ["ADMIN", "SUPERVISOR"])
   if (authResponse) return authResponse
 
   try {
+    const decoded = await verifyJWT(req)
+    if (!decoded || decoded?.error) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    }
+
     const searchParams = req.nextUrl.searchParams
 
     const roleParam = searchParams.get('role') // 'TECHNICIAN', 'ADMIN', etc.
     const statusParam = searchParams.get('status') // 'ACTIVE', 'INACTIVE', etc.
+
+    const userRole = decoded.role
 
     const whereClause = {
       deletedAt: null,
@@ -56,6 +63,15 @@ export async function GET(req) {
       ...(statusParam && {
         status: statusParam.toUpperCase(),
       }),
+    }
+
+    if (userRole === 'SUPERVISOR') {
+      whereClause.status = 'ACTIVE'
+      whereClause.role = {
+        name: {
+          in: ['TECHNICIAN'],
+        },
+      }
     }
 
     const users = await prisma.user.findMany({

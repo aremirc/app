@@ -2,17 +2,21 @@
 
 import { useEffect, useState } from "react"
 import { Pencil } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
 import api from "@/lib/axios"
 import Card from "../molecules/Card"
 import Button from "../atoms/Button"
 import OrderList from "./OrderList"
 import VisitList from "./VisitList"
 import LoadingSpinner from "../atoms/LoadingSpinner"
+import ClientCard from "../molecules/ClientCard"
 
 const ClientDetail = ({ clientId }) => {
+  const { user } = useAuth()
   const [client, setClient] = useState(null)  // Estado para el cliente
   const [loading, setLoading] = useState(true)  // Estado de carga
   const [error, setError] = useState(null)  // Estado de error
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -21,7 +25,7 @@ const ClientDetail = ({ clientId }) => {
         const response = await api.get(`/api/clients/${clientId}`)
         setClient(response.data)  // Guardamos los datos del cliente en el estado
       } catch (error) {
-        setError('Error loading client details. Please try again later.')  // Si hay error, guardamos el mensaje
+        setError("No se pudieron cargar los detalles del cliente.")  // Si hay error, guardamos el mensaje
       } finally {
         setLoading(false)  // Terminamos de cargar
       }
@@ -47,9 +51,19 @@ const ClientDetail = ({ clientId }) => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Perfil */}
         <Card className="col-span-1 xl:col-span-2 p-8 rounded-2xl flex flex-col sm:flex-row items-center gap-8 xl:gap-12">
-          {/* <Button size="sm" variant="outline" className="absolute top-3 right-3">
-            <Pencil className="w-4 h-4" />
-          </Button> */}
+          {user?.role?.name === 'ADMIN' && (
+            <Button size="sm" variant="outline" onClick={() => setIsModalOpen(true)} className="absolute top-3 right-3">
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
+
+          {isModalOpen && (
+            <ClientCard
+              client={client}
+              handleCancel={() => setIsModalOpen(false)}
+            />
+          )}
+
           <div className="rounded-lg p-7 bg-primary aspect-square w-full max-w-[224px] flex-shrink-0">
             <img
               src={client.logo || "/globe.svg"}
@@ -60,7 +74,7 @@ const ClientDetail = ({ clientId }) => {
               }}
             />
           </div>
-          
+
           <div className="flex-1 flex flex-col justify-center">
             <div className="flex flex-col justify-center items-center mb-5 xl:mb-10">
               <h2 className="text-2xl font-semibold text-primary dark:text-white ">{client.name}</h2>

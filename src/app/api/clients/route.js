@@ -35,6 +35,7 @@ export async function GET(req) {
         email: true,
         phone: true,
         address: true,
+        type: true,
         contactPersonName: true,
         contactPersonPhone: true,
         notes: true,

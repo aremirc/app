@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { MapPin, Tag, List, Map } from 'lucide-react'
-import { MapContainer, TileLayer, Marker } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import Button from '../atoms/Button'
 import PrintPreviewModal from '../organisms/PrintPreviewModal'
@@ -44,7 +44,7 @@ const LocationMapPreview = ({ locations = [] }) => {
       {view === 'map' ? (
         <MapContainer
           center={[locations[0].latitude, locations[0].longitude]}
-          zoom={13}
+          zoom={15}
           scrollWheelZoom={false}
           dragging={false}
           doubleClickZoom={false}
@@ -60,11 +60,17 @@ const LocationMapPreview = ({ locations = [] }) => {
               key={i}
               position={[loc.latitude, loc.longitude]}
               icon={defaultIcon}
-            />
+            >
+              {loc.label && (
+                <Tooltip direction="top" offset={[1, -30]} opacity={0.9} permanent>
+                  {loc.label}
+                </Tooltip>
+              )}
+            </Marker>
           ))}
         </MapContainer>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4">
           {locations.map((loc, i) => (
             <div
               key={i}

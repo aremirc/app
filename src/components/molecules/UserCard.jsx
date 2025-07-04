@@ -10,6 +10,7 @@ import Button from "../atoms/Button"
 import Stepper from "../organisms/Stepper"
 import StepNavigation from "../organisms/StepNavigation"
 import LoadingOverlay from "../atoms/LoadingOverlay"
+import PasswordInput from "../atoms/PasswordInput"
 
 const steps = [
   { id: 1, title: "Datos" },
@@ -211,13 +212,15 @@ const UserCard = ({ user, handleCancel }) => {
                 name="dni"
                 control={control}
                 render={({ field }) => (
-                  <>
+                  <div className="mb-4">
+                    <label htmlFor="dni" className="block text-sm font-medium text-gray-700">DNI</label>
                     {errors.dni && <p className="text-red-500 text-sm">{errors.dni.message}</p>}
                     <Input
                       {...field}
                       autoFocus
+                      id="dni"
                       placeholder="DNI"
-                      className={`mb-4 ${errors.dni ? "border-red-500" : ""}`}
+                      className={`${errors.dni ? "border-red-500" : ""}`}
                       inputMode="numeric"
                       pattern="\d*"
                       onChange={(e) => {
@@ -228,7 +231,7 @@ const UserCard = ({ user, handleCancel }) => {
                       }}
                       disabled={user}
                     />
-                  </>
+                  </div>
                 )}
               />
             )}
@@ -237,14 +240,16 @@ const UserCard = ({ user, handleCancel }) => {
               name="firstName"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">Nombres</label>
                   {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName.message}</p>}
                   <Input
                     {...field}
+                    id="firstName"
                     placeholder="Nombre"
-                    className={`mb-4 ${errors.firstName ? "border-red-500" : ""}`}
+                    className={`${errors.firstName ? "border-red-500" : ""}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -252,14 +257,16 @@ const UserCard = ({ user, handleCancel }) => {
               name="lastName"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">Apellidos</label>
                   {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName.message}</p>}
                   <Input
                     {...field}
+                    id="lastName"
                     placeholder="Apellido"
-                    className={`mb-4 ${errors.lastName ? "border-red-500" : ""}`}
+                    className={`${errors.lastName ? "border-red-500" : ""}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -306,8 +313,8 @@ const UserCard = ({ user, handleCancel }) => {
                       min={minDate} // <-- aquí limitas a que tenga máximo 75 años
                       max={maxDate}
                       placeholder="Fecha de nacimiento"
-                      className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark dark:text-text-dark ${errors.birthDate ? "border-red-500" : ""
-                        }`}
+                      className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark dark:text-text-dark ${errors.birthDate ? "border-red-500" : ""}`}
+                      required={false}
                     />
                   </div>
                 )
@@ -322,13 +329,15 @@ const UserCard = ({ user, handleCancel }) => {
               name="phone"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono</label>
                   {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                   <Input
                     {...field}
                     autoFocus
+                    id="phone"
                     placeholder="Teléfono"
-                    className={`mb-4 ${errors.phone ? "border-red-500" : ""}`}
+                    className={`${errors.phone ? "border-red-500" : ""}`}
                     inputMode="numeric"
                     pattern="\d*"
                     onChange={(e) => {
@@ -338,7 +347,7 @@ const UserCard = ({ user, handleCancel }) => {
                       }
                     }}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -346,15 +355,17 @@ const UserCard = ({ user, handleCancel }) => {
               name="email"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Correo electrónico</label>
                   {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
                   <Input
                     {...field}
+                    id="email"
                     type="email"
                     placeholder="Correo electrónico"
-                    className={`mb-4 ${errors.email ? "border-red-500" : ""}`}
+                    className={`${errors.email ? "border-red-500" : ""}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -372,6 +383,7 @@ const UserCard = ({ user, handleCancel }) => {
                     placeholder="Ej. Perú"
                     list="country-suggestions"
                     className={`${errors.country ? "border-red-500" : ""}`}
+                    required={false}
                   />
                   <datalist id="country-suggestions">
                     <option value="Perú" />
@@ -379,7 +391,6 @@ const UserCard = ({ user, handleCancel }) => {
                     <option value="México" />
                     <option value="Colombia" />
                     <option value="Chile" />
-                    {/* Puedes agregar más sugerencias aquí */}
                   </datalist>
                 </div>
               )}
@@ -398,6 +409,7 @@ const UserCard = ({ user, handleCancel }) => {
                     id="address"
                     placeholder="Dirección actual"
                     className={`${errors.address ? "border-red-500" : ""}`}
+                    required={false}
                   />
                 </div>
               )}
@@ -411,15 +423,17 @@ const UserCard = ({ user, handleCancel }) => {
               name="username"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700">Nombre de usuario</label>
                   {errors.username && <p className="text-red-500 text-sm">{errors.username.message}</p>}
                   <Input
                     {...field}
                     autoFocus
+                    id="username"
                     placeholder="Usuario"
-                    className={`mb-4 ${errors.username ? "border-red-500" : ""}`}
+                    className={`${errors.username ? "border-red-500" : ""}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -427,16 +441,17 @@ const UserCard = ({ user, handleCancel }) => {
               name="password"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">{user ? "Contraseña nueva" : "Contraseña"}</label>
                   {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
-                  <Input
+                  <PasswordInput
                     {...field}
-                    placeholder={user ? "Contraseña nueva" : "Contraseña"}
-                    type="password"
-                    className={`mb-4 ${errors.password ? "border-red-500" : ""}`}
+                    id="password"
+                    placeholder={user ? "Contraseña nueva (opcional)" : "Contraseña"}
+                    className={`${errors.password ? "border-red-500" : ""}`}
                     required={false}
                   />
-                </>
+                </div>
               )}
             />
 

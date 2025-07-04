@@ -47,7 +47,7 @@ const Countdown = ({ className = '', visible = true }) => {
           toast.dismiss(toastId) // Forzar cierre previo si quedara "colgado"
         }
         setToastActive(false)
-      }, durationMs + 100) // Dale un poco más de margen
+      }, durationMs)
     }
 
     // Si el tiempo ha expirado, cerramos la sesión

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useAuth } from "@/context/AuthContext"
 import { useClients } from "@/hooks/useClients" // Importamos el hook
 import Button from "../atoms/Button"
 import Table from "../molecules/Table"
@@ -7,7 +8,6 @@ import DashboardGrid from "./DashboardGrid"
 import ClientCard from "../molecules/ClientCard" // Componente para agregar/editar cliente
 import useRealTimeUpdates from "@/hooks/useRealTimeUpdates" // Hook para WebSocket
 import SearchBar from "../molecules/SearchBar"
-import { useAuth } from "@/context/AuthContext"
 
 const headers = [
   { key: "id", label: "RUC/DNI" },

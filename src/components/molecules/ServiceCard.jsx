@@ -93,16 +93,18 @@ const ServiceCard = ({ service, handleCancel }) => {
           name="name"
           control={control}
           render={({ field }) => (
-            <>
+            <div className="mb-4">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre del Servicio</label>
               {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
               <Input
                 {...field}
                 autoFocus
+                id="name"
                 type="text"
                 placeholder="Nombre"
-                className={`mb-4 ${errors.name ? 'border-red-500' : ''}`}
+                className={`${errors.name ? 'border-red-500' : ''}`}
               />
-            </>
+            </div>
           )}
         />
 
@@ -111,15 +113,17 @@ const ServiceCard = ({ service, handleCancel }) => {
           name="description"
           control={control}
           render={({ field }) => (
-            <>
+            <div className="mb-4">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700">Descripción</label>
               {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
               <Input
                 {...field}
+                id="description"
                 type="text"
                 placeholder="Descripción"
-                className={`mb-4 ${errors.description ? 'border-red-500' : ''}`}
+                className={`${errors.description ? 'border-red-500' : ''}`}
               />
-            </>
+            </div>
           )}
         />
 
@@ -150,20 +154,22 @@ const ServiceCard = ({ service, handleCancel }) => {
           name="estimatedTime"
           control={control}
           render={({ field }) => (
-            <>
+            <div className="mb-4">
+              <label htmlFor="estimatedTime" className="block text-sm font-medium text-gray-700">Tiempo estimado</label>
               {errors.estimatedTime && <p className="text-red-500 text-sm">{errors.estimatedTime.message}</p>}
               <Input
                 {...field}
+                id="estimatedTime"
                 type="number"
                 placeholder="Tiempo estimado (opcional, minutos)"
-                className={`mb-4 ${errors.estimatedTime ? "border-red-500" : ""}`}
+                className={`${errors.estimatedTime ? "border-red-500" : ""}`}
                 onChange={(e) => {
                   const value = e.target.value;
                   field.onChange(value === "" ? undefined : Number(value));
                 }}
                 required={false}
               />
-            </>
+            </div>
           )}
         />
 
@@ -178,6 +184,7 @@ const ServiceCard = ({ service, handleCancel }) => {
                 {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
                 <select
                   {...field}
+                  id="status"
                   className={`shadow-sm appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark ${errors.status ? 'border-red-500' : ''}`}
                   disabled={!service}
                 >

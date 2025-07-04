@@ -291,7 +291,7 @@ const MainContent = () => {
           </Card>
         )}
 
-        <Card title="Métricas">
+        <Card title="Métricas" className="flex flex-col">
           <TechnicianMetrics metrics={metrics} />
         </Card>
       </DashboardGrid>

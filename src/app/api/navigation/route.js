@@ -42,6 +42,7 @@ const Roles = {
     baseRoutes.profile,
     baseRoutes.dashboard,
     baseRoutes.clients,
+    baseRoutes.users,
     baseRoutes.orders,
     baseRoutes.visits,
   ],

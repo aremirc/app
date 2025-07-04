@@ -15,6 +15,7 @@ import LoadingOverlay from "../atoms/LoadingOverlay"
 
 // 4. React hooks (si no usaste arriba)
 import { useState } from "react"
+import PasswordInput from "../atoms/PasswordInput"
 
 const steps = [
   { id: 1, title: "Datos" },
@@ -96,6 +97,8 @@ const ClientCard = ({ client, handleCancel }) => {
 
   const cleanClient = {
     ...client,
+    ...(client?.type === "INDIVIDUAL" && { dni: client?.id }),
+    ...(client?.type === "COMPANY" && { ruc: client?.id }),
     contactPersonName: client?.contactPersonName ?? "",
     contactPersonPhone: client?.contactPersonPhone ?? "",
     notes: client?.notes ?? "",
@@ -172,10 +175,13 @@ const ClientCard = ({ client, handleCancel }) => {
                 name="type"
                 control={control}
                 render={({ field }) => (
-                  <select {...field} className="mb-4 shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={Boolean(client)}>
-                    <option value="INDIVIDUAL">Individual</option>
-                    <option value="COMPANY">Empresa</option>
-                  </select>
+                  <div className="mb-4">
+                    <label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipo de cliente</label>
+                    <select {...field} id="type" className="shadow appearance-none border rounded-sm w-full py-2 px-3 dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary dark:bg-background-dark" disabled={Boolean(client)}>
+                      <option value="INDIVIDUAL">Individual</option>
+                      <option value="COMPANY">Empresa</option>
+                    </select>
+                  </div>
                 )}
               />
             )}
@@ -185,11 +191,13 @@ const ClientCard = ({ client, handleCancel }) => {
                 name="dni"
                 control={control}
                 render={({ field }) => (
-                  <>
+                  <div className="mb-4">
+                    <label htmlFor="dni" className="block text-sm font-medium text-gray-700">DNI</label>
                     {errors.dni && <p className="text-red-500 text-sm">{errors.dni.message}</p>}
                     <Input
                       {...field}
                       autoFocus
+                      id="dni"
                       type="text"
                       inputMode="numeric"
                       pattern="\d*"
@@ -200,10 +208,10 @@ const ClientCard = ({ client, handleCancel }) => {
                         }
                       }}
                       placeholder="DNI (8 dígitos)"
-                      className={`mb-4 ${errors.dni ? "border-red-500" : ""}`}
+                      className={`${errors.dni ? "border-red-500" : ""}`}
                       disabled={Boolean(client)} // opcional: bloquear si es edición
                     />
-                  </>
+                  </div>
                 )}
               />
             )}
@@ -213,10 +221,12 @@ const ClientCard = ({ client, handleCancel }) => {
                 name="ruc"
                 control={control}
                 render={({ field }) => (
-                  <>
+                  <div className="mb-4">
+                    <label htmlFor="ruc" className="block text-sm font-medium text-gray-700">RUC</label>
                     {errors.ruc && <p className="text-red-500 text-sm">{errors.ruc.message}</p>}
                     <Input
                       {...field}
+                      id="ruc"
                       type="text"
                       inputMode="numeric"
                       pattern="\d*"
@@ -227,10 +237,10 @@ const ClientCard = ({ client, handleCancel }) => {
                         }
                       }}
                       placeholder="RUC (11 dígitos)"
-                      className={`mb-4 ${errors.ruc ? "border-red-500" : ""}`}
+                      className={`${errors.ruc ? "border-red-500" : ""}`}
                       disabled={Boolean(client)} // opcional: bloquear si es edición
                     />
-                  </>
+                  </div>
                 )}
               />
             )}
@@ -240,15 +250,17 @@ const ClientCard = ({ client, handleCancel }) => {
               name="name"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre {typeValue === "COMPANY" ? "de la empresa" : "del cliente"}</label>
                   {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
                   <Input
                     {...field}
+                    id="name"
                     type="text"
                     placeholder="Nombre"
-                    className={`mb-4 ${errors.name ? 'border-red-500' : ''}`}
+                    className={`${errors.name ? 'border-red-500' : ''}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -281,16 +293,18 @@ const ClientCard = ({ client, handleCancel }) => {
               name="email"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Correo electrónico</label>
                   {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
                   <Input
                     {...field}
                     autoFocus
+                    id="email"
                     type="email"
                     placeholder="Correo electrónico"
-                    className={`mb-4 ${errors.email ? 'border-red-500' : ''}`}
+                    className={`${errors.email ? 'border-red-500' : ''}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -299,10 +313,12 @@ const ClientCard = ({ client, handleCancel }) => {
               name="phone"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono electrónico</label>
                   {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                   <Input
                     {...field}
+                    id="phone"
                     type="text"
                     inputMode="numeric"
                     pattern="\d*"
@@ -313,9 +329,9 @@ const ClientCard = ({ client, handleCancel }) => {
                       }
                     }}
                     placeholder="Teléfono"
-                    className={`mb-4 ${errors.phone ? 'border-red-500' : ''}`}
+                    className={`${errors.phone ? 'border-red-500' : ''}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -324,15 +340,17 @@ const ClientCard = ({ client, handleCancel }) => {
               name="address"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">Dirección</label>
                   {errors.address && <p className="text-red-500 text-sm">{errors.address.message}</p>}
                   <Input
                     {...field}
+                    id="address"
                     type="text"
                     placeholder="Dirección"
-                    className={`mb-4 ${errors.address ? 'border-red-500' : ''}`}
+                    className={`${errors.address ? 'border-red-500' : ''}`}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -341,16 +359,17 @@ const ClientCard = ({ client, handleCancel }) => {
               name="password"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Contraseña (opcional)</label>
                   {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
-                  <Input
+                  <PasswordInput
                     {...field}
-                    type="password"
-                    placeholder="Contraseña (opcional, min. 6 caracteres)"
-                    className={`mb-4 ${errors.password ? 'border-red-500' : ''}`}
-                    autoComplete="new-password"
+                    id="password"
+                    placeholder="Contraseña (min. 6 caracteres)"
+                    className={`${errors.password ? 'border-red-500' : ''}`}
+                    required={false}
                   />
-                </>
+                </div>
               )}
             />
           </>
@@ -363,14 +382,17 @@ const ClientCard = ({ client, handleCancel }) => {
               name="contactPersonName"
               control={control}
               render={({ field }) => (
-                <Input
-                  {...field}
-                  autoFocus
-                  type="text"
-                  placeholder="Nombre de contacto (opcional)"
-                  className="mb-4"
-                  required={false}
-                />
+                <div className="mb-4">
+                  <label htmlFor="contactPersonName" className="block text-sm font-medium text-gray-700">Nombre de contacto</label>
+                  <Input
+                    {...field}
+                    autoFocus
+                    id="contactPersonName"
+                    type="text"
+                    placeholder="Nombre de contacto (opcional)"
+                    required={false}
+                  />
+                </div>
               )}
             />
 
@@ -379,13 +401,15 @@ const ClientCard = ({ client, handleCancel }) => {
               name="contactPersonPhone"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">Teléfono de contacto</label>
                   {errors.contactPersonPhone && <p className="text-red-500 text-sm">{errors.contactPersonPhone.message}</p>}
                   <Input
                     {...field}
+                    id="contactPersonPhone"
                     type="text"
                     placeholder="Teléfono de contacto (opcional)"
-                    className={`mb-4 ${errors.contactPersonPhone ? 'border-red-500' : ''}`}
+                    className={`${errors.contactPersonPhone ? 'border-red-500' : ''}`}
                     inputMode="numeric"
                     pattern="\d*"
                     onChange={(e) => {
@@ -396,7 +420,7 @@ const ClientCard = ({ client, handleCancel }) => {
                     }}
                     required={false}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -405,12 +429,16 @@ const ClientCard = ({ client, handleCancel }) => {
               name="notes"
               control={control}
               render={({ field }) => (
-                <textarea
-                  {...field}
-                  placeholder="Notas (opcional)"
-                  className="mb-4 w-full p-2 border rounded-sm appearance-none dark:bg-background-dark dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary resize-none"
-                  rows={3}
-                />
+                <div className="mb-4">
+                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notas</label>
+                  <textarea
+                    {...field}
+                    id="notes"
+                    placeholder="Notas (opcional)"
+                    className="w-full p-2 border rounded-sm appearance-none dark:bg-background-dark dark:text-text-dark leading-tight focus:outline-hidden focus:ring-3 focus:ring-primary resize-none"
+                    rows={3}
+                  />
+                </div>
               )}
             />
           </>

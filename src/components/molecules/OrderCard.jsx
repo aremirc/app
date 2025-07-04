@@ -424,16 +424,17 @@ const OrderCard = ({ order, clientID, handleCancel }) => {
               name="statusDetails"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="statusDetails" className="block text-sm font-medium text-gray-700">Detalles de la orden</label>
                   {errors.statusDetails && <p className="text-red-500 text-sm">{errors.statusDetails.message}</p>}
                   <Input
                     {...field}
+                    id="statusDetails"
                     type="text"
-                    className="mb-4"
                     placeholder="Detalles de la orden (opcional)"
                     required={false}
                   />
-                </>
+                </div>
               )}
             />
           </>
@@ -536,16 +537,17 @@ const OrderCard = ({ order, clientID, handleCancel }) => {
               name="alternateContactName"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="alternateContactName" className="block text-sm font-medium text-gray-700">Nombre alternativo</label>
                   {errors.alternateContactName && <p className="text-red-500 text-sm">{errors.alternateContactName.message}</p>}
                   <Input
                     {...field}
+                    id="alternateContactName"
                     type="text"
-                    className="mb-4"
                     placeholder="Nombre alternativo (contacto opcional)"
                     required={false}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -553,12 +555,13 @@ const OrderCard = ({ order, clientID, handleCancel }) => {
               name="alternateContactPhone"
               control={control}
               render={({ field }) => (
-                <>
+                <div className="mb-4">
+                  <label htmlFor="alternateContactPhone" className="block text-sm font-medium text-gray-700">Teléfono alternativo</label>
                   {errors.alternateContactPhone && <p className="text-red-500 text-sm">{errors.alternateContactPhone.message}</p>}
                   <Input
                     {...field}
+                    id="alternateContactPhone"
                     type="text"
-                    className="mb-4"
                     placeholder="Teléfono alternativo (opcional)"
                     inputMode="numeric"
                     pattern="\d*"
@@ -570,7 +573,7 @@ const OrderCard = ({ order, clientID, handleCancel }) => {
                     }}
                     required={false}
                   />
-                </>
+                </div>
               )}
             />
 
@@ -614,7 +617,7 @@ const OrderCard = ({ order, clientID, handleCancel }) => {
                     {errors.workers && (
                       <p className="text-red-500 text-sm">{errors.workers.message}</p>
                     )}
-                    <div className="space-y-2 mt-2">
+                    <div className="space-y-2 mt-2 max-h-36 border rounded-sm overflow-y-auto p-1">
                       {loadingTechs ? (
                         <p>Cargando técnicos...</p>
                       ) : availableTechs.length === 0 ? (

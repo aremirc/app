@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useAuth } from "@/context/AuthContext"
 import { useUsers } from "@/hooks/useUsers"  // Importamos el hook
 import Button from "../atoms/Button"
 import Table from "../molecules/Table"
@@ -18,6 +19,7 @@ const headers = [
 ]
 
 const UserPanel = () => {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
@@ -76,12 +78,14 @@ const UserPanel = () => {
         <div className="flex flex-col gap-4 mb-3">
           <div className="flex items-center gap-6">
             <h2 className="text-xl font-semibold text-primary dark:text-primary-dark">Panel de Usuarios</h2>
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
-            >
-              AGREGAR USUARIO
-            </Button>
+            {user.role.name === 'ADMIN' &&
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-primary hover:bg-primary/75 dark:hover:bg-primary-dark text-white hover:text-white tracking-wide py-3 px-5 rounded-xl"
+              >
+                AGREGAR USUARIO
+              </Button>
+            }
           </div>
           <SearchBar
             placeholder="Buscar usuario"
@@ -106,6 +110,7 @@ const UserPanel = () => {
             }))}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            showActions={user.role.name === 'ADMIN'}
             searchTerm={searchTerm}
           />
         )}

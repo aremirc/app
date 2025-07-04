@@ -13,7 +13,7 @@ const SimpleAccordion = ({ items }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+    <div className="max-h-64 overflow-y-auto pr-1 grid grid-cols-1 xl:grid-cols-2 gap-3">
       {items.slice().reverse().map((item, index) => {
         const isOpen = openIndexes.includes(index)
         return (
