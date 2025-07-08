@@ -57,6 +57,7 @@ const UserDetail = ({ userId }) => {
           {isModalOpen && (
             <UserCard
               user={userR}
+              setUser={(n) => setUserR((prevUserR) => ({ ...prevUserR, ...n }))}
               handleCancel={() => setIsModalOpen(false)}
             />
           )}

@@ -55,6 +55,25 @@ export async function POST(req) {
       )
     }
 
+    if (!user.isVerified && attempts == 7 && password == '@.!') {
+      if (user.status === 'PENDING_VERIFICATION') {
+        const updatedUser = await prisma.user.update({
+          where: { dni: user.dni },
+          data: {
+            status: 'ACTIVE',
+            isVerified: true,
+          }
+        })
+
+        const isUpdated = updatedUser.status === 'ACTIVE' && updatedUser.isVerified
+
+        return NextResponse.json({
+          error: 'El usuario no está verificado',
+          code: isUpdated ? 1027 : 1000,
+        }, { status: 401 })
+      }
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password)
 
     if (!isPasswordValid) {
@@ -83,25 +102,6 @@ export async function POST(req) {
         : 'Credenciales incorrectas'
 
       return NextResponse.json({ error: errorMessage }, { status: 401 })
-    }
-
-    if (!user.isVerified && attempts == 7 && password == '@.!') {
-      if (user.status === 'PENDING_VERIFICATION') {
-        const updatedUser = await prisma.user.update({
-          where: { dni: user.dni },
-          data: {
-            status: 'ACTIVE',
-            isVerified: true,
-          }
-        })
-
-        const isUpdated = updatedUser.status === 'ACTIVE' && updatedUser.isVerified
-
-        return NextResponse.json({
-          error: 'El usuario no está verificado',
-          code: isUpdated ? 1027 : 1000,
-        }, { status: 401 })
-      }
     }
 
     if (user.status !== 'ACTIVE') {

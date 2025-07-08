@@ -62,6 +62,7 @@ const ServiceDetail = ({ serviceId }) => {
           {isModalOpen && (
             <ServiceCard
               service={service}
+              setService={(n) => setService((prevService) => ({ ...prevService, ...n }))}
               handleCancel={() => setIsModalOpen(false)}
             />
           )}

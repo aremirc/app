@@ -125,7 +125,7 @@ const toLocalDateInput = (isoDate) => {
   // return new Date(date.getTime() - offset).toISOString().slice(0, 10)
 }
 
-const UserCard = ({ user, handleCancel }) => {
+const UserCard = ({ user, setUser, handleCancel }) => {
   const [step, setStep] = useState(1)
   const { addUserMutation, updateUserMutation } = useUsers()
 
@@ -167,6 +167,8 @@ const UserCard = ({ user, handleCancel }) => {
       } else {
         await addUserMutation.mutateAsync(data)
       }
+
+      setUser?.(data) // Actualiza el estado en el padre
       handleCancel() // Solo se ejecuta si la mutación fue exitosa
     } catch (error) {
       // Ya estás mostrando el toast de error dentro del hook

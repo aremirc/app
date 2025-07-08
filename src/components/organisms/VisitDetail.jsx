@@ -52,6 +52,7 @@ const VisitDetail = ({ visitId }) => {
         {isModalOpen && (
           <VisitCard
             visit={visit}
+            setVisit={(n) => setVisit((prevVisit) => ({ ...prevVisit, ...n }))}
             handleCancel={() => setIsModalOpen(false)}
           />
         )}
@@ -61,9 +62,9 @@ const VisitDetail = ({ visitId }) => {
           <InfoItem
             label="ID de Orden"
             value={
-              <div className="flex items-center gap-2">
+              <span className="flex items-center gap-2">
                 {String(visit.orderId).padStart(3, "0")}
-                < span
+                <span
                   className={`inline-block align-middle text-xs px-2 py-0.5 rounded-full font-semibold
                     ${visit.order?.status === "COMPLETED"
                       ? "bg-green-200 text-green-800"
@@ -76,7 +77,7 @@ const VisitDetail = ({ visitId }) => {
                 >
                   {visit.order?.status.replace("_", " ")}
                 </span>
-              </div>
+              </span>
             }
           />
           <InfoItem label="Cliente" value={visit.client.name} />

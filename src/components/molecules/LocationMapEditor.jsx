@@ -1,9 +1,10 @@
 import { MapContainer, TileLayer, Marker, useMapEvents, Tooltip } from "react-leaflet"
 import { useState } from "react"
+import { MapPin, Trash2, X } from "lucide-react"
 import L from "leaflet"
 import Button from "../atoms/Button"
-import { MapPin, Trash2, X } from "lucide-react"
 import ConfirmDialog from "../atoms/ConfirmDialog"
+import LoadingOverlay from "../atoms/LoadingOverlay"
 
 const defaultIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
@@ -25,6 +26,7 @@ function LocationMarker({ onAdd, disabled }) {
 const LocationMapEditor = ({ initialLocations = [], onSave, onClose }) => {
   const [locations, setLocations] = useState(initialLocations)
   const [indexToDelete, setIndexToDelete] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleAdd = (location) => {
     setLocations((prev) => {
@@ -46,8 +48,19 @@ const LocationMapEditor = ({ initialLocations = [], onSave, onClose }) => {
     setIndexToDelete(null)
   }
 
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      await onSave(locations)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <>
+      {isSaving && <LoadingOverlay />}
+
       <Button onClick={onClose} className="absolute top-3 right-3">
         <X className="w-5 h-5" />
       </Button>
@@ -111,11 +124,14 @@ const LocationMapEditor = ({ initialLocations = [], onSave, onClose }) => {
         </ul>
 
         <Button
-          onClick={() => onSave(locations)}
-          className="w-full"
-          disabled={locations.length === 0}
+          onClick={handleSave}
+          className="w-full flex items-center justify-center gap-2"
+          disabled={locations.length === 0 || isSaving}
         >
-          Guardar ubicaciones
+          {isSaving && (
+            <span className="loader w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" />
+          )}
+          {isSaving ? "Guardando..." : "Guardar ubicaciones"}
         </Button>
 
         {indexToDelete !== null && (

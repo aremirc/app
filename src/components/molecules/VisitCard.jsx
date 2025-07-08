@@ -90,7 +90,7 @@ const toDatetimeLocal = (dateStr) =>
   new Date(new Date(dateStr).getTime() - new Date().getTimezoneOffset() * 60000)
     .toISOString().slice(0, 16)
 
-const VisitCard = ({ visit, userID, clientID, orderID, handleCancel }) => {
+const VisitCard = ({ visit, setVisit, userID, clientID, orderID, handleCancel }) => {
   const [step, setStep] = useState(1)
   const { addVisitMutation, updateVisitMutation } = useVisits()
 
@@ -143,6 +143,8 @@ const VisitCard = ({ visit, userID, clientID, orderID, handleCancel }) => {
       } else {
         await addVisitMutation.mutateAsync(payload)
       }
+
+      setVisit?.(data) // Actualiza el estado en el padre
       handleCancel() // Solo se ejecuta si la mutación fue exitosa
     } catch (error) {
       // Ya estás mostrando el toast de error dentro del hook

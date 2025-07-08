@@ -60,6 +60,7 @@ const ClientDetail = ({ clientId }) => {
           {isModalOpen && (
             <ClientCard
               client={client}
+              setClient={(n) => setClient((prevClient) => ({ ...prevClient, ...n }))}
               handleCancel={() => setIsModalOpen(false)}
             />
           )}

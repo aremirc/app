@@ -337,17 +337,17 @@ export async function PUT(req) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 400 })
     }
 
-    const availability = await prisma.availability.findFirst({
-      where: {
-        userId: userId,
-        startDate: { lte: visitStart },
-        endDate: { gte: visitEnd }, // Asegura que la disponibilidad cubre todo el rango
-      },
-    })
+    // const availability = await prisma.availability.findFirst({
+    //   where: {
+    //     userId: userId,
+    //     startDate: { lte: visitStart },
+    //     endDate: { gte: visitEnd }, // Asegura que la disponibilidad cubre todo el rango
+    //   },
+    // })
 
-    if (!availability) {
-      return NextResponse.json({ error: 'El usuario no está disponible en este horario' }, { status: 400 })
-    }
+    // if (!availability) {
+    //   return NextResponse.json({ error: 'El usuario no está disponible en este horario' }, { status: 400 })
+    // }
 
     if (evaluation !== undefined && (isNaN(evaluation) || evaluation < 0 || evaluation > 5)) {
       return NextResponse.json({ error: 'La evaluación debe ser un número entre 0 y 5' }, { status: 400 })

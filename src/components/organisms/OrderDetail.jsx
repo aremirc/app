@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Plus } from "lucide-react"
+import { handleToast } from "@/lib/toast"
 import { useAuth } from "@/context/AuthContext"
 import Link from "next/link"
 import api from "@/lib/axios"
@@ -224,6 +225,7 @@ const OrderDetail = ({ orderId }) => {
                       locations: response.data,
                     }))
                     handleToast('Ubicaciones agregadas correctamente', 'success', 'Los cambios fueron guardados exitosamente.')
+                    setMapEditor(false)
                   }
                 } catch (err) {
                   console.error('Error al guardar ubicaciones:', err)

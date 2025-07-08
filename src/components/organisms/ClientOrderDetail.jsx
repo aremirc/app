@@ -208,6 +208,7 @@ const ClientOrderDetail = ({ orderId }) => {
                       locations: response.data,
                     }))
                     handleToast('Ubicaciones agregadas correctamente', 'success', 'Los cambios fueron guardados exitosamente.')
+                    setMapEditor(false)
                   }
                 } catch (err) {
                   console.error('Error al guardar ubicaciones:', err)

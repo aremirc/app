@@ -91,7 +91,7 @@ const defaultValues = {
   isActive: true,
 }
 
-const ClientCard = ({ client, handleCancel }) => {
+const ClientCard = ({ client, setClient, handleCancel }) => {
   const [step, setStep] = useState(1)
   const { addClientMutation, updateClientMutation } = useClients()
 
@@ -129,6 +129,8 @@ const ClientCard = ({ client, handleCancel }) => {
       } else {
         await addClientMutation.mutateAsync(data)
       }
+
+      setClient?.(data) // Actualiza el estado en el padre
       handleCancel() // Solo se ejecuta si la mutación fue exitosa
     } catch (error) {
       // Ya estás mostrando el toast de error dentro del hook

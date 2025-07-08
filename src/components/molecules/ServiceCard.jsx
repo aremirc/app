@@ -35,7 +35,7 @@ const defaultValues = {
   estimatedTime: "",
 }
 
-const ServiceCard = ({ service, handleCancel }) => {
+const ServiceCard = ({ service, setService, handleCancel }) => {
   const { addServiceMutation, updateServiceMutation } = useServices()
 
   const { control, handleSubmit, formState: { errors, isValid, isSubmitting }, setValue, watch, reset } = useForm({
@@ -56,6 +56,9 @@ const ServiceCard = ({ service, handleCancel }) => {
       } else {
         await addServiceMutation.mutateAsync(data)
       }
+
+      setService?.(data) // Actualiza el estado en el padre
+
       handleCancel() // Solo se ejecuta si la mutación fue exitosa
     } catch (error) {
       // Ya estás mostrando el toast de error dentro del hook
