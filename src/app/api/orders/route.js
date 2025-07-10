@@ -270,7 +270,7 @@ export async function POST(req) {
     const authResponse = await verifyAndLimit(req, "ADMIN")
     if (authResponse) return authResponse
 
-    const { clientId, description, status, scheduledDate, endDate, alternateContactName, alternateContactPhone, workers = [], services = [], responsibleId } = await req.json()
+    const { clientId, description, status, statusDetails, scheduledDate, endDate, alternateContactName, alternateContactPhone, workers = [], services = [], responsibleId } = await req.json()
 
     if (!clientId || !description || !status) {
       return NextResponse.json({ error: 'Todos los campos son requeridos' }, { status: 400 })
@@ -344,6 +344,7 @@ export async function POST(req) {
         clientId,
         description,
         status,
+        statusDetails,
         createdBy,
         ...(parsedScheduledDate && { scheduledDate: parsedScheduledDate }),
         ...(parsedEndDate && { endDate: parsedEndDate }),
@@ -402,7 +403,7 @@ export async function PUT(req) {
     const authResponse = await verifyAndLimit(req, ["ADMIN", "SUPERVISOR"])
     if (authResponse) return authResponse
 
-    const { id, description, status, clientId, workers = [], services = [], scheduledDate, endDate, alternateContactName, alternateContactPhone, responsibleId, updatedAt } = await req.json()
+    const { id, description, status, statusDetails, clientId, workers = [], services = [], scheduledDate, endDate, alternateContactName, alternateContactPhone, responsibleId, updatedAt } = await req.json()
 
     if (!id || !description || !status || !clientId) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
@@ -571,6 +572,7 @@ export async function PUT(req) {
       data: {
         description,
         status,
+        statusDetails,
         clientId,
         ...(parsedScheduledDate && { scheduledDate: parsedScheduledDate }),
         ...(parsedEndDate && { endDate: parsedEndDate }),

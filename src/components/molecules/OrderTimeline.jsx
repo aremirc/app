@@ -80,7 +80,10 @@ const OrderTimeline = ({ orders = [] }) => {
 
             <div className="group-hover:text-primary dark:group-hover:text-primary-dark flex items-center gap-2 p-2">
               <div className="flex flex-col">
-                <h5 className="font-semibold text-primary dark:text-primary-dark">
+                <h5
+                  className="font-semibold text-primary dark:text-primary-dark"
+                  title={order.description}
+                >
                   {order.client?.name ?? "(Sin cliente)"}
                 </h5>
                 <time
